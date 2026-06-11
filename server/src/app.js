@@ -1,0 +1,77 @@
+import express from 'express';
+import helmet from 'helmet';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
+import compression from 'compression';
+import pinoHttp from 'pino-http';
+import { env } from './config/env.js';
+import { logger } from './utils/logger.js';
+import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+import { generalLimiter } from './middleware/rateLimit.js';
+import { healthRouter } from './routes/health.js';
+import { authRouter } from './routes/auth.js';
+import { usersRouter } from './routes/users.js';
+import { sitesRouter } from './routes/sites.js';
+import { donationsRouter } from './routes/donations.js';
+import { allocationsRouter } from './routes/allocations.js';
+import { plantsRouter } from './routes/plants.js';
+import { maintenanceRouter } from './routes/maintenance.js';
+import { assignmentsRouter } from './routes/assignments.js';
+import { uploadsRouter } from './routes/uploads.js';
+
+export function createApp() {
+  const app = express();
+
+  app.set('trust proxy', 1);
+
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+      contentSecurityPolicy: env.isProd ? undefined : false,
+    }),
+  );
+
+  app.use(cors({ origin: env.CLIENT_ORIGIN, credentials: true }));
+
+  app.use(express.json({ limit: '1mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+  app.use(cookieParser());
+  app.use(compression());
+
+  app.use(
+    pinoHttp({
+      logger,
+      customLogLevel: (_req, res, err) => {
+        if (err || res.statusCode >= 500) return 'error';
+        return 'silent';
+      },
+      serializers: {
+        req(req) {
+          return { id: req.id, method: req.method, url: req.url };
+        },
+        res(res) {
+          return { statusCode: res.statusCode };
+        },
+      },
+      autoLogging: { ignore: (req) => req.url === '/api/health' },
+    }),
+  );
+
+  app.use('/api', generalLimiter);
+
+  app.use('/api/health', healthRouter);
+  app.use('/api/auth', authRouter);
+  app.use('/api/users', usersRouter);
+  app.use('/api/sites', sitesRouter);
+  app.use('/api/donations', donationsRouter);
+  app.use('/api/allocations', allocationsRouter);
+  app.use('/api/plants', plantsRouter);
+  app.use('/api/maintenance', maintenanceRouter);
+  app.use('/api/assignments', assignmentsRouter);
+  app.use('/api/uploads', uploadsRouter);
+
+  app.use(notFoundHandler);
+  app.use(errorHandler);
+
+  return app;
+}
