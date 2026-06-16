@@ -3,10 +3,12 @@ import { connectDb, disconnectDb } from './config/db.js';
 import { env } from './config/env.js';
 import { logger } from './utils/logger.js';
 import { seedNgoAdmin } from './services/auth/seedNgoAdmin.js';
+import { seedDevUsers } from './services/auth/seedDevUsers.js';
 
 async function main() {
   await connectDb();
   await seedNgoAdmin();
+  await seedDevUsers();
   const app = createApp();
   const server = app.listen(env.PORT, () => {
     logger.info({ port: env.PORT, env: env.NODE_ENV }, 'angio server listening');

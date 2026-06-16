@@ -1,0 +1,104 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Surfaces */
+    --background: 210 17% 98%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    /* Brand — leaf (emerald) */
+    --primary: 161 94% 30%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Quiet hero/positive panels (emerald-50) */
+    --secondary: 152 81% 96%;
+    --secondary-foreground: 161 94% 18%;
+
+    /* CTA / highlight — amber */
+    --accent: 38 92% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    /* Muted text + surfaces */
+    --muted: 210 17% 95%;
+    --muted-foreground: 215 16% 47%;
+
+    --destructive: 0 73% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 161 94% 30%;
+
+    --radius: 1.25rem; /* 20px — biophilic */
+  }
+
+  .dark {
+    --background: 222 47% 8%;
+    --foreground: 210 17% 98%;
+    --card: 222 47% 11%;
+    --card-foreground: 210 17% 98%;
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 17% 98%;
+    --primary: 161 84% 39%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 222 30% 17%;
+    --secondary-foreground: 152 81% 90%;
+    --accent: 38 92% 55%;
+    --accent-foreground: 222 47% 11%;
+    --muted: 222 30% 17%;
+    --muted-foreground: 215 16% 65%;
+    --destructive: 0 73% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 222 30% 20%;
+    --input: 222 30% 20%;
+    --ring: 161 84% 39%;
+  }
+
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading tracking-tight;
+  }
+
+  /* Honor reduced-motion site-wide. */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Visible focus ring everywhere, brand-tinted. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+}
+
+@layer components {
+  /* Brand surface — biophilic gradient used for auth panel + hero tiles. */
+  .surface-biophilic {
+    background:
+      radial-gradient(at 0% 0%, hsl(var(--secondary)) 0%, transparent 55%),
+      radial-gradient(at 100% 0%, hsla(38, 92%, 88%, 0.55) 0%, transparent 55%),
+      radial-gradient(at 50% 100%, hsla(161, 94%, 85%, 0.45) 0%, transparent 60%),
+      hsl(var(--card));
+  }
+
+  /* Bento card baseline — keep components consistent in radius/shadow. */
+  .bento-card {
+    @apply rounded-2xl bg-card text-card-foreground shadow-soft border border-border/60;
+  }
+}

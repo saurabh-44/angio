@@ -24,7 +24,7 @@ export const updateDonationSchema = z.object({
 export const listDonationsQuerySchema = z.object({
   donor: objectId.optional(),
   page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(100).default(20),
+  limit: z.coerce.number().int().positive().max(500).default(20),
 });
 
 export const createAllocationSchema = z.object({
@@ -46,5 +46,5 @@ export const listAllocationsQuerySchema = z.object({
   donor: objectId.optional(),
   site: objectId.optional(),
   page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(100).default(20),
+  limit: z.coerce.number().int().positive().max(500).default(20),
 });

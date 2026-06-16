@@ -4,10 +4,10 @@ import { jsonTransformPlugin } from './plugins/jsonTransform.js';
 
 export const ROLES = ['ngo_admin', 'donor', 'site_owner', 'volunteer'];
 
-// Roles that must complete an emailed OTP after entering their password.
-// Volunteers and donors stay on simple password login (with lockout) so
-// they can sign in quickly from the field / on the go.
-export const OTP_LOGIN_ROLES = new Set(['ngo_admin', 'site_owner']);
+// Every role completes an emailed OTP after entering their password —
+// donors and volunteers included. Trust matters more than friction here,
+// and email auth doubles as the verification trail for new accounts.
+export const OTP_LOGIN_ROLES = new Set(['ngo_admin', 'site_owner', 'donor', 'volunteer']);
 
 const userSchema = new Schema(
   {

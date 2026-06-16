@@ -4,9 +4,10 @@ import { User } from '../../models/User.js';
 import { HttpError } from '../../utils/httpError.js';
 
 async function assertVolunteer(volunteerId) {
-  const v = await User.findById(volunteerId).select('role isActive').lean();
+  const v = await User.findById(volunteerId).select('role isActive createdBy').lean();
   if (!v || !v.isActive) throw HttpError.badRequest('Volunteer not found');
   if (v.role !== 'volunteer') throw HttpError.badRequest('Selected user is not a volunteer');
+  return v;
 }
 
 async function assertCanWriteForSite(actor, siteId) {
@@ -21,9 +22,37 @@ async function assertCanWriteForSite(actor, siteId) {
   throw HttpError.forbidden('You do not have permission to manage assignments');
 }
 
+// A site_owner may only assign a volunteer they control: one they created
+// themselves, OR one already assigned to one of their sites by the NGO
+// admin (which is how the NGO "shares" a volunteer across owners).
+async function assertVolunteerAvailable(actor, volunteer) {
+  if (actor.role !== 'site_owner') return;
+
+  // Volunteers I created are always available.
+  if (volunteer.createdBy && String(volunteer.createdBy) === actor.userId) return;
+
+  // Otherwise they must already have an assignment on one of my sites
+  // (an NGO admin must have shared them with me first).
+  const mySites = await Site.find({ owner: actor.userId }).select('_id').lean();
+  const siteIds = mySites.map((s) => s._id);
+  if (siteIds.length === 0) {
+    throw HttpError.forbidden('This volunteer is not available to you');
+  }
+  const sharedAssignment = await Assignment.exists({
+    volunteer: volunteer._id,
+    site: { $in: siteIds },
+  });
+  if (!sharedAssignment) {
+    throw HttpError.forbidden(
+      'This volunteer was added by another site owner. Ask the NGO admin to assign them to one of your sites first.',
+    );
+  }
+}
+
 export async function createAssignment({ input, actor }) {
   await assertCanWriteForSite(actor, input.site);
-  await assertVolunteer(input.volunteer);
+  const volunteer = await assertVolunteer(input.volunteer);
+  await assertVolunteerAvailable(actor, volunteer);
   const a = await Assignment.create({ ...input, assignedBy: actor.userId });
   return a.toObject();
 }

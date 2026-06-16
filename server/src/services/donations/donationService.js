@@ -125,22 +125,40 @@ export async function createAllocation({ input, actor }) {
 function allocationReadFilter(actor) {
   if (actor.role === 'ngo_admin') return {};
   if (actor.role === 'donor') return { donor: actor.userId };
-  // site_owner is scoped via $in over their sites; resolved in listAllocations.
+  // site_owner / volunteer use a placeholder flag that gets resolved
+  // into a real `site: { $in: [...] }` filter in resolveScopes below.
   if (actor.role === 'site_owner') return { __siteOwnerScope: true };
+  if (actor.role === 'volunteer') return { __volunteerScope: true };
   throw HttpError.forbidden('You do not have permission to view allocations');
 }
 
-async function resolveSiteOwnerScope(actor, baseFilter) {
-  if (!baseFilter.__siteOwnerScope) return baseFilter;
-  const sites = await Site.find({ owner: actor.userId }).select('_id').lean();
-  const ids = sites.map((s) => s._id);
-  const { __siteOwnerScope, ...rest } = baseFilter;
-  return { ...rest, site: { $in: ids } };
+// Expands site_owner / volunteer scope placeholders into concrete
+// `site: { $in: [...] }` filters by looking up which sites the actor is
+// connected to (owned vs assigned). Donor / ngo_admin pass through.
+async function resolveScopes(actor, baseFilter) {
+  if (baseFilter.__siteOwnerScope) {
+    const sites = await Site.find({ owner: actor.userId }).select('_id').lean();
+    const ids = sites.map((s) => s._id);
+    const { __siteOwnerScope, ...rest } = baseFilter;
+    return { ...rest, site: { $in: ids } };
+  }
+  if (baseFilter.__volunteerScope) {
+    // Pull this in lazily — Assignment is in a sibling service file, so
+    // a static import would create a cycle.
+    const { Assignment } = await import('../../models/Assignment.js');
+    const assignments = await Assignment.find({ volunteer: actor.userId })
+      .select('site')
+      .lean();
+    const ids = assignments.map((a) => a.site);
+    const { __volunteerScope, ...rest } = baseFilter;
+    return { ...rest, site: { $in: ids } };
+  }
+  return baseFilter;
 }
 
 export async function listAllocations({ donation, donor, site, page, limit, actor }) {
   let filter = { ...allocationReadFilter(actor) };
-  filter = await resolveSiteOwnerScope(actor, filter);
+  filter = await resolveScopes(actor, filter);
   if (donation) filter.donation = donation;
   if (donor && actor.role === 'ngo_admin') filter.donor = donor;
   if (site) {

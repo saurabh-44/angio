@@ -28,5 +28,5 @@ export const listAssignmentsQuerySchema = z.object({
   kind: z.enum(ASSIGNMENT_KINDS).optional(),
   active: z.coerce.boolean().optional(),
   page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(100).default(50),
+  limit: z.coerce.number().int().positive().max(500).default(50),
 });

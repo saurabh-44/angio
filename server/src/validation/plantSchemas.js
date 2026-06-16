@@ -38,7 +38,7 @@ export const listPlantsQuerySchema = z.object({
   allocation: objectId.optional(),
   status: z.enum(PLANT_STATUSES).optional(),
   page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(100).default(20),
+  limit: z.coerce.number().int().positive().max(500).default(20),
 });
 
 export const createMaintenanceSchema = z.object({
@@ -53,5 +53,5 @@ export const listMaintenanceQuerySchema = z.object({
   site: objectId.optional(),
   donor: objectId.optional(),
   page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(100).default(20),
+  limit: z.coerce.number().int().positive().max(500).default(20),
 });

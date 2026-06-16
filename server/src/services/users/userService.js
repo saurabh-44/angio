@@ -1,6 +1,8 @@
 import bcrypt from 'bcryptjs';
 import { randomBytes } from 'node:crypto';
 import { User } from '../../models/User.js';
+import { Site } from '../../models/Site.js';
+import { Assignment } from '../../models/Assignment.js';
 import { HttpError } from '../../utils/httpError.js';
 import { sendMail } from '../../config/mail.js';
 import { accountCreatedTemplate } from '../../mail/templates/accountCreated.js';
@@ -18,18 +20,27 @@ function generateTempPassword() {
 // the recipient a temporary password. The new user is forced to change
 // the password on first sign-in (forcePasswordChange=true).
 //
-// `actor` is the authenticated principal performing the create.
-// Authorization: only ngo_admin may create users; only the PRIMARY
-// ngo_admin may create another ngo_admin. (The route layer enforces this
-// before calling, but we double-check defensively.)
+// Authorization:
+//   - ngo_admin can create any role; only the PRIMARY ngo_admin may create
+//     another ngo_admin.
+//   - site_owner can create volunteers only — they get stamped as
+//     `createdBy: site_owner._id` so the NGO admin can audit who added whom,
+//     AND so only THAT site_owner can assign them (unless NGO admin shares
+//     the volunteer to another site).
+//   - donor and volunteer roles can never create accounts.
 export async function createUser({ name, email, phone, role, actor }) {
-  if (actor.role !== 'ngo_admin') {
-    throw HttpError.forbidden('Only the NGO admin can create accounts');
-  }
-  if (role === 'ngo_admin' && !actor.isPrimary) {
-    throw HttpError.forbidden(
-      'Only the primary NGO admin can create additional NGO admins',
-    );
+  if (actor.role === 'ngo_admin') {
+    if (role === 'ngo_admin' && !actor.isPrimary) {
+      throw HttpError.forbidden(
+        'Only the primary NGO admin can create additional NGO admins',
+      );
+    }
+  } else if (actor.role === 'site_owner') {
+    if (role !== 'volunteer') {
+      throw HttpError.forbidden('Site owners can only add volunteer accounts');
+    }
+  } else {
+    throw HttpError.forbidden('You do not have permission to create accounts');
   }
 
   const existing = await User.findOne({ email }).select('_id').lean();
@@ -64,8 +75,26 @@ export async function createUser({ name, email, phone, role, actor }) {
   return user.toObject();
 }
 
+// Returns the ObjectId list of volunteers a site_owner is allowed to see:
+//   - volunteers they created themselves (createdBy === site_owner._id)
+//   - volunteers with at least one assignment on one of their sites
+// Anyone else (NGO admin) gets the full user collection.
+async function visibleVolunteerIdsForSiteOwner(actor) {
+  const mySites = await Site.find({ owner: actor.userId }).select('_id').lean();
+  const siteIds = mySites.map((s) => s._id);
+  const assignedVolunteerIds = siteIds.length
+    ? await Assignment.distinct('volunteer', { site: { $in: siteIds } })
+    : [];
+  return { siteIds, assignedVolunteerIds };
+}
+
 export async function listUsers({ role, q, page, limit, actor }) {
-  if (actor.role !== 'ngo_admin') {
+  // Site owners can list volunteers but only their own pool (created or
+  // already-assigned). Everything else still requires ngo_admin.
+  const siteOwnerVolunteerLookup =
+    actor.role === 'site_owner' && role === 'volunteer';
+
+  if (actor.role !== 'ngo_admin' && !siteOwnerVolunteerLookup) {
     throw HttpError.forbidden('Only the NGO admin can list users');
   }
   const filter = {};
@@ -74,11 +103,37 @@ export async function listUsers({ role, q, page, limit, actor }) {
     const rx = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
     filter.$or = [{ name: rx }, { email: rx }];
   }
+
+  let projection = null; // null = full doc
+
+  if (siteOwnerVolunteerLookup) {
+    const { assignedVolunteerIds } = await visibleVolunteerIdsForSiteOwner(actor);
+    // Either I created them OR they already have an assignment on one of
+    // my sites. Note: $or here is wrapped under an $and so it doesn't
+    // collide with a search query $or above.
+    const pool = {
+      $or: [
+        { createdBy: actor.userId },
+        { _id: { $in: assignedVolunteerIds } },
+      ],
+    };
+    Object.assign(filter, filter.$or ? { $and: [{ $or: filter.$or }, pool] } : pool);
+    if (filter.$and) delete filter.$or;
+    // Minimal projection — site owners don't need internal fields.
+    projection = 'name email phone role isActive createdBy';
+  }
+
   const skip = (page - 1) * limit;
-  const [items, total] = await Promise.all([
-    User.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
-    User.countDocuments(filter),
-  ]);
+  // Populate createdBy only for ngo_admin — site owners don't need to
+  // see who else might have onboarded a volunteer in their pool.
+  let query = User.find(filter, projection)
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+  if (actor.role === 'ngo_admin') {
+    query = query.populate('createdBy', 'name email role');
+  }
+  const [items, total] = await Promise.all([query.lean(), User.countDocuments(filter)]);
   return { items, total, page, limit };
 }
 
@@ -86,7 +141,7 @@ export async function getUser({ id, actor }) {
   if (actor.role !== 'ngo_admin') {
     throw HttpError.forbidden('Only the NGO admin can view users');
   }
-  const user = await User.findById(id).lean();
+  const user = await User.findById(id).populate('createdBy', 'name email role').lean();
   if (!user) throw HttpError.notFound('User not found');
   return user;
 }
