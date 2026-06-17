@@ -11,7 +11,7 @@ import { HttpError } from '../../utils/httpError.js';
 //   volunteer → plants they planted
 export async function plantReadFilter(actor) {
   if (actor.role === 'ngo_admin') return {};
-  if (actor.role === 'donor') return { donor: actor.userId };
+  if (actor.role === 'sponsor') return { donor: actor.userId };
   if (actor.role === 'volunteer') return { plantedBy: actor.userId };
   if (actor.role === 'site_owner') {
     const sites = await Site.find({ owner: actor.userId }).select('_id').lean();
@@ -50,17 +50,36 @@ export async function createPlant({ input, actor }) {
     throw HttpError.badRequest('This allocation has already met its target plant count');
   }
 
-  const plant = await Plant.create({
-    site: input.site,
-    allocation: input.allocation,
-    donor: allocation.donor,
-    species: input.species,
-    plantedBy: actor.userId,
-    plantedAt: input.plantedAt ?? new Date(),
-    geo: input.geo,
-    plantingPhoto: input.plantingPhoto,
-    notes: input.notes,
-  });
+  // Retry on the (vanishingly unlikely) publicCode unique-index
+  // collision so a volunteer's upload-then-submit doesn't get wasted by
+  // a one-in-2^72 birthday. After 3 attempts something else is wrong —
+  // surface it as a 500.
+  let plant;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      plant = await Plant.create({
+        site: input.site,
+        allocation: input.allocation,
+        donor: allocation.donor,
+        name: input.name,
+        species: input.species,
+        speciesRef: input.speciesRef,
+        plantedBy: actor.userId,
+        plantedAt: input.plantedAt ?? new Date(),
+        geo: input.geo,
+        plantingPhoto: input.plantingPhoto,
+        heightCm: input.heightCm,
+        growthStage: input.growthStage,
+        dryBiomassKg: input.dryBiomassKg,
+        notes: input.notes,
+      });
+      break;
+    } catch (err) {
+      if (err?.code === 11000 && err?.keyPattern?.publicCode && attempt < 2) continue;
+      throw err;
+    }
+  }
+  if (!plant) throw HttpError.server('Could not assign a unique tree code');
   return plant.toObject();
 }
 
@@ -82,6 +101,7 @@ export async function listPlants({ site, donor, allocation, status, page, limit,
   let query = Plant.find(filter)
     .populate('site', 'name address geo')
     .populate('plantedBy', 'name email')
+    .populate('speciesRef', 'name scientificName co2PerYearKg')
     .sort({ plantedAt: -1 })
     .skip(skip)
     .limit(limit);
@@ -100,7 +120,8 @@ export async function getPlant({ id, actor }) {
   let query = Plant.findOne({ _id: id, ...scope })
     .populate('site', 'name address geo')
     .populate('plantedBy', 'name email')
-    .populate('allocation', 'targetPlants allocatedAmount');
+    .populate('speciesRef', 'name scientificName co2PerYearKg')
+    .populate('allocation', 'targetPlants allocatedAmount project');
   if (includeDonorPopulate(actor)) {
     query = query.populate('donor', 'name email');
   }
@@ -179,19 +200,28 @@ export async function createMaintenanceLog({ input, actor }) {
 
   // Upsert by (plant, weekOf) — replaces an earlier same-week log so
   // donors see the latest weekly proof, not a duplicate.
+  //
+  // For the monitoring extensions (heightCm/dbhCm/healthStatus/
+  // diseaseNotes) we only $set the ones the volunteer actually
+  // submitted. Skipping an optional field on re-record shouldn't wipe
+  // a measurement that came in earlier this week.
+  const update = {
+    plant: input.plant,
+    site: plant.site,
+    donor: plant.donor,
+    volunteer: actor.userId,
+    weekOf,
+    photo: input.photo,
+    note: input.note,
+  };
+  if (input.heightCm != null) update.heightCm = input.heightCm;
+  if (input.dbhCm != null) update.dbhCm = input.dbhCm;
+  if (input.healthStatus) update.healthStatus = input.healthStatus;
+  if (input.diseaseNotes != null) update.diseaseNotes = input.diseaseNotes;
+
   const log = await MaintenanceLog.findOneAndUpdate(
     { plant: input.plant, weekOf },
-    {
-      $set: {
-        plant: input.plant,
-        site: plant.site,
-        donor: plant.donor,
-        volunteer: actor.userId,
-        weekOf,
-        photo: input.photo,
-        note: input.note,
-      },
-    },
+    { $set: update },
     { new: true, upsert: true },
   ).lean();
   return log;
@@ -199,7 +229,7 @@ export async function createMaintenanceLog({ input, actor }) {
 
 export async function listMaintenance({ plant, site, donor, page, limit, actor }) {
   let filter = {};
-  if (actor.role === 'donor') {
+  if (actor.role === 'sponsor') {
     filter.donor = actor.userId;
   } else if (actor.role === 'volunteer') {
     filter.volunteer = actor.userId;

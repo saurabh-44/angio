@@ -30,22 +30,32 @@ const DonationsPage = lazy(() => import('@/pages/admin/DonationsPage.jsx'));
 const PlantsPage = lazy(() => import('@/pages/admin/PlantsPage.jsx'));
 const MaintenancePage = lazy(() => import('@/pages/admin/MaintenancePage.jsx'));
 const AssignmentsPage = lazy(() => import('@/pages/admin/AssignmentsPage.jsx'));
+const ImportPage = lazy(() => import('@/pages/admin/ImportPage.jsx'));
+const SpeciesPage = lazy(() => import('@/pages/admin/SpeciesPage.jsx'));
+const ProjectsPage = lazy(() => import('@/pages/admin/ProjectsPage.jsx'));
 
 // Site Owner home (other site routes reuse the admin pages)
 const SiteHome = lazy(() => import('@/pages/site/SiteHome.jsx'));
 
-// Donor chunks
-const DonorHome = lazy(() => import('@/pages/donor/DonorHome.jsx'));
-const DonorTrees = lazy(() => import('@/pages/donor/DonorTrees.jsx'));
-const DonorMap = lazy(() => import('@/pages/donor/DonorMap.jsx'));
-const DonorMaintenance = lazy(() => import('@/pages/donor/DonorMaintenance.jsx'));
-const DonorDonations = lazy(() => import('@/pages/donor/DonorDonations.jsx'));
+// Sponsor chunks
+const SponsorHome = lazy(() => import('@/pages/sponsor/SponsorHome.jsx'));
+const SponsorTrees = lazy(() => import('@/pages/sponsor/SponsorTrees.jsx'));
+const SponsorMap = lazy(() => import('@/pages/sponsor/SponsorMap.jsx'));
+const SponsorMaintenance = lazy(() => import('@/pages/sponsor/SponsorMaintenance.jsx'));
+const SponsorDonations = lazy(() => import('@/pages/sponsor/SponsorDonations.jsx'));
+const SponsorTree = lazy(() => import('@/pages/sponsor/SponsorTree.jsx'));
 
 // Volunteer chunks
 const VolunteerHome = lazy(() => import('@/pages/volunteer/VolunteerHome.jsx'));
 const VolunteerAssignments = lazy(() => import('@/pages/volunteer/VolunteerAssignments.jsx'));
 const RecordPlanting = lazy(() => import('@/pages/volunteer/RecordPlanting.jsx'));
 const RecordMaintenance = lazy(() => import('@/pages/volunteer/RecordMaintenance.jsx'));
+
+// Public no-auth tree verification page — destination of QR scans.
+const PublicTree = lazy(() => import('@/pages/PublicTree.jsx'));
+
+// Shared in-app QR scanner used by ngo_admin, site_owner, volunteer.
+const Scan = lazy(() => import('@/pages/Scan.jsx'));
 
 // Full-page spinner for public auth routes (which don't render AppLayout).
 function FullPageSpinner() {
@@ -104,7 +114,10 @@ export default function AppRouter() {
           <Route path="plants" element={<PlantsPage />} />
           <Route path="maintenance" element={<MaintenancePage />} />
           <Route path="assignments" element={<AssignmentsPage />} />
-          <Route path="map" element={<DonorMap />} />
+          <Route path="species" element={<SpeciesPage />} />
+          <Route path="projects" element={<ProjectsPage />} />
+          <Route path="map" element={<SponsorMap />} />
+          <Route path="import" element={<ImportPage />} />
         </Route>
 
         {/* Site Owner tree — admin pages used as-is, scoped by backend. */}
@@ -123,20 +136,21 @@ export default function AppRouter() {
           <Route path="maintenance" element={<MaintenancePage />} />
         </Route>
 
-        {/* Donor tree */}
+        {/* Sponsor tree */}
         <Route
-          path="/donor"
+          path="/sponsor"
           element={
-            <PrivateRoute roles={['donor']}>
+            <PrivateRoute roles={['sponsor']}>
               <AppLayout />
             </PrivateRoute>
           }
         >
-          <Route index element={<DonorHome />} />
-          <Route path="trees" element={<DonorTrees />} />
-          <Route path="map" element={<DonorMap />} />
-          <Route path="maintenance" element={<DonorMaintenance />} />
-          <Route path="donations" element={<DonorDonations />} />
+          <Route index element={<SponsorHome />} />
+          <Route path="sponsor" element={<SponsorTree />} />
+          <Route path="trees" element={<SponsorTrees />} />
+          <Route path="map" element={<SponsorMap />} />
+          <Route path="maintenance" element={<SponsorMaintenance />} />
+          <Route path="donations" element={<SponsorDonations />} />
         </Route>
 
         {/* Volunteer tree */}
@@ -152,6 +166,30 @@ export default function AppRouter() {
           <Route path="assignments" element={<VolunteerAssignments />} />
           <Route path="plant" element={<RecordPlanting />} />
           <Route path="maintenance" element={<RecordMaintenance />} />
+        </Route>
+
+        {/* Public no-auth QR-scan destination. Not gated; cached at the
+            page level to be fast for someone scanning in the field. */}
+        <Route
+          path="/tree/:code"
+          element={
+            <Suspense fallback={<FullPageSpinner />}>
+              <PublicTree />
+            </Suspense>
+          }
+        />
+
+        {/* In-app QR scanner. Available to every field role; donor never
+            needs it (their dashboard already lists their trees). */}
+        <Route
+          path="/scan"
+          element={
+            <PrivateRoute roles={['ngo_admin', 'site_owner', 'volunteer']}>
+              <AppLayout />
+            </PrivateRoute>
+          }
+        >
+          <Route index element={<Scan />} />
         </Route>
 
         {/* Index — marketing landing when signed out, role home when signed in. */}

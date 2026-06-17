@@ -66,6 +66,9 @@
   body {
     @apply bg-background text-foreground font-sans;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    /* Belt-and-suspenders guard against decorative SVGs or wide
+       content nudging the viewport sideways on phones. */
+    overflow-x: hidden;
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-heading tracking-tight;

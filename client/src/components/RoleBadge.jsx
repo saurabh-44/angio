@@ -4,7 +4,7 @@ import { ROLE_LABEL } from '@/lib/auth.jsx';
 const VARIANT_BY_ROLE = {
   ngo_admin: 'default',
   site_owner: 'accent',
-  donor: 'success',
+  sponsor: 'success',
   volunteer: 'secondary',
 };
 

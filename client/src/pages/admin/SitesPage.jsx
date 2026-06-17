@@ -6,6 +6,7 @@ import {
   MoreHorizontal,
   Navigation,
   Plus,
+  Printer,
   Search,
   Trash2,
 } from 'lucide-react';
@@ -200,6 +201,21 @@ export default function SitesPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => setEditing(s)}>Edit</DropdownMenuItem>
+                          <DropdownMenuItem
+                            onSelect={() => {
+                              // window.open over a navigation so the PDF
+                              // opens in a new tab and the user stays on
+                              // the sites list. Cookies travel because the
+                              // /api path is same-origin (Vite proxy).
+                              window.open(
+                                `/api/sites/${s.id ?? s._id}/qr-sheet.pdf`,
+                                '_blank',
+                                'noopener,noreferrer',
+                              );
+                            }}
+                          >
+                            <Printer className="mr-2 h-4 w-4" /> Print QR sheet
+                          </DropdownMenuItem>
                           {canDelete && (
                             <>
                               <DropdownMenuSeparator />
@@ -290,6 +306,28 @@ function SiteFormFields({ register, errors, owner, setOwner, disabled, onUseMyLo
           disabled={disabled}
           {...register('address')}
         />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label htmlFor="site-city">City</Label>
+          <Input id="site-city" placeholder="City" disabled={disabled} {...register('city')} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="site-state">State</Label>
+          <Input id="site-state" placeholder="State" disabled={disabled} {...register('state')} />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label htmlFor="site-country">Country</Label>
+          <Input id="site-country" placeholder="Country" disabled={disabled} {...register('country')} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="site-pin">PIN code</Label>
+          <Input id="site-pin" placeholder="PIN / ZIP" disabled={disabled} {...register('pinCode')} />
+        </div>
       </div>
 
       <div className="space-y-2">
@@ -408,6 +446,10 @@ function SiteFormDialog({ open, onOpenChange }) {
       await create.mutateAsync({
         name: values.name.trim(),
         address: values.address?.trim() || undefined,
+        city: values.city?.trim() || undefined,
+        state: values.state?.trim() || undefined,
+        country: values.country?.trim() || undefined,
+        pinCode: values.pinCode?.trim() || undefined,
         geo: { lat: values.lat, lng: values.lng },
         capacity: values.capacity || 0,
         owner,
@@ -464,6 +506,10 @@ function SiteFormSheet({ site, onClose }) {
     () => ({
       name: site?.name ?? '',
       address: site?.address ?? '',
+      city: site?.city ?? '',
+      state: site?.state ?? '',
+      country: site?.country ?? '',
+      pinCode: site?.pinCode ?? '',
       lat: site?.geo?.lat ?? 0,
       lng: site?.geo?.lng ?? 0,
       capacity: site?.capacity ?? 0,
@@ -517,6 +563,10 @@ function SiteFormSheet({ site, onClose }) {
         patch: {
           name: values.name.trim(),
           address: values.address?.trim() ?? '',
+          city: values.city?.trim() ?? '',
+          state: values.state?.trim() ?? '',
+          country: values.country?.trim() ?? '',
+          pinCode: values.pinCode?.trim() ?? '',
           geo: { lat: values.lat, lng: values.lng },
           capacity: values.capacity || 0,
           owner: owner || undefined,

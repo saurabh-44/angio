@@ -53,7 +53,7 @@ test('Mongoose doc has _id', () => {
     email: 'a@b.test',
     passwordHash: 'x',
     name: 'A',
-    role: 'donor',
+    role: 'sponsor',
   });
   assert.ok(u._id instanceof Types.ObjectId, 'doc._id is an ObjectId');
   assert.equal(typeof String(u._id), 'string');
@@ -65,7 +65,7 @@ test('the global plugin transform strips _id from toObject()', () => {
     email: 'a@b.test',
     passwordHash: 'should-not-appear',
     name: 'A',
-    role: 'donor',
+    role: 'sponsor',
   });
   const obj = u.toObject();
   assert.equal(obj._id, undefined, 'toObject() must strip _id (this is the bug source)');
@@ -79,7 +79,7 @@ test('the same transform applies to toJSON()', () => {
     email: 'a@b.test',
     passwordHash: 'x',
     name: 'A',
-    role: 'donor',
+    role: 'sponsor',
   });
   const json = JSON.parse(JSON.stringify(u));
   assert.equal(json._id, undefined);
@@ -94,7 +94,7 @@ test('signAccessToken with a Mongoose doc produces a valid sub claim', () => {
     email: 'a@b.test',
     passwordHash: 'x',
     name: 'A',
-    role: 'donor',
+    role: 'sponsor',
   });
   const subject = {
     userId: String(u._id),
@@ -107,7 +107,7 @@ test('signAccessToken with a Mongoose doc produces a valid sub claim', () => {
   assert.notEqual(decoded.sub, 'undefined', 'this is the canary — sub must NOT be the string "undefined"');
   assert.equal(decoded.sub, String(u._id));
   assert.ok(Types.ObjectId.isValid(decoded.sub), 'sub must be a valid ObjectId string');
-  assert.equal(decoded.role, 'donor');
+  assert.equal(decoded.role, 'sponsor');
   assert.equal(decoded.tv, 0);
 });
 
@@ -119,7 +119,7 @@ test('REGRESSION: signing with .toObject() output reproduces the original bug', 
     email: 'a@b.test',
     passwordHash: 'x',
     name: 'A',
-    role: 'donor',
+    role: 'sponsor',
   });
   const stripped = u.toObject(); // bug: _id is gone
   const subject = {
@@ -205,7 +205,7 @@ test('JWT carries jti and tv', () => {
 });
 
 test('JWT access secret is enforced — wrong secret cannot verify', () => {
-  const subject = { userId: String(new Types.ObjectId()), role: 'donor', tokenVersion: 0 };
+  const subject = { userId: String(new Types.ObjectId()), role: 'sponsor', tokenVersion: 0 };
   const { token } = signAccessToken(subject);
   // Sign a forged token with a different secret.
   const forged = jwt.sign({ sub: 'attacker', jti: 'x', tv: 0, role: 'ngo_admin' }, 'different-secret-still-32-chars-aaaa');
@@ -215,7 +215,7 @@ test('JWT access secret is enforced — wrong secret cannot verify', () => {
 });
 
 test('access token expires per JWT_ACCESS_TTL_MIN', () => {
-  const subject = { userId: String(new Types.ObjectId()), role: 'donor', tokenVersion: 0 };
+  const subject = { userId: String(new Types.ObjectId()), role: 'sponsor', tokenVersion: 0 };
   const { token } = signAccessToken(subject);
   const decoded = jwt.decode(token);
   const expectedTtlSec = 15 * 60;

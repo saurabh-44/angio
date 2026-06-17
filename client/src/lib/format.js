@@ -38,3 +38,21 @@ export function formatGeo(geo) {
   if (!geo || geo.lat == null || geo.lng == null) return '—';
   return `${geo.lat.toFixed(5)}, ${geo.lng.toFixed(5)}`;
 }
+
+// Tree height. Stored in cm, displayed in metres above 100cm so a
+// reader sees "1.85 m" instead of "185 cm".
+export function formatHeight(cm) {
+  if (cm == null) return '—';
+  const n = Number(cm);
+  if (!Number.isFinite(n)) return '—';
+  if (n >= 100) return `${(n / 100).toFixed(2)} m`;
+  return `${Math.round(n)} cm`;
+}
+
+// DBH stays in cm — forestry standard. Round to one decimal.
+export function formatDbh(cm) {
+  if (cm == null) return '—';
+  const n = Number(cm);
+  if (!Number.isFinite(n)) return '—';
+  return `${n.toFixed(1)} cm`;
+}

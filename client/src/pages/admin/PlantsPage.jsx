@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Filter, Leaf, X } from 'lucide-react';
 import PageHeader from '@/components/PageHeader.jsx';
 import EmptyState from '@/components/EmptyState.jsx';
+import ExportButton from '@/components/ExportButton.jsx';
 import Pagination from '@/components/Pagination.jsx';
 import PlantCard from '@/components/PlantCard.jsx';
 import PlantDetailSheet from '@/components/PlantDetailSheet.jsx';
@@ -19,6 +20,14 @@ import { useSites } from '@/queries/sites.js';
 
 const STATUSES = ['alive', 'dead', 'removed'];
 const LIMIT = 24;
+
+function buildPlantExportQuery({ site, status }) {
+  const sp = new URLSearchParams();
+  if (site) sp.set('site', site);
+  if (status) sp.set('status', status);
+  const qs = sp.toString();
+  return qs ? `?${qs}` : '';
+}
 
 export default function PlantsPage() {
   const [site, setSite] = useState('');
@@ -45,6 +54,11 @@ export default function PlantsPage() {
         eyebrow="Verified planting"
         title="Plants"
         description="Every tree volunteers have planted, with GPS and photo evidence."
+        actions={
+          <ExportButton
+            href={`/api/excel/export/plants.xlsx${buildPlantExportQuery({ site, status })}`}
+          />
+        }
       />
 
       <div className="bento-card p-4 mb-5 flex flex-col sm:flex-row gap-3 sm:items-center">

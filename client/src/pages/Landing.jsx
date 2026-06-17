@@ -172,7 +172,7 @@ function Hero() {
           className="mt-6 text-base sm:text-lg text-muted-foreground max-w-2xl leading-relaxed"
           variants={v.fadeUp}
         >
-          Donors pay. Volunteers plant. Site owners care for the saplings every week. You get
+          Sponsors pay. Volunteers plant. Site owners care for the saplings every week. You get
           geo-tagged photo proof &mdash; from the moment a tree goes in the ground to the day it
           starts giving shade.
         </motion.p>
@@ -202,7 +202,7 @@ function Hero() {
             <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Weekly maintenance log
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Donor-scoped dashboards
+            <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Sponsor-scoped dashboards
           </span>
         </motion.div>
       </motion.div>
@@ -317,7 +317,7 @@ function ImpactStrip() {
         {[
           ['47,238', 'Trees planted'],
           ['216', 'Active sites'],
-          ['412', 'Donors trust us'],
+          ['412', 'Sponsors trust us'],
           ['98.4%', 'Watered on time'],
         ].map(([value, label]) => (
           <motion.div key={label} variants={v.fadeUp}>
@@ -415,7 +415,7 @@ function Roles() {
   const cards = [
     {
       icon: HandCoins,
-      title: 'For donors',
+      title: 'For sponsors',
       body: 'Sign in to see where your trees are, photos of every planting, and weekly watering proof.',
       tone: 'leaf',
     },
@@ -434,7 +434,7 @@ function Roles() {
     {
       icon: Users,
       title: 'For the NGO',
-      body: 'See everything. Onboard donors, allocate funds, assign volunteers, and prove your impact.',
+      body: 'See everything. Onboard sponsors, allocate funds, assign volunteers, and prove your impact.',
       tone: 'leaf',
     },
   ];
@@ -461,8 +461,8 @@ function Roles() {
             One platform. Four perspectives.
           </motion.h2>
           <motion.p className="mt-3 text-muted-foreground" variants={v.fadeUp}>
-            Each role sees exactly what they need &mdash; nothing more, nothing less. Donor data stays
-            private to the donor, site data stays with its owner.
+            Each role sees exactly what they need &mdash; nothing more, nothing less. Sponsor data stays
+            private to the sponsor, site data stays with its owner.
           </motion.p>
         </motion.div>
 
@@ -564,7 +564,7 @@ function TrustBlock() {
                 a real photo with the GPS pin to prove it."
               </blockquote>
               <div className="text-sm text-muted-foreground">
-                &mdash; A donor, after their first weekly update
+                &mdash; A sponsor, after their first weekly update
               </div>
             </motion.div>
           </Tilt3D>
@@ -605,7 +605,7 @@ function ClosingCta() {
           </Button>
         </motion.div>
         <motion.p className="mt-6 text-xs text-card/50" variants={v.fadeUp}>
-          New here? Donor, site owner, and volunteer accounts are created by the NGO. Contact them
+          New here? Sponsor, site owner, and volunteer accounts are created by the NGO. Contact them
           to get yours.
         </motion.p>
       </motion.div>

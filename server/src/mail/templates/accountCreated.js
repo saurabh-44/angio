@@ -2,7 +2,7 @@ import { escapeHtml, shellTemplate } from './_shared.js';
 
 const ROLE_LABELS = {
   ngo_admin: 'NGO Admin',
-  donor: 'Donor',
+  sponsor: 'Sponsor',
   site_owner: 'Site Owner',
   volunteer: 'Volunteer',
 };

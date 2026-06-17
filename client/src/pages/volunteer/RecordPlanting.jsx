@@ -20,7 +20,16 @@ import { useToast } from '@/components/ui/toast.jsx';
 import { useAssignments } from '@/queries/assignments.js';
 import { useAllocations } from '@/queries/donations.js';
 import { useCreatePlant } from '@/queries/plants.js';
+import { useSpeciesList } from '@/queries/species.js';
 import { ApiError } from '@/lib/api.js';
+
+const CUSTOM_SPECIES = '__custom__';
+const GROWTH_STAGES = [
+  { value: 'seedling', label: 'Seedling' },
+  { value: 'sapling', label: 'Sapling' },
+  { value: 'young', label: 'Young' },
+  { value: 'mature', label: 'Mature' },
+];
 
 // Volunteer's planting-capture form. Each step is gated by the previous
 // one so a volunteer in the field can't skip GPS or photo. Submit lands
@@ -44,9 +53,17 @@ export default function RecordPlanting() {
 
   const [siteId, setSiteId] = useState(location.state?.siteId ?? '');
   const [allocationId, setAllocationId] = useState('');
+  const [speciesRef, setSpeciesRef] = useState('');
   const [species, setSpecies] = useState('');
+  const [name, setName] = useState('');
+  const [heightCm, setHeightCm] = useState('');
+  const [growthStage, setGrowthStage] = useState('');
+  const [dryBiomassKg, setDryBiomassKg] = useState('');
   const [geo, setGeo] = useState({ lat: null, lng: null });
   const [photo, setPhoto] = useState(null);
+
+  const { data: speciesData } = useSpeciesList({ limit: 200, isActive: true });
+  const speciesOptions = speciesData?.items ?? [];
 
   const { data: allocsData, isLoading: loadingAllocs } = useAllocations({
     site: siteId || undefined,
@@ -63,14 +80,26 @@ export default function RecordPlanting() {
     e.preventDefault();
     if (!ready) return;
     try {
+      // If the volunteer picked from the dropdown, send both the
+      // master ID and the denormalised name (so exports stay
+      // self-contained). Free-text submissions only carry the name.
+      const picked = speciesOptions.find(
+        (s) => (s.id ?? s._id) === speciesRef,
+      );
+      const speciesName = picked ? picked.name : species.trim();
       await create.mutateAsync({
         site: siteId,
         allocation: allocationId,
-        species: species.trim() || undefined,
+        name: name.trim() || undefined,
+        species: speciesName || undefined,
+        speciesRef: picked ? (picked.id ?? picked._id) : undefined,
+        heightCm: heightCm !== '' ? Number(heightCm) : undefined,
+        growthStage: growthStage || undefined,
+        dryBiomassKg: dryBiomassKg !== '' ? Number(dryBiomassKg) : undefined,
         geo,
         plantingPhoto: photo,
       });
-      success('Tree recorded!', 'Thanks for your work — the donor will see it shortly.');
+      success('Tree recorded!', 'Thanks for your work — the sponsor will see it shortly.');
       navigate('/volunteer');
     } catch (err) {
       toastError(
@@ -107,7 +136,7 @@ export default function RecordPlanting() {
       <PageHeader
         eyebrow="Field work"
         title="Record a planting"
-        description="Capture the location, snap a photo, and submit — the donor will see it right away."
+        description="Capture the location, snap a photo, and submit — the sponsor will see it right away."
       />
 
       <form onSubmit={submit} className="space-y-6 max-w-2xl">
@@ -123,7 +152,7 @@ export default function RecordPlanting() {
         </Section>
 
         {siteId && (
-          <Section step="2" title="Which donor's funding is this for?">
+          <Section step="2" title="Which sponsor's funding is this for?">
             {loadingAllocs ? (
               <Skeleton className="h-11 w-full" />
             ) : allocations.length === 0 ? (
@@ -136,7 +165,7 @@ export default function RecordPlanting() {
                 <SelectContent>
                   {allocations.map((a) => (
                     <SelectItem key={a.id ?? a._id} value={a.id ?? a._id}>
-                      {a.donor?.name ?? 'Donor'} — target {a.targetPlants} trees
+                      {a.donor?.name ?? 'Sponsor'} — target {a.targetPlants} trees
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -147,13 +176,111 @@ export default function RecordPlanting() {
 
         {allocationId && (
           <Section step="3" title="What did you plant?">
-            <Label htmlFor="species" className="sr-only">Species</Label>
-            <Input
-              id="species"
-              value={species}
-              onChange={(e) => setSpecies(e.target.value)}
-              placeholder="e.g. Mango, Neem, Banyan (optional)"
-            />
+            <div className="mb-3 space-y-1.5">
+              <Label htmlFor="plant-name" className="text-xs text-muted-foreground">
+                Tree name (optional)
+              </Label>
+              <Input
+                id="plant-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Defaults to the species name"
+              />
+            </div>
+            {speciesOptions.length > 0 ? (
+              <div className="space-y-3">
+                <div>
+                  <Label className="sr-only">Species</Label>
+                  <Select
+                    value={speciesRef || (species ? CUSTOM_SPECIES : '')}
+                    onValueChange={(v) => {
+                      if (v === CUSTOM_SPECIES) {
+                        setSpeciesRef('');
+                      } else {
+                        setSpeciesRef(v);
+                        setSpecies('');
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pick a species (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {speciesOptions.map((s) => (
+                        <SelectItem key={s.id ?? s._id} value={s.id ?? s._id}>
+                          {s.name}
+                          {s.scientificName && (
+                            <span className="text-muted-foreground italic">
+                              {' '}· {s.scientificName}
+                            </span>
+                          )}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value={CUSTOM_SPECIES}>Type a custom name…</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {!speciesRef && (
+                  <div>
+                    <Label htmlFor="species" className="sr-only">Custom species name</Label>
+                    <Input
+                      id="species"
+                      value={species}
+                      onChange={(e) => setSpecies(e.target.value)}
+                      placeholder="e.g. Mango, Neem, Banyan (optional)"
+                    />
+                  </div>
+                )}
+              </div>
+            ) : (
+              <>
+                <Label htmlFor="species" className="sr-only">Species</Label>
+                <Input
+                  id="species"
+                  value={species}
+                  onChange={(e) => setSpecies(e.target.value)}
+                  placeholder="e.g. Mango, Neem, Banyan (optional)"
+                />
+              </>
+            )}
+
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 border-t border-border/50 pt-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="heightCm" className="text-xs text-muted-foreground">Height (cm)</Label>
+                <Input
+                  id="heightCm"
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={heightCm}
+                  onChange={(e) => setHeightCm(e.target.value)}
+                  placeholder="Optional"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Growth stage</Label>
+                <Select value={growthStage || undefined} onValueChange={setGrowthStage}>
+                  <SelectTrigger><SelectValue placeholder="Optional" /></SelectTrigger>
+                  <SelectContent>
+                    {GROWTH_STAGES.map((g) => (
+                      <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="dryBiomassKg" className="text-xs text-muted-foreground">Dry biomass (kg)</Label>
+                <Input
+                  id="dryBiomassKg"
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={dryBiomassKg}
+                  onChange={(e) => setDryBiomassKg(e.target.value)}
+                  placeholder="Optional"
+                />
+              </div>
+            </div>
           </Section>
         )}
 

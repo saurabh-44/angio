@@ -69,11 +69,18 @@ import {
   useUpdateUser,
   useUsers,
 } from '@/queries/users.js';
+import { useSites } from '@/queries/sites.js';
 import { ApiError } from '@/lib/api.js';
 import { formatDate } from '@/lib/format.js';
 import { cn } from '@/lib/utils';
 
-const ROLE_OPTIONS = ['donor', 'site_owner', 'volunteer', 'ngo_admin'];
+const ROLE_OPTIONS = ['sponsor', 'site_owner', 'volunteer', 'ngo_admin'];
+const GENDER_OPTIONS = [
+  { value: 'male', label: 'Male' },
+  { value: 'female', label: 'Female' },
+  { value: 'other', label: 'Other' },
+  { value: 'prefer_not_to_say', label: 'Prefer not to say' },
+];
 const LIMIT = 20;
 
 export default function UsersPage() {
@@ -100,7 +107,7 @@ export default function UsersPage() {
       <PageHeader
         eyebrow="People"
         title="Users"
-        description="Donors, site owners, and volunteers in the system. NGO admins can be added here too."
+        description="Sponsors, site owners, and volunteers in the system. NGO admins can be added here too."
         actions={
           <Button onClick={() => setCreateOpen(true)} className="cursor-pointer">
             <UserPlus className="h-4 w-4" /> Add user
@@ -152,7 +159,7 @@ export default function UsersPage() {
             description={
               q || role
                 ? 'Try clearing the filter or search.'
-                : 'Add a donor, site owner, or volunteer to get started.'
+                : 'Add a sponsor, site owner, or volunteer to get started.'
             }
             action={
               <Button onClick={() => setCreateOpen(true)}>
@@ -277,6 +284,7 @@ function RowMenu({ user, actor, onEdit, onDelete }) {
 function CreateUserDialog({ open, onOpenChange, actor }) {
   const create = useCreateUser();
   const { success, error: toastError } = useToast();
+  const [preferredSites, setPreferredSites] = useState([]);
   const {
     register,
     handleSubmit,
@@ -284,19 +292,30 @@ function CreateUserDialog({ open, onOpenChange, actor }) {
     reset,
     setValue,
     watch,
-  } = useForm({ defaultValues: { role: 'donor' } });
+  } = useForm({ defaultValues: { role: 'sponsor', gender: '' } });
   const role = watch('role');
+  const gender = watch('gender');
+
+  function resetAll() {
+    reset({ role: 'sponsor', gender: '' });
+    setPreferredSites([]);
+  }
 
   async function onSubmit(values) {
     try {
       const created = await create.mutateAsync({
-        name: values.name.trim(),
+        firstName: values.firstName.trim(),
+        lastName: values.lastName.trim(),
         email: values.email.trim(),
         phone: values.phone?.trim() || undefined,
+        dob: values.dob || undefined,
+        gender: values.gender || undefined,
         role: values.role,
+        preferredSites:
+          values.role === 'volunteer' && preferredSites.length ? preferredSites : undefined,
       });
       success('User created', `A temp password was emailed to ${created.user.email}.`);
-      reset({ role: 'donor' });
+      resetAll();
       onOpenChange(false);
     } catch (err) {
       toastError(
@@ -313,7 +332,7 @@ function CreateUserDialog({ open, onOpenChange, actor }) {
       open={open}
       onOpenChange={(o) => {
         onOpenChange(o);
-        if (!o) reset({ role: 'donor' });
+        if (!o) resetAll();
       }}
     >
       <DialogContent>
@@ -325,17 +344,31 @@ function CreateUserDialog({ open, onOpenChange, actor }) {
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-          <div className="space-y-2">
-            <Label htmlFor="name">Full name</Label>
-            <Input
-              id="name"
-              autoComplete="off"
-              disabled={create.isPending}
-              {...register('name', { required: 'Required' })}
-            />
-            {errors.name && (
-              <p className="text-xs text-destructive">{errors.name.message}</p>
-            )}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="firstName">First name</Label>
+              <Input
+                id="firstName"
+                autoComplete="off"
+                disabled={create.isPending}
+                {...register('firstName', { required: 'Required' })}
+              />
+              {errors.firstName && (
+                <p className="text-xs text-destructive">{errors.firstName.message}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="lastName">Last name</Label>
+              <Input
+                id="lastName"
+                autoComplete="off"
+                disabled={create.isPending}
+                {...register('lastName', { required: 'Required' })}
+              />
+              {errors.lastName && (
+                <p className="text-xs text-destructive">{errors.lastName.message}</p>
+              )}
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -355,9 +388,40 @@ function CreateUserDialog({ open, onOpenChange, actor }) {
             )}
           </div>
 
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="dob">Date of birth</Label>
+              <Input id="dob" type="date" disabled={create.isPending} {...register('dob')} />
+            </div>
+            <div className="space-y-2">
+              <Label>Gender</Label>
+              <Select value={gender || undefined} onValueChange={(v) => setValue('gender', v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {GENDER_OPTIONS.map((g) => (
+                    <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           <div className="space-y-2">
-            <Label htmlFor="phone">Phone (optional)</Label>
-            <Input id="phone" disabled={create.isPending} {...register('phone')} />
+            <Label htmlFor="phone">
+              Phone {role === 'sponsor' ? '' : '(optional)'}
+            </Label>
+            <Input
+              id="phone"
+              disabled={create.isPending}
+              {...register('phone', {
+                required: role === 'sponsor' ? 'Phone is required for sponsors' : false,
+              })}
+            />
+            {errors.phone && (
+              <p className="text-xs text-destructive">{errors.phone.message}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -379,6 +443,14 @@ function CreateUserDialog({ open, onOpenChange, actor }) {
             )}
           </div>
 
+          {role === 'volunteer' && (
+            <PreferredSitesPicker
+              value={preferredSites}
+              onChange={setPreferredSites}
+              disabled={create.isPending}
+            />
+          )}
+
           <DialogFooter>
             <Button
               type="button"
@@ -399,6 +471,47 @@ function CreateUserDialog({ open, onOpenChange, actor }) {
   );
 }
 
+function PreferredSitesPicker({ value, onChange, disabled }) {
+  const { data, isLoading } = useSites({ limit: 200 });
+  const sites = data?.items ?? [];
+  function toggle(id) {
+    onChange(value.includes(id) ? value.filter((s) => s !== id) : [...value, id]);
+  }
+  return (
+    <div className="space-y-2">
+      <Label>
+        Preferred site(s) <span className="font-normal text-muted-foreground">(optional)</span>
+      </Label>
+      <div className="max-h-40 overflow-y-auto rounded-xl border border-border/60 bg-secondary/30 p-2 space-y-1">
+        {isLoading ? (
+          <p className="px-2 py-1.5 text-xs text-muted-foreground">Loading sites…</p>
+        ) : sites.length === 0 ? (
+          <p className="px-2 py-1.5 text-xs text-muted-foreground">No sites yet.</p>
+        ) : (
+          sites.map((s) => {
+            const id = s.id ?? s._id;
+            return (
+              <label
+                key={id}
+                className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-secondary"
+              >
+                <input
+                  type="checkbox"
+                  checked={value.includes(id)}
+                  disabled={disabled}
+                  onChange={() => toggle(id)}
+                  className="h-4 w-4 rounded border-border accent-primary"
+                />
+                <span className="truncate">{s.name}</span>
+              </label>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
+
 function EditUserSheet({ user, onClose, actor }) {
   const update = useUpdateUser();
   const resetPw = useResetUserPassword();
@@ -410,24 +523,34 @@ function EditUserSheet({ user, onClose, actor }) {
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors, isDirty },
   } = useForm({
     values: {
-      name: user?.name ?? '',
+      firstName: user?.firstName ?? '',
+      lastName: user?.lastName ?? '',
+      dob: user?.dob ? String(user.dob).slice(0, 10) : '',
+      gender: user?.gender ?? '',
       phone: user?.phone ?? '',
     },
   });
+  const gender = watch('gender');
 
   if (!user) return null;
 
   async function onSubmit(values) {
     try {
+      // Only send name parts when present — legacy accounts may have just
+      // the composite `name` and we don't want to wipe it with blanks.
+      const patch = { phone: values.phone?.trim() ?? '' };
+      if (values.firstName?.trim()) patch.firstName = values.firstName.trim();
+      if (values.lastName?.trim()) patch.lastName = values.lastName.trim();
+      if (values.dob) patch.dob = values.dob;
+      if (values.gender) patch.gender = values.gender;
       await update.mutateAsync({
         id: user.id ?? user._id,
-        patch: {
-          name: values.name.trim(),
-          phone: values.phone?.trim() ?? '',
-        },
+        patch,
       });
       success('User updated');
       onClose();
@@ -486,10 +609,37 @@ function EditUserSheet({ user, onClose, actor }) {
         <form onSubmit={handleSubmit(onSubmit)} className="flex-1 space-y-5 mt-6">
           <UserSummary user={user} />
 
-          <div className="space-y-2">
-            <Label htmlFor="edit-name">Full name</Label>
-            <Input id="edit-name" disabled={update.isPending} {...register('name', { required: 'Required' })} />
-            {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="edit-firstName">First name</Label>
+              <Input id="edit-firstName" disabled={update.isPending} {...register('firstName')} />
+              {errors.firstName && <p className="text-xs text-destructive">{errors.firstName.message}</p>}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-lastName">Last name</Label>
+              <Input id="edit-lastName" disabled={update.isPending} {...register('lastName')} />
+              {errors.lastName && <p className="text-xs text-destructive">{errors.lastName.message}</p>}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="edit-dob">Date of birth</Label>
+              <Input id="edit-dob" type="date" disabled={update.isPending} {...register('dob')} />
+            </div>
+            <div className="space-y-2">
+              <Label>Gender</Label>
+              <Select value={gender || undefined} onValueChange={(v) => setValue('gender', v, { shouldDirty: true })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {GENDER_OPTIONS.map((g) => (
+                    <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="space-y-2">

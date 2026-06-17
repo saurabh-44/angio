@@ -34,8 +34,13 @@ export default function PlantCard({ plant, onClick, className }) {
       </div>
       <div className="p-4 space-y-2">
         <div className="flex items-center justify-between gap-2">
-          <div className="font-heading text-sm font-semibold text-foreground truncate">
-            {plant.species ?? 'Unspecified tree'}
+          <div className="min-w-0">
+            <div className="font-heading text-sm font-semibold text-foreground truncate">
+              {plant.name ?? plant.species ?? 'Unspecified tree'}
+            </div>
+            {plant.species && plant.species !== plant.name && (
+              <div className="text-xs text-muted-foreground truncate">{plant.species}</div>
+            )}
           </div>
           <PlantStatusBadge status={plant.status} />
         </div>

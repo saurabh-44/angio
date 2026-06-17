@@ -16,14 +16,14 @@ const AuthContext = createContext(null);
 export const ROLE_HOME = {
   ngo_admin: '/admin',
   site_owner: '/site',
-  donor: '/donor',
+  sponsor: '/sponsor',
   volunteer: '/volunteer',
 };
 
 export const ROLE_LABEL = {
   ngo_admin: 'NGO Admin',
   site_owner: 'Site Owner',
-  donor: 'Donor',
+  sponsor: 'Sponsor',
   volunteer: 'Volunteer',
 };
 

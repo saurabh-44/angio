@@ -3,6 +3,10 @@ import { isJtiRevoked, verifyAccessToken } from '../services/auth/tokens.js';
 import { HttpError } from '../utils/httpError.js';
 import { User } from '../models/User.js';
 
+// How stale the lastActiveAt stamp must be before requireAuth refreshes
+// it. Keeps the "Last Active" field useful without a write per request.
+const LAST_ACTIVE_THROTTLE_MS = 5 * 60 * 1000;
+
 // Verifies the access cookie and attaches `req.auth`. On every request it
 // re-checks the principal in the DB: a deactivated / soft-deleted user,
 // or one whose tokenVersion was bumped (password change), is rejected
@@ -34,6 +38,20 @@ export async function requireAuth(req, _res, next) {
       jti: payload.jti,
       forcePasswordChange: !!user.forcePasswordChange,
     };
+
+    // Best-effort "Last Active" stamp. Fire-and-forget and throttled at
+    // the query layer — the write only matches (and so only fires) when
+    // the cached value is missing or older than the window, so we don't
+    // pay a write on every single request.
+    const staleBefore = new Date(Date.now() - LAST_ACTIVE_THROTTLE_MS);
+    void User.updateOne(
+      {
+        _id: payload.sub,
+        $or: [{ lastActiveAt: { $exists: false } }, { lastActiveAt: { $lt: staleBefore } }],
+      },
+      { $set: { lastActiveAt: new Date() } },
+    ).catch(() => {});
+
     next();
   } catch (err) {
     next(err);

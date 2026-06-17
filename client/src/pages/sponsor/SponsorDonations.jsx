@@ -18,7 +18,7 @@ import { formatAmount, formatDate } from '@/lib/format.js';
 
 const LIMIT = 20;
 
-export default function DonorDonations() {
+export default function SponsorDonations() {
   const [page, setPage] = useState(1);
   const { data, isLoading } = useDonations({ page, limit: LIMIT });
   const items = data?.items ?? [];

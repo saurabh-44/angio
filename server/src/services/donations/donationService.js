@@ -7,7 +7,7 @@ import { HttpError } from '../../utils/httpError.js';
 async function assertDonorIsDonor(donorId) {
   const donor = await User.findById(donorId).select('role isActive').lean();
   if (!donor || !donor.isActive) throw HttpError.badRequest('Donor not found');
-  if (donor.role !== 'donor') throw HttpError.badRequest('Selected user is not a donor');
+  if (donor.role !== 'sponsor') throw HttpError.badRequest('Selected user is not a sponsor');
 }
 
 // Returns a filter scoping donation reads to the actor.
@@ -18,7 +18,7 @@ async function assertDonorIsDonor(donorId) {
 //                requires a join
 function donorScopeFilter(actor) {
   if (actor.role === 'ngo_admin') return {};
-  if (actor.role === 'donor') return { donor: actor.userId };
+  if (actor.role === 'sponsor') return { donor: actor.userId };
   throw HttpError.forbidden('You do not have permission to view donations');
 }
 
@@ -124,7 +124,7 @@ export async function createAllocation({ input, actor }) {
 
 function allocationReadFilter(actor) {
   if (actor.role === 'ngo_admin') return {};
-  if (actor.role === 'donor') return { donor: actor.userId };
+  if (actor.role === 'sponsor') return { donor: actor.userId };
   // site_owner / volunteer use a placeholder flag that gets resolved
   // into a real `site: { $in: [...] }` filter in resolveScopes below.
   if (actor.role === 'site_owner') return { __siteOwnerScope: true };
@@ -156,11 +156,12 @@ async function resolveScopes(actor, baseFilter) {
   return baseFilter;
 }
 
-export async function listAllocations({ donation, donor, site, page, limit, actor }) {
+export async function listAllocations({ donation, donor, site, project, page, limit, actor }) {
   let filter = { ...allocationReadFilter(actor) };
   filter = await resolveScopes(actor, filter);
   if (donation) filter.donation = donation;
   if (donor && actor.role === 'ngo_admin') filter.donor = donor;
+  if (project) filter.project = project;
   if (site) {
     // Already constrained by scope; just narrow further if requested.
     if (filter.site?.$in) {
@@ -179,6 +180,7 @@ export async function listAllocations({ donation, donor, site, page, limit, acto
       .populate('donor', 'name email phone')
       .populate('site', 'name address geo')
       .populate('donation', 'amount paidAt method')
+      .populate('project', 'name status')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)

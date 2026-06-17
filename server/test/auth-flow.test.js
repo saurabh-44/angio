@@ -183,11 +183,11 @@ test('admin creates a donor (password-only role)', async () => {
   });
 
   const create = await call('POST', '/api/users', {
-    body: { name: 'Dora Donor', email: 'dora@donor.test', role: 'donor' },
+    body: { firstName: 'Dora', lastName: 'Donor', email: 'dora@donor.test', role: 'sponsor' },
     jar,
   });
   assert.equal(create.status, 201);
-  assert.equal(create.body.user.role, 'donor');
+  assert.equal(create.body.user.role, 'sponsor');
   assert.equal(create.body.user.forcePasswordChange, true);
 
   // Fetch the temp password — in real life it's emailed; we read the
@@ -209,7 +209,7 @@ test('donor logs in WITHOUT OTP (password-only path)', async ({ donorTempPw }) =
   });
   assert.equal(r1.status, 200);
   assert.equal(r1.body.requiresOtp, false, 'donor must NOT trigger OTP');
-  assert.equal(r1.body.user.role, 'donor');
+  assert.equal(r1.body.user.role, 'sponsor');
   assert.ok(jar.angio_access, 'donor gets cookies immediately on step 1');
   return { jar, donorTempPw };
 });

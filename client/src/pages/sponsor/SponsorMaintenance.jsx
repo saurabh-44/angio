@@ -1,9 +1,9 @@
 import PageHeader from '@/components/PageHeader.jsx';
 import MaintenancePage from '@/pages/admin/MaintenancePage.jsx';
 
-// Donor sees only their own logs (server-scoped). The admin page is
-// rich enough already — we wrap with a donor-flavoured header.
-export default function DonorMaintenance() {
+// Sponsor sees only their own logs (server-scoped). The admin page is
+// rich enough already — we wrap with a sponsor-flavoured header.
+export default function SponsorMaintenance() {
   return (
     <>
       <PageHeader

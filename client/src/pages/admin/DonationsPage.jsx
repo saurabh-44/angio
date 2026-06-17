@@ -13,6 +13,7 @@ import {
   X,
 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader.jsx';
+import ExportButton from '@/components/ExportButton.jsx';
 import EmptyState from '@/components/EmptyState.jsx';
 import Pagination from '@/components/Pagination.jsx';
 import { Button } from '@/components/ui/button.jsx';
@@ -60,6 +61,7 @@ import {
 } from '@/queries/donations.js';
 import { useSites } from '@/queries/sites.js';
 import { useUsers } from '@/queries/users.js';
+import { useProjects } from '@/queries/projects.js';
 import { ApiError } from '@/lib/api.js';
 import { formatAmount, formatDate } from '@/lib/format.js';
 
@@ -92,11 +94,17 @@ export default function DonationsPage() {
       <PageHeader
         eyebrow="Funding"
         title="Donations"
-        description="Record each donor's contribution, then allocate it across one or more sites with a target plant count."
+        description="Record each sponsor's contribution, then allocate it across one or more sites with a target plant count."
         actions={
-          <Button onClick={() => setCreateOpen(true)}>
-            <Plus className="h-4 w-4" /> Record donation
-          </Button>
+          <>
+            <ExportButton
+              href={`/api/excel/export/donations.xlsx${donorFilter ? `?donor=${donorFilter}` : ''}`}
+              label="Export"
+            />
+            <Button onClick={() => setCreateOpen(true)}>
+              <Plus className="h-4 w-4" /> Record donation
+            </Button>
+          </>
         }
       />
 
@@ -117,8 +125,8 @@ export default function DonationsPage() {
         ) : items.length === 0 ? (
           <EmptyState
             icon={HandCoins}
-            title={donorFilter ? 'No donations from that donor yet' : 'No donations recorded'}
-            description="Record a donation and the donor will see their funded trees on their dashboard."
+            title={donorFilter ? 'No donations from that sponsor yet' : 'No donations recorded'}
+            description="Record a donation and the sponsor will see their funded trees on their dashboard."
             action={<Button onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4" /> Record donation</Button>}
           />
         ) : (
@@ -126,7 +134,7 @@ export default function DonationsPage() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-secondary/40">
-                  <TableHead>Donor</TableHead>
+                  <TableHead>Sponsor</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Method</TableHead>
                   <TableHead>Paid</TableHead>
@@ -180,16 +188,16 @@ export default function DonationsPage() {
 }
 
 function DonorFilter({ value, onChange }) {
-  const { data, isLoading } = useUsers({ role: 'donor', limit: 200 });
+  const { data, isLoading } = useUsers({ role: 'sponsor', limit: 200 });
   const donors = data?.items ?? [];
   return (
     <div className="flex flex-col sm:flex-row gap-3">
       <Select value={value || 'all'} onValueChange={(v) => onChange(v === 'all' ? '' : v)} disabled={isLoading}>
         <SelectTrigger className="sm:w-72">
-          <SelectValue placeholder="All donors" />
+          <SelectValue placeholder="All sponsors" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All donors</SelectItem>
+          <SelectItem value="all">All sponsors</SelectItem>
           {donors.map((d) => (
             <SelectItem key={d.id ?? d._id} value={d.id ?? d._id}>
               {d.name} <span className="text-muted-foreground">· {d.email}</span>
@@ -228,7 +236,7 @@ function CreateDonationDialog({ open, onOpenChange }) {
 
   async function onSubmit(values) {
     if (!donor) {
-      toastError('Pick a donor', 'Choose who this donation is from.');
+      toastError('Pick a sponsor', 'Choose which sponsor this donation is from.');
       return;
     }
     try {
@@ -255,12 +263,12 @@ function CreateDonationDialog({ open, onOpenChange }) {
         <DialogHeader>
           <DialogTitle>Record a donation</DialogTitle>
           <DialogDescription>
-            Money received from a donor. Allocate it to specific sites in the next step.
+            Money received from a sponsor. Allocate it to specific sites in the next step.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
           <div className="space-y-2">
-            <Label>Donor</Label>
+            <Label>Sponsor</Label>
             <DonorSelect value={donor} onChange={setDonor} disabled={create.isPending} />
           </div>
 
@@ -326,17 +334,17 @@ function CreateDonationDialog({ open, onOpenChange }) {
 }
 
 function DonorSelect({ value, onChange, disabled }) {
-  const { data, isLoading } = useUsers({ role: 'donor', limit: 200 });
+  const { data, isLoading } = useUsers({ role: 'sponsor', limit: 200 });
   const donors = data?.items ?? [];
   return (
     <Select value={value} onValueChange={onChange} disabled={disabled || isLoading}>
       <SelectTrigger>
-        <SelectValue placeholder={isLoading ? 'Loading…' : 'Pick a donor'} />
+        <SelectValue placeholder={isLoading ? 'Loading…' : 'Pick a sponsor'} />
       </SelectTrigger>
       <SelectContent>
         {donors.length === 0 && !isLoading ? (
           <div className="px-3 py-6 text-center text-sm text-muted-foreground">
-            No donors yet. Add one from Users.
+            No sponsors yet. Add one from Users.
           </div>
         ) : (
           donors.map((d) => (
@@ -492,6 +500,7 @@ function AddAllocationForm({ donation, remaining }) {
     formState: { errors },
   } = useForm();
   const [site, setSite] = useState('');
+  const [project, setProject] = useState('');
 
   async function onSubmit(values) {
     if (!site) {
@@ -509,6 +518,7 @@ function AddAllocationForm({ donation, remaining }) {
       await create.mutateAsync({
         donation: donation.id ?? donation._id,
         site,
+        project: project || undefined,
         targetPlants: values.targetPlants,
         allocatedAmount: values.allocatedAmount,
         note: values.note?.trim() || undefined,
@@ -516,6 +526,7 @@ function AddAllocationForm({ donation, remaining }) {
       success('Allocation added');
       reset({});
       setSite('');
+      setProject('');
     } catch (err) {
       toastError(
         "Couldn't add allocation",
@@ -531,6 +542,7 @@ function AddAllocationForm({ donation, remaining }) {
     >
       <div className="text-sm font-medium text-foreground">Add allocation</div>
       <SiteSelect value={site} onChange={setSite} disabled={create.isPending} />
+      <ProjectSelect value={project} onChange={setProject} disabled={create.isPending} />
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label htmlFor="targetPlants" className="text-xs">Target trees</Label>
@@ -602,6 +614,32 @@ function SiteSelect({ value, onChange, disabled }) {
             </SelectItem>
           ))
         )}
+      </SelectContent>
+    </Select>
+  );
+}
+
+const NO_PROJECT = '__none__';
+
+function ProjectSelect({ value, onChange, disabled }) {
+  const { data, isLoading } = useProjects({ status: 'active', limit: 200 });
+  const projects = data?.items ?? [];
+  return (
+    <Select
+      value={value || NO_PROJECT}
+      onValueChange={(v) => onChange(v === NO_PROJECT ? '' : v)}
+      disabled={disabled || isLoading}
+    >
+      <SelectTrigger>
+        <SelectValue placeholder={isLoading ? 'Loading…' : 'No project'} />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value={NO_PROJECT}>No project</SelectItem>
+        {projects.map((p) => (
+          <SelectItem key={p.id ?? p._id} value={p.id ?? p._id}>
+            {p.name}
+          </SelectItem>
+        ))}
       </SelectContent>
     </Select>
   );

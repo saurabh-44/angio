@@ -37,6 +37,15 @@ const envSchema = z.object({
   CLOUDINARY_API_KEY: z.string().optional(),
   CLOUDINARY_API_SECRET: z.string().optional(),
   CLOUDINARY_UPLOAD_FOLDER: z.string().default('angio'),
+
+  // Razorpay — used by the donor "Sponsor a tree" online-payment flow.
+  // Both must be set for online donations; offline NGO-admin recording
+  // works regardless.
+  RAZORPAY_KEY_ID: z.string().optional(),
+  RAZORPAY_KEY_SECRET: z.string().optional(),
+  // What a donor pays per tree they sponsor. Configurable so the NGO can
+  // raise/lower prices without a deploy.
+  TREE_UNIT_PRICE_INR: z.coerce.number().int().positive().default(200),
 });
 
 const parsed = envSchema.safeParse(process.env);

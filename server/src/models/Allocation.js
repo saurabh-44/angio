@@ -8,6 +8,10 @@ const allocationSchema = new Schema(
     // Cached for fast donor-scoped reads without joining through Donation.
     donor: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     site: { type: Schema.Types.ObjectId, ref: 'Site', required: true, index: true },
+    // Optional grouping. Lets the NGO admin slice impact reports by
+    // campaign ("Monsoon 2026", "TCS Sponsorship", etc.) without
+    // disturbing donor → tree relationships.
+    project: { type: Schema.Types.ObjectId, ref: 'Project', index: true },
     targetPlants: { type: Number, required: true, min: 1 },
     allocatedAmount: { type: Number, required: true, min: 0 },
     note: { type: String, trim: true, maxlength: 1000 },

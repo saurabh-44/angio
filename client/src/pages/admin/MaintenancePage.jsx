@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Camera, Droplets, X } from 'lucide-react';
+import { Camera, Droplets, Ruler, Stethoscope, X } from 'lucide-react';
 import PageHeader from '@/components/PageHeader.jsx';
 import EmptyState from '@/components/EmptyState.jsx';
 import Pagination from '@/components/Pagination.jsx';
@@ -13,9 +13,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select.jsx';
+import HealthBadge from '@/components/HealthBadge.jsx';
+import ExportButton from '@/components/ExportButton.jsx';
 import { useMaintenance } from '@/queries/maintenance.js';
 import { useSites } from '@/queries/sites.js';
-import { formatDate, formatRelative } from '@/lib/format.js';
+import { formatDate, formatDbh, formatHeight, formatRelative } from '@/lib/format.js';
 
 const LIMIT = 12;
 
@@ -38,6 +40,11 @@ export default function MaintenancePage() {
         eyebrow="Weekly proof"
         title="Maintenance"
         description="Every weekly watering check, with photo and the volunteer who recorded it."
+        actions={
+          <ExportButton
+            href={`/api/excel/export/maintenance.xlsx${site ? `?site=${site}` : ''}`}
+          />
+        }
       />
 
       <div className="flex flex-col sm:flex-row gap-3 mb-4 max-w-md">
@@ -84,6 +91,7 @@ export default function MaintenancePage() {
 }
 
 function LogCard({ log }) {
+  const hasMeasurements = log.heightCm != null || log.dbhCm != null;
   return (
     <article className="bento-card overflow-hidden">
       <div className="aspect-video bg-secondary/40 overflow-hidden">
@@ -106,7 +114,27 @@ function LogCard({ log }) {
         {log.volunteer?.name && (
           <div className="text-xs text-muted-foreground">By {log.volunteer.name}</div>
         )}
+        {(log.healthStatus || hasMeasurements) && (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            <HealthBadge status={log.healthStatus} />
+            {log.heightCm != null && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-leaf-50 border border-leaf-100 px-2 py-0.5 text-xs text-leaf-700 font-medium">
+                <Ruler className="h-3 w-3" aria-hidden /> {formatHeight(log.heightCm)}
+              </span>
+            )}
+            {log.dbhCm != null && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-secondary border border-border/60 px-2 py-0.5 text-xs text-secondary-foreground font-medium">
+                ⌀ {formatDbh(log.dbhCm)}
+              </span>
+            )}
+          </div>
+        )}
         {log.note && <p className="text-sm text-foreground line-clamp-3">{log.note}</p>}
+        {log.diseaseNotes && (
+          <p className="text-xs text-destructive line-clamp-2 inline-flex items-start gap-1">
+            <Stethoscope className="h-3 w-3 mt-0.5 shrink-0" aria-hidden /> {log.diseaseNotes}
+          </p>
+        )}
       </div>
     </article>
   );

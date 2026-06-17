@@ -14,16 +14,31 @@ const siteSchema = new Schema(
   {
     name: { type: String, required: true, trim: true, maxlength: 200 },
     address: { type: String, trim: true, maxlength: 500 },
+    // Structured address parts (the spec's PIN / City / State / Country).
+    // Optional + back-compat — older sites keep just the free-text address.
+    city: { type: String, trim: true, maxlength: 120 },
+    state: { type: String, trim: true, maxlength: 120 },
+    country: { type: String, trim: true, maxlength: 120 },
+    pinCode: { type: String, trim: true, maxlength: 16 },
     geo: { type: geoSchema, required: true },
     capacity: { type: Number, min: 0, default: 0 },
     notes: { type: String, trim: true, maxlength: 2000 },
     owner: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    // When the current owner (Site Incharge) took over this site. Set on
+    // create and refreshed whenever ownership changes (see hook below).
+    ownerAssignedAt: { type: Date },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   },
   { timestamps: true, collection: 'sites' },
 );
 
 siteSchema.index({ name: 1 });
+
+// Stamp ownerAssignedAt whenever ownership is set or changed. Fires on
+// create (owner is "modified") and on any later owner transfer.
+siteSchema.pre('save', function stampOwnerAssignment() {
+  if (this.isModified('owner')) this.ownerAssignedAt = new Date();
+});
 
 siteSchema.plugin(jsonTransformPlugin);
 siteSchema.plugin(softDeletePlugin);

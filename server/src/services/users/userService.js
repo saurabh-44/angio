@@ -28,7 +28,18 @@ function generateTempPassword() {
 //     AND so only THAT site_owner can assign them (unless NGO admin shares
 //     the volunteer to another site).
 //   - donor and volunteer roles can never create accounts.
-export async function createUser({ name, email, phone, role, actor }) {
+export async function createUser({
+  firstName,
+  lastName,
+  name,
+  email,
+  phone,
+  dob,
+  gender,
+  role,
+  preferredSites,
+  actor,
+}) {
   if (actor.role === 'ngo_admin') {
     if (role === 'ngo_admin' && !actor.isPrimary) {
       throw HttpError.forbidden(
@@ -46,14 +57,24 @@ export async function createUser({ name, email, phone, role, actor }) {
   const existing = await User.findOne({ email }).select('_id').lean();
   if (existing) throw HttpError.conflict('An account with this email already exists');
 
+  // Compose the denormalised display name from the split parts (falling
+  // back to an explicit `name` for any non-form caller).
+  const fullName =
+    (name && name.trim()) || [firstName, lastName].filter(Boolean).join(' ').trim();
+
   const tempPassword = generateTempPassword();
   const passwordHash = await bcrypt.hash(tempPassword, BCRYPT_ROUNDS);
 
   const user = await User.create({
-    name,
+    name: fullName,
+    firstName,
+    lastName,
+    dob,
+    gender,
     email,
     phone: phone || undefined,
     role,
+    preferredSites: preferredSites?.length ? preferredSites : undefined,
     passwordHash,
     forcePasswordChange: true,
     isActive: true,
@@ -64,7 +85,7 @@ export async function createUser({ name, email, phone, role, actor }) {
     to: email,
     subject: 'Your NGO Trees account is ready',
     html: accountCreatedTemplate({
-      name,
+      name: fullName,
       role,
       email,
       tempPassword,
@@ -159,6 +180,11 @@ export async function updateUser({ id, patch, actor }) {
   }
 
   if (patch.name !== undefined) target.name = patch.name;
+  if (patch.firstName !== undefined) target.firstName = patch.firstName;
+  if (patch.lastName !== undefined) target.lastName = patch.lastName;
+  if (patch.dob !== undefined) target.dob = patch.dob || undefined;
+  if (patch.gender !== undefined) target.gender = patch.gender || undefined;
+  if (patch.preferredSites !== undefined) target.preferredSites = patch.preferredSites;
   if (patch.phone !== undefined) target.phone = patch.phone || undefined;
   if (patch.isActive !== undefined) {
     // Guard: an admin can't deactivate themselves (locks them out of

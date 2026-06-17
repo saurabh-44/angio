@@ -1,21 +1,34 @@
 import { z } from 'zod';
-import { ROLES } from '../models/User.js';
+import { Types } from 'mongoose';
+import { ROLES, GENDERS } from '../models/User.js';
 
 const email = z.string().email().trim().toLowerCase();
-const name = z.string().trim().min(1).max(120);
+const personName = z.string().trim().min(1).max(60);
 const phone = z.string().trim().min(4).max(32).optional().or(z.literal(''));
+const objectId = z.string().refine((v) => Types.ObjectId.isValid(v), {
+  message: 'Invalid id',
+});
 
 export const createUserSchema = z.object({
-  name,
+  firstName: personName,
+  lastName: personName,
   email,
   phone: phone.optional(),
+  dob: z.coerce.date().optional(),
+  gender: z.enum(GENDERS).optional(),
   role: z.enum(ROLES),
+  // Volunteer's preferred site(s) at registration — optional, admin-set.
+  preferredSites: z.array(objectId).max(50).optional(),
 });
 
 export const updateUserSchema = z.object({
-  name: name.optional(),
+  firstName: personName.optional(),
+  lastName: personName.optional(),
+  dob: z.coerce.date().nullable().optional(),
+  gender: z.enum(GENDERS).optional(),
   phone: phone.optional(),
   isActive: z.boolean().optional(),
+  preferredSites: z.array(objectId).max(50).optional(),
 });
 
 export const listUsersQuerySchema = z.object({

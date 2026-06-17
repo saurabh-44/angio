@@ -4,8 +4,8 @@ import MapView from '@/components/MapView.jsx';
 import PlantDetailSheet from '@/components/PlantDetailSheet.jsx';
 import { usePlants } from '@/queries/plants.js';
 
-export default function DonorMap() {
-  // 500 is high enough to fit the biggest realistic donor — most will
+export default function SponsorMap() {
+  // 500 is high enough to fit the biggest realistic sponsor — most will
   // be far below it. We use a single page rather than paginating
   // because the map needs all pins at once to fit-bounds.
   const { data, isLoading } = usePlants({ limit: 500 });

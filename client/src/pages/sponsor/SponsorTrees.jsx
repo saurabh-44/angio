@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Filter, Leaf, X } from 'lucide-react';
 import PageHeader from '@/components/PageHeader.jsx';
 import EmptyState from '@/components/EmptyState.jsx';
+import ExportButton from '@/components/ExportButton.jsx';
 import Pagination from '@/components/Pagination.jsx';
 import PlantCard from '@/components/PlantCard.jsx';
 import PlantDetailSheet from '@/components/PlantDetailSheet.jsx';
@@ -19,7 +20,7 @@ import { usePlants } from '@/queries/plants.js';
 const STATUSES = ['alive', 'dead', 'removed'];
 const LIMIT = 24;
 
-export default function DonorTrees() {
+export default function SponsorTrees() {
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
   const [openPlant, setOpenPlant] = useState(null);
@@ -37,6 +38,12 @@ export default function DonorTrees() {
         eyebrow="Your impact, one tree at a time"
         title="My trees"
         description="Every tree your donations funded. Tap a card to see its location, planting photo, and weekly maintenance updates."
+        actions={
+          <ExportButton
+            href="/api/excel/export/my-trees.xlsx"
+            label="Export to Excel"
+          />
+        }
       />
 
       <div className="bento-card p-4 mb-5 flex flex-col sm:flex-row gap-3 sm:items-center">

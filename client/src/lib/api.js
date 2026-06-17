@@ -34,14 +34,18 @@ async function parseJson(res) {
 }
 
 async function doRequest(method, path, { body, signal, headers, _retry = false } = {}) {
+  // FormData uploads (Excel imports) must NOT set Content-Type — the
+  // browser fills in the multipart boundary itself. Pass FormData
+  // through verbatim; everything else JSON-encodes.
+  const isForm = typeof FormData !== 'undefined' && body instanceof FormData;
   const res = await fetch(`${BASE_URL}${path}`, {
     method,
     credentials: 'include',
     headers: {
-      ...(body !== undefined ? { 'content-type': 'application/json' } : {}),
+      ...(body !== undefined && !isForm ? { 'content-type': 'application/json' } : {}),
       ...headers,
     },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
+    body: body !== undefined ? (isForm ? body : JSON.stringify(body)) : undefined,
     signal,
   });
 

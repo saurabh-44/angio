@@ -1,6 +1,14 @@
 import { useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { CheckCircle2, Droplets, Loader2, Sparkles } from 'lucide-react';
+import {
+  CheckCircle2,
+  ChevronDown,
+  Droplets,
+  Loader2,
+  Ruler,
+  Sparkles,
+  Stethoscope,
+} from 'lucide-react';
 import PageHeader from '@/components/PageHeader.jsx';
 import PhotoCapture from '@/components/PhotoCapture.jsx';
 import EmptyState from '@/components/EmptyState.jsx';
@@ -15,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select.jsx';
+import { HEALTH_OPTIONS } from '@/components/HealthBadge.jsx';
 import { useToast } from '@/components/ui/toast.jsx';
 import { useAssignments } from '@/queries/assignments.js';
 import { usePlants } from '@/queries/plants.js';
@@ -42,6 +51,15 @@ export default function RecordMaintenance() {
   const [note, setNote] = useState('');
   const [photo, setPhoto] = useState(null);
 
+  // Monitoring extensions — all optional. We keep them under an
+  // expandable section so the form doesn't intimidate volunteers who
+  // are only doing a quick weekly watering check.
+  const [showMeasurements, setShowMeasurements] = useState(false);
+  const [heightCm, setHeightCm] = useState('');
+  const [dbhCm, setDbhCm] = useState('');
+  const [healthStatus, setHealthStatus] = useState('');
+  const [diseaseNotes, setDiseaseNotes] = useState('');
+
   const { data: plantsData, isLoading: loadingPlants } = usePlants({
     site: siteId || undefined,
     status: 'alive',
@@ -55,13 +73,23 @@ export default function RecordMaintenance() {
   async function submit(e) {
     e.preventDefault();
     if (!ready) return;
+    const body = {
+      plant: plantId,
+      photo,
+      note: note.trim() || undefined,
+    };
+    // Only attach the optional fields if the volunteer actually filled
+    // them in — preserves an earlier measurement on re-upsert.
+    const heightNum = heightCm === '' ? null : Number(heightCm);
+    if (heightNum != null && Number.isFinite(heightNum) && heightNum >= 0) body.heightCm = heightNum;
+    const dbhNum = dbhCm === '' ? null : Number(dbhCm);
+    if (dbhNum != null && Number.isFinite(dbhNum) && dbhNum >= 0) body.dbhCm = dbhNum;
+    if (healthStatus) body.healthStatus = healthStatus;
+    if (diseaseNotes.trim()) body.diseaseNotes = diseaseNotes.trim();
+
     try {
-      await create.mutateAsync({
-        plant: plantId,
-        photo,
-        note: note.trim() || undefined,
-      });
-      success('Watering logged', 'Donors will see this in their feed.');
+      await create.mutateAsync(body);
+      success('Watering logged', 'Sponsors will see this in their feed.');
       navigate('/volunteer');
     } catch (err) {
       toastError(
@@ -93,12 +121,14 @@ export default function RecordMaintenance() {
     );
   }
 
+  const needsDiseaseNotes = healthStatus === 'diseased' || healthStatus === 'dying';
+
   return (
     <>
       <PageHeader
         eyebrow="Field work"
         title="Record watering"
-        description="One photo per tree per week — that's the weekly proof donors see."
+        description="One photo per tree per week. Add measurements if you have a tape — it helps sponsors see the tree grow."
       />
 
       <form onSubmit={submit} className="space-y-6 max-w-2xl">
@@ -157,6 +187,101 @@ export default function RecordMaintenance() {
               placeholder="e.g. soil dry, mulch refreshed"
             />
           </Section>
+        )}
+
+        {plantId && (
+          <section className="bento-card overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setShowMeasurements((s) => !s)}
+              className="w-full flex items-center justify-between gap-3 px-5 py-4 text-left cursor-pointer hover:bg-secondary/40 transition-colors"
+              aria-expanded={showMeasurements}
+            >
+              <div className="flex items-center gap-3">
+                <span className="grid h-7 w-7 place-items-center rounded-full bg-primary/10 text-primary">
+                  <Ruler className="h-3.5 w-3.5" aria-hidden />
+                </span>
+                <div>
+                  <h2 className="font-heading text-sm font-semibold text-foreground">
+                    Add measurements (optional)
+                  </h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Height, trunk diameter, health, or disease notes
+                  </p>
+                </div>
+              </div>
+              <ChevronDown
+                className={`h-4 w-4 text-muted-foreground transition-transform ${showMeasurements ? 'rotate-180' : ''}`}
+                aria-hidden
+              />
+            </button>
+
+            {showMeasurements && (
+              <div className="px-5 pb-5 space-y-4 border-t border-border/60 pt-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="heightCm">Height (cm)</Label>
+                    <Input
+                      id="heightCm"
+                      type="number"
+                      inputMode="decimal"
+                      step="1"
+                      min="0"
+                      max="5000"
+                      placeholder="e.g. 185"
+                      value={heightCm}
+                      onChange={(e) => setHeightCm(e.target.value)}
+                    />
+                    <p className="text-[11px] text-muted-foreground">From ground to top.</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="dbhCm">DBH (cm)</Label>
+                    <Input
+                      id="dbhCm"
+                      type="number"
+                      inputMode="decimal"
+                      step="0.1"
+                      min="0"
+                      max="500"
+                      placeholder="e.g. 4.5"
+                      value={dbhCm}
+                      onChange={(e) => setDbhCm(e.target.value)}
+                    />
+                    <p className="text-[11px] text-muted-foreground">Trunk at chest-height.</p>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label>Health status</Label>
+                  <Select value={healthStatus} onValueChange={setHealthStatus}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="How does the tree look today?" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {HEALTH_OPTIONS.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {needsDiseaseNotes && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="diseaseNotes" className="inline-flex items-center gap-1.5">
+                      <Stethoscope className="h-3.5 w-3.5 text-destructive" aria-hidden />
+                      What does the disease look like?
+                    </Label>
+                    <Input
+                      id="diseaseNotes"
+                      value={diseaseNotes}
+                      onChange={(e) => setDiseaseNotes(e.target.value)}
+                      placeholder="e.g. leaves yellowing, brown spots on bark"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
         )}
 
         <div className="sticky bottom-4 sm:static">

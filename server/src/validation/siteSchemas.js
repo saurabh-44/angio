@@ -13,6 +13,10 @@ const geo = z.object({
 export const createSiteSchema = z.object({
   name: z.string().trim().min(1).max(200),
   address: z.string().trim().max(500).optional(),
+  city: z.string().trim().max(120).optional(),
+  state: z.string().trim().max(120).optional(),
+  country: z.string().trim().max(120).optional(),
+  pinCode: z.string().trim().max(16).optional(),
   geo,
   capacity: z.number().int().min(0).default(0),
   notes: z.string().trim().max(2000).optional(),
@@ -22,6 +26,10 @@ export const createSiteSchema = z.object({
 export const updateSiteSchema = z.object({
   name: z.string().trim().min(1).max(200).optional(),
   address: z.string().trim().max(500).optional(),
+  city: z.string().trim().max(120).optional(),
+  state: z.string().trim().max(120).optional(),
+  country: z.string().trim().max(120).optional(),
+  pinCode: z.string().trim().max(16).optional(),
   geo: geo.optional(),
   capacity: z.number().int().min(0).optional(),
   notes: z.string().trim().max(2000).optional(),

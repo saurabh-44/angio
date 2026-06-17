@@ -18,10 +18,10 @@ const DEV_USERS = [
   { name: 'Vihaan Verma',  email: 'volunteer2@angio.test', role: 'volunteer' },
   { name: 'Diya Patel',    email: 'volunteer3@angio.test', role: 'volunteer' },
   { name: 'Ishaan Singh',  email: 'volunteer4@angio.test', role: 'volunteer' },
-  // Unassigned donors — record a donation for any of these from /admin
-  { name: 'Ananya Rao',    email: 'donor1@angio.test',     role: 'donor' },
-  { name: 'Rohan Mehta',   email: 'donor2@angio.test',     role: 'donor' },
-  { name: 'Sneha Kapoor',  email: 'donor3@angio.test',     role: 'donor' },
+  // Unassigned sponsors — record a donation for any of these from /admin
+  { name: 'Ananya Rao',    email: 'sponsor1@angio.test',   role: 'sponsor' },
+  { name: 'Rohan Mehta',   email: 'sponsor2@angio.test',   role: 'sponsor' },
+  { name: 'Sneha Kapoor',  email: 'sponsor3@angio.test',   role: 'sponsor' },
 ];
 
 export async function seedDevUsers() {

@@ -18,6 +18,14 @@ import { plantsRouter } from './routes/plants.js';
 import { maintenanceRouter } from './routes/maintenance.js';
 import { assignmentsRouter } from './routes/assignments.js';
 import { uploadsRouter } from './routes/uploads.js';
+import { paymentsRouter } from './routes/payments.js';
+import { publicTreesRouter } from './routes/publicTrees.js';
+import { co2Router } from './routes/co2.js';
+import { certificatesRouter } from './routes/certificates.js';
+import { analyticsRouter } from './routes/analytics.js';
+import { excelRouter } from './routes/excel.js';
+import { speciesRouter } from './routes/species.js';
+import { projectsRouter } from './routes/projects.js';
 
 export function createApp() {
   const app = express();
@@ -69,6 +77,17 @@ export function createApp() {
   app.use('/api/maintenance', maintenanceRouter);
   app.use('/api/assignments', assignmentsRouter);
   app.use('/api/uploads', uploadsRouter);
+  app.use('/api/payments', paymentsRouter);
+  app.use('/api/co2', co2Router);
+  app.use('/api/certificates', certificatesRouter);
+  app.use('/api/analytics', analyticsRouter);
+  app.use('/api/excel', excelRouter);
+  app.use('/api/species', speciesRouter);
+  app.use('/api/projects', projectsRouter);
+
+  // No-auth public surface. Mounted last to keep its scope small and
+  // obvious — only the QR scan flow uses it.
+  app.use('/api/public/trees', publicTreesRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

@@ -2,23 +2,41 @@ import { Schema, model } from 'mongoose';
 import { softDeletePlugin } from './plugins/softDelete.js';
 import { jsonTransformPlugin } from './plugins/jsonTransform.js';
 
-export const ROLES = ['ngo_admin', 'donor', 'site_owner', 'volunteer'];
+export const ROLES = ['ngo_admin', 'sponsor', 'site_owner', 'volunteer'];
 
 // Every role completes an emailed OTP after entering their password —
-// donors and volunteers included. Trust matters more than friction here,
+// sponsors and volunteers included. Trust matters more than friction here,
 // and email auth doubles as the verification trail for new accounts.
-export const OTP_LOGIN_ROLES = new Set(['ngo_admin', 'site_owner', 'donor', 'volunteer']);
+export const OTP_LOGIN_ROLES = new Set(['ngo_admin', 'site_owner', 'sponsor', 'volunteer']);
+
+export const GENDERS = ['male', 'female', 'other', 'prefer_not_to_say'];
 
 const userSchema = new Schema(
   {
     email: { type: String, required: true, trim: true, lowercase: true },
     passwordHash: { type: String, required: true, select: false },
+    // Denormalised display name. Kept in sync from firstName + lastName by
+    // the pre-save hook below when those are set, so every existing
+    // populate('...','name') read keeps working unchanged.
     name: { type: String, required: true, trim: true, maxlength: 120 },
+    // Split name parts (the spec's First / Last Name).
+    firstName: { type: String, trim: true, maxlength: 60 },
+    lastName: { type: String, trim: true, maxlength: 60 },
+    // Date of birth + gender — captured for every account per the spec.
+    dob: { type: Date },
+    gender: { type: String, enum: GENDERS },
     phone: { type: String, trim: true, maxlength: 32 },
     role: { type: String, enum: ROLES, required: true, index: true },
 
+    // Sites a volunteer indicated a preference for when the account was
+    // set up. Informational — actual fieldwork is driven by Assignment.
+    preferredSites: [{ type: Schema.Types.ObjectId, ref: 'Site' }],
+
     isActive: { type: Boolean, default: true },
     lastLoginAt: { type: Date },
+    // Last authenticated activity on any endpoint (throttled write in
+    // requireAuth). Distinct from lastLoginAt, which is set only at sign-in.
+    lastActiveAt: { type: Date },
     failedLoginCount: { type: Number, default: 0 },
     lockedUntil: { type: Date },
 
@@ -48,6 +66,16 @@ userSchema.index(
   { email: 1 },
   { unique: true, partialFilterExpression: { isDeleted: false } },
 );
+
+// Keep the denormalised `name` in sync with the split parts. Only fires
+// when first/last are actually present so direct `name`-only creates
+// (seed users, Excel import) keep working untouched.
+userSchema.pre('save', function syncName() {
+  if (this.isModified('firstName') || this.isModified('lastName')) {
+    const composed = [this.firstName, this.lastName].filter(Boolean).join(' ').trim();
+    if (composed) this.name = composed;
+  }
+});
 
 userSchema.plugin(jsonTransformPlugin);
 userSchema.plugin(softDeletePlugin);
