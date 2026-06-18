@@ -52,7 +52,7 @@ export default function PublicTree() {
             }
             action={
               <Button asChild variant="outline">
-                <Link to="/">Go to NGO Trees</Link>
+                <Link to="/">Go to Environ</Link>
               </Button>
             }
           />
@@ -87,7 +87,7 @@ function PublicHeader() {
           <span className="grid h-9 w-9 place-items-center rounded-2xl bg-primary/10 text-primary">
             <Leaf className="h-5 w-5" aria-hidden />
           </span>
-          <span className="font-heading text-base font-bold tracking-tight">NGO Trees</span>
+          <span className="font-heading text-base font-bold tracking-tight">Environ</span>
         </Link>
         <Badge variant="success" className="hidden sm:inline-flex">
           <ShieldCheck className="h-3 w-3" aria-hidden /> Verified tree
@@ -126,7 +126,7 @@ function Hero({ tree }) {
           {tree.site?.name && <Badge variant="muted">{tree.site.name}</Badge>}
         </div>
         <p className="text-sm text-muted-foreground leading-relaxed max-w-prose">
-          This tree is part of an NGO Trees plantation. Every step is logged — when it was
+          This tree is part of an Environ plantation. Every step is logged — when it was
           planted, where, and a fresh maintenance photo every week. The QR sticker proves it
           exists.
         </p>
@@ -310,12 +310,12 @@ function TrustFooter() {
         </div>
         <Button asChild>
           <Link to="/">
-            Visit NGO Trees <ArrowRight className="h-4 w-4" />
+            Visit Environ <ArrowRight className="h-4 w-4" />
           </Link>
         </Button>
       </div>
       <p className="mt-8 text-xs text-muted-foreground/70 text-center">
-        &copy; {new Date().getFullYear()} NGO Trees · QR-verified tree record
+        &copy; {new Date().getFullYear()} Environ · QR-verified tree record
       </p>
     </section>
   );

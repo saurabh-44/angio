@@ -9,7 +9,7 @@ export function passwordChangedTemplate({ name, when }) {
         Hi ${escapeHtml(name ?? 'there')},
       </p>
       <p style="margin:0 0 24px;font-size:15px;line-height:1.5;color:#4b5563;">
-        Your NGO Trees password was changed on
+        Your Environ password was changed on
         <strong>${escapeHtml(when)}</strong>. If this was you, no action is needed.
       </p>
       <div style="padding:14px 18px;background:#fef2f2;border:1px solid #fecaca;

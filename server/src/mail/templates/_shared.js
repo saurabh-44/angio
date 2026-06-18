@@ -24,7 +24,7 @@ export function shellTemplate({ headerTitle, headerGradient, bodyHtml }) {
                  box-shadow:0 1px 3px rgba(0,0,0,0.06);">
           <tr>
             <td style="background:${headerGradient};padding:24px;color:#ffffff;">
-              <div style="font-size:20px;font-weight:700;color:#ffffff;">NGO Trees</div>
+              <div style="font-size:20px;font-weight:700;color:#ffffff;">Environ</div>
               <div style="font-size:22px;font-weight:600;margin-top:12px;">${escapeHtml(headerTitle)}</div>
             </td>
           </tr>
@@ -34,7 +34,7 @@ export function shellTemplate({ headerTitle, headerGradient, bodyHtml }) {
           <tr>
             <td style="padding:16px 28px;background:#f9fafb;color:#9ca3af;font-size:12px;
                        text-align:center;border-top:1px solid #f3f4f6;">
-              &copy; ${new Date().getFullYear()} NGO Trees
+              &copy; ${new Date().getFullYear()} Environ
             </td>
           </tr>
         </table>

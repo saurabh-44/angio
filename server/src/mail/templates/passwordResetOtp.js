@@ -9,7 +9,7 @@ export function passwordResetOtpTemplate({ otp, name }) {
         Hi ${escapeHtml(name ?? 'there')},
       </p>
       <p style="margin:0 0 24px;font-size:15px;line-height:1.5;color:#4b5563;">
-        Someone requested a password reset for your NGO Trees account.
+        Someone requested a password reset for your Environ account.
         Use this 6-digit code to set a new password.
       </p>
       <div style="text-align:center;margin:24px 0;">

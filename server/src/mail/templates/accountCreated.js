@@ -9,14 +9,14 @@ const ROLE_LABELS = {
 
 export function accountCreatedTemplate({ name, role, email, tempPassword, signInUrl }) {
   return shellTemplate({
-    headerTitle: 'Welcome to NGO Trees',
+    headerTitle: 'Welcome to Environ',
     headerGradient: 'linear-gradient(135deg,#0ea5e9 0%,#0369a1 100%)',
     bodyHtml: `
       <p style="margin:0 0 16px;font-size:15px;line-height:1.5;">
         Hi ${escapeHtml(name ?? 'there')},
       </p>
       <p style="margin:0 0 24px;font-size:15px;line-height:1.5;color:#4b5563;">
-        An NGO Trees account has been created for you as
+        An Environ account has been created for you as
         <strong>${escapeHtml(ROLE_LABELS[role] ?? role)}</strong>. Use the temporary
         password below to sign in. You'll be asked to choose your own password right
         after.
@@ -32,7 +32,7 @@ export function accountCreatedTemplate({ name, role, email, tempPassword, signIn
            style="display:inline-block;background:#0ea5e9;color:#ffffff;
                   text-decoration:none;font-weight:600;padding:12px 28px;
                   border-radius:10px;font-size:15px;">
-          Sign in to NGO Trees
+          Sign in to Environ
         </a>
       </p>
       <p style="margin:24px 0 0;font-size:13px;color:#9ca3af;line-height:1.5;">

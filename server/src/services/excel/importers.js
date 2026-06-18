@@ -81,7 +81,7 @@ export async function importDonors({ actor, fileBuffer }) {
       // Fire-and-forget email — same flow as a manually-created donor.
       void sendMail({
         to: parsed.email,
-        subject: 'Your NGO Trees account is ready',
+        subject: 'Your Environ account is ready',
         html: accountCreatedTemplate({
           name: parsed.name,
           role: 'sponsor',

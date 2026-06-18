@@ -37,7 +37,7 @@ export default function ForgotPassword() {
   return (
     <AuthShell
       title="Reset password"
-      subtitle="Enter the email on your NGO Trees account. We'll send you a 6-digit code."
+      subtitle="Enter the email on your Environ account. We'll send you a 6-digit code."
       footer={
         <AuthFooterLink to="/login" prefix="Remember it?" label="Back to sign in" />
       }
@@ -66,10 +66,6 @@ export default function ForgotPassword() {
           {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <MailCheck className="h-4 w-4" />}
           Send reset code
         </Button>
-
-        <p className="text-xs text-muted-foreground text-center">
-          We won't reveal whether your email is registered — check your inbox.
-        </p>
       </form>
     </AuthShell>
   );

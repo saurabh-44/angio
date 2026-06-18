@@ -126,7 +126,7 @@ export default function SponsorTree() {
         orderId: orderRes.razorpay.orderId,
         amount: orderRes.razorpay.amount,
         currency: orderRes.razorpay.currency,
-        name: 'NGO Trees',
+        name: 'Environ',
         description: `Sponsor ${count} ${count === 1 ? 'tree' : 'trees'}`,
         prefill: { name: user?.name, email: user?.email, contact: user?.phone ?? undefined },
       });

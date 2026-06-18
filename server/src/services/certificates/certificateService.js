@@ -66,7 +66,7 @@ export async function streamCertificate({ donorId, type, res }) {
     margin: 50,
     info: {
       Title: TITLES[type].title,
-      Author: 'NGO Trees',
+      Author: 'Environ',
       Subject: `${TITLES[type].title} for ${donor.name}`,
     },
   });
@@ -95,7 +95,7 @@ function renderCertificate(doc, { type, donor, summary, totalDonated, siteNames,
   doc.fillColor(COLORS.primary)
     .font('Helvetica-Bold')
     .fontSize(20)
-    .text('NGO Trees', margin, 38);
+    .text('Environ', margin, 38);
   doc.fillColor(COLORS.muted)
     .font('Helvetica')
     .fontSize(10)
@@ -140,7 +140,7 @@ function renderCertificate(doc, { type, donor, summary, totalDonated, siteNames,
   if (type === 'plantation') {
     doc.text(
       `has sponsored ${summary.treesTotal} ${summary.treesTotal === 1 ? 'tree' : 'trees'} ` +
-      `through NGO Trees, of which ${summary.treesAlive} are alive and growing today` +
+      `through Environ, of which ${summary.treesAlive} are alive and growing today` +
       (siteNames.length ? ` across ${siteNames.length} planting ${siteNames.length === 1 ? 'site' : 'sites'}` : '') +
       `. Each tree is geo-tagged, photographed at planting, and tracked with weekly maintenance proof.`,
       margin,

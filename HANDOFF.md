@@ -1,4 +1,4 @@
-# NGO Trees — Session Handoff
+# Environ — Session Handoff
 
 > Read this top-to-bottom in a fresh Claude session before touching code. The repo's README is the product story; this file is the build-state, conventions, and gotchas log.
 

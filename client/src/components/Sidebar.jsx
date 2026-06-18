@@ -19,7 +19,7 @@ export default function Sidebar({ onNavigate }) {
             <Leaf className="h-5 w-5" aria-hidden />
           </span>
           <div>
-            <div className="font-heading text-base font-bold tracking-tight">NGO Trees</div>
+            <div className="font-heading text-base font-bold tracking-tight">Environ</div>
             <div className="text-[11px] uppercase tracking-widest text-muted-foreground">
               {ROLE_LABEL[role] ?? 'Member'}
             </div>

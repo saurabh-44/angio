@@ -19,7 +19,7 @@ export default function AuthShell({ title, subtitle, footer, children }) {
             <span className="grid h-9 w-9 place-items-center rounded-2xl bg-primary/10 text-primary">
               <Leaf className="h-5 w-5" aria-hidden />
             </span>
-            <span className="font-heading text-base font-bold tracking-tight">NGO Trees</span>
+            <span className="font-heading text-base font-bold tracking-tight">Environ</span>
           </Link>
           <Link
             to="/"

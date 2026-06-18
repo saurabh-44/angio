@@ -21,6 +21,7 @@ export default function Register() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm({ mode: 'onTouched' });
 
@@ -31,6 +32,8 @@ export default function Register() {
         lastName: values.lastName.trim(),
         email: values.email.trim(),
         phone: values.phone.trim(),
+        dob: values.dob || undefined,
+        gender: values.gender || undefined,
         password: values.password,
       });
       if (res?.requiresOtp) {
@@ -71,6 +74,36 @@ export default function Register() {
               {...register('lastName', { required: 'Required' })}
             />
             {errors.lastName && <p className="text-xs text-destructive">{errors.lastName.message}</p>}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Label htmlFor="dob">Date of birth</Label>
+            <Input
+              id="dob"
+              type="date"
+              disabled={isSubmitting}
+              max={new Date().toISOString().slice(0, 10)}
+              {...register('dob', { required: 'Required' })}
+            />
+            {errors.dob && <p className="text-xs text-destructive">{errors.dob.message}</p>}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="gender">Gender</Label>
+            <select
+              id="gender"
+              disabled={isSubmitting}
+              className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+              {...register('gender', { required: 'Required' })}
+            >
+              <option value="">Select…</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+              <option value="prefer_not_to_say">Prefer not to say</option>
+            </select>
+            {errors.gender && <p className="text-xs text-destructive">{errors.gender.message}</p>}
           </div>
         </div>
 
@@ -132,6 +165,24 @@ export default function Register() {
             </button>
           </div>
           {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="confirmPassword">Confirm password</Label>
+          <Input
+            id="confirmPassword"
+            type={showPassword ? 'text' : 'password'}
+            autoComplete="new-password"
+            placeholder="Re-enter password"
+            disabled={isSubmitting}
+            {...register('confirmPassword', {
+              required: 'Please confirm your password',
+              validate: (v) => v === watch('password') || 'Passwords do not match',
+            })}
+          />
+          {errors.confirmPassword && (
+            <p className="text-xs text-destructive">{errors.confirmPassword.message}</p>
+          )}
         </div>
 
         <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>

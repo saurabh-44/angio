@@ -79,7 +79,7 @@ export async function streamBulkQrSheet({ siteId, actor, res, options = {} }) {
     margin: 28,
     info: {
       Title: `Tree QR stickers — ${site.name}`,
-      Author: 'NGO Trees',
+      Author: 'Environ',
       Subject: `QR sheet for ${plants.length} trees at ${site.name}`,
     },
   });
@@ -157,7 +157,7 @@ function renderHeader(doc, { site, totalCount, pageNum, totalPages }) {
   doc.fillColor(PALETTE.primary)
     .font('Helvetica-Bold')
     .fontSize(13)
-    .text('NGO Trees', margin, 16);
+    .text('Environ', margin, 16);
   doc.fillColor(PALETTE.text)
     .font('Helvetica-Bold')
     .fontSize(15)

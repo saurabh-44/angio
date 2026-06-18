@@ -69,7 +69,7 @@ export async function login(req, res) {
   const input = loginSchema.parse(req.body);
   const result = await startLogin(input);
   if (result.requiresOtp) {
-    res.json({ requiresOtp: true });
+    res.json({ requiresOtp: true, email: result.email });
     return;
   }
   mintCookies(res, result.user);

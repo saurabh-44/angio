@@ -17,6 +17,7 @@ import {
   Menu,
   ShieldCheck,
   Sprout,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button.jsx';
 import { Badge } from '@/components/ui/badge.jsx';
@@ -72,7 +73,14 @@ function useVariants() {
   };
 }
 
+const NAV_LINKS = [
+  ['#how', 'How it works'],
+  ['#roles', 'What you get'],
+  ['#trust', 'Why trust it'],
+];
+
 function TopNav() {
+  const [menuOpen, setMenuOpen] = useState(false);
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
@@ -80,29 +88,68 @@ function TopNav() {
           <span className="grid h-9 w-9 place-items-center rounded-2xl bg-primary/10 text-primary">
             <Leaf className="h-5 w-5" aria-hidden />
           </span>
-          <span className="font-heading text-base font-bold tracking-tight">NGO Trees</span>
+          <span className="font-heading text-base font-bold tracking-tight">Environ</span>
         </div>
 
         <nav className="hidden md:flex items-center gap-7 text-sm">
-          <a href="#how" className="text-muted-foreground hover:text-foreground transition-colors">How it works</a>
-          <a href="#roles" className="text-muted-foreground hover:text-foreground transition-colors">What you get</a>
-          <a href="#trust" className="text-muted-foreground hover:text-foreground transition-colors">Why trust it</a>
+          {NAV_LINKS.map(([href, label]) => (
+            <a key={href} href={href} className="text-muted-foreground hover:text-foreground transition-colors">
+              {label}
+            </a>
+          ))}
         </nav>
 
         <div className="flex items-center gap-2">
-          <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex text-[15px]">
+          <Button asChild variant="ghost" size="sm" className="hidden md:inline-flex text-[15px]">
             <Link to="/login">Sign in</Link>
           </Button>
-          <Button asChild size="sm" className="text-sm">
+          <Button asChild size="sm" className="hidden md:inline-flex text-sm">
             <Link to="/register">
               Sponsor a tree <ArrowRight className="h-4 w-4" />
             </Link>
           </Button>
-          <Button variant="ghost" size="icon" className="md:hidden" aria-label="Menu">
-            <Menu className="h-5 w-5" />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((o) => !o)}
+          >
+            {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
         </div>
       </div>
+
+      {/* Mobile menu — under md only, toggled by the hamburger */}
+      {menuOpen && (
+        <div className="md:hidden border-t border-border/60 bg-background">
+          <nav className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-col">
+            {NAV_LINKS.map(([href, label]) => (
+              <a
+                key={href}
+                href={href}
+                onClick={() => setMenuOpen(false)}
+                className="rounded-lg px-2 py-2.5 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+              >
+                {label}
+              </a>
+            ))}
+            <Link
+              to="/login"
+              onClick={() => setMenuOpen(false)}
+              className="rounded-lg px-2 py-2.5 text-sm font-medium text-foreground hover:bg-secondary transition-colors"
+            >
+              Sign in
+            </Link>
+            <Button asChild className="mt-2 w-full">
+              <Link to="/register" onClick={() => setMenuOpen(false)}>
+                Sponsor a tree <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          </nav>
+        </div>
+      )}
     </header>
   );
 }
@@ -179,7 +226,7 @@ function Hero() {
               starts giving shade.
             </motion.p>
 
-            <motion.div className="mt-7" variants={v.fadeUp}>
+            <motion.div className="mt-7 hidden sm:block" variants={v.fadeUp}>
               <Button asChild variant="outline" size="lg">
                 <a href="#how">
                   How it works <ArrowRight className="h-4 w-4" />
@@ -188,7 +235,7 @@ function Hero() {
             </motion.div>
 
             <motion.div
-              className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2.5 text-xs text-muted-foreground"
+              className="mt-8 hidden sm:flex flex-wrap items-center gap-x-5 gap-y-2.5 text-xs text-muted-foreground"
               variants={v.fadeUp}
             >
               <span className="inline-flex items-center gap-1.5">
@@ -737,19 +784,19 @@ function Footer() {
             <span className="grid h-8 w-8 place-items-center rounded-xl bg-primary/10 text-primary">
               <Leaf className="h-4 w-4" aria-hidden />
             </span>
-            <span className="font-heading font-bold text-foreground">NGO Trees</span>
+            <span className="font-heading font-bold text-foreground">Environ</span>
           </div>
           <p className="mt-3 max-w-xs text-sm text-muted-foreground leading-relaxed">
             Every tree your donation funds — planted, mapped, and proven.
           </p>
         </div>
-        <div className="flex flex-col items-start gap-3 sm:items-end">
+        <div className="flex w-full flex-col items-start gap-3 sm:w-auto sm:items-end">
           <span className="text-sm font-medium text-foreground">Ready to grow your forest?</span>
-          <div className="flex items-center gap-3">
-            <Button asChild variant="outline" size="sm">
+          <div className="flex w-full items-center gap-3 sm:w-auto">
+            <Button asChild variant="outline" size="sm" className="flex-1 sm:flex-none">
               <Link to="/login">Sign in</Link>
             </Button>
-            <Button asChild size="sm">
+            <Button asChild size="sm" className="flex-1 sm:flex-none">
               <Link to="/register">
                 Sponsor a tree <ArrowRight className="h-4 w-4" />
               </Link>
@@ -758,7 +805,7 @@ function Footer() {
         </div>
       </div>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 mt-8 border-t border-border/60 pt-6 text-xs text-muted-foreground">
-        &copy; {new Date().getFullYear()} NGO Trees. All rights reserved.
+        &copy; {new Date().getFullYear()} Environ. All rights reserved.
       </div>
     </footer>
   );

@@ -130,7 +130,7 @@ export default function Scan() {
     if (!code) {
       setStatus('error');
       setErrorMessage(
-        `Not an NGO Trees QR. Scanned: "${decodedText.slice(0, 80)}${decodedText.length > 80 ? '…' : ''}"`,
+        `Not an Environ QR. Scanned: "${decodedText.slice(0, 80)}${decodedText.length > 80 ? '…' : ''}"`,
       );
       // Re-arm so the user can try again without leaving the page.
       handledRef.current = false;

@@ -38,7 +38,7 @@ export function openRazorpayCheckout({
   orderId,
   amount,
   currency = 'INR',
-  name = 'NGO Trees',
+  name = 'Environ',
   description = 'Sponsor trees',
   prefill,
   themeColor = '#059669',

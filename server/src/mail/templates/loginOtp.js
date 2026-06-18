@@ -9,7 +9,7 @@ export function loginOtpTemplate({ otp, name }) {
         Hi ${escapeHtml(name ?? 'there')},
       </p>
       <p style="margin:0 0 24px;font-size:15px;line-height:1.5;color:#4b5563;">
-        Use this 6-digit code to finish signing in to NGO Trees.
+        Use this 6-digit code to finish signing in to Environ.
       </p>
       <div style="text-align:center;margin:24px 0;">
         <div style="display:inline-block;padding:18px 36px;background:#ecfdf5;

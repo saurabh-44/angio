@@ -61,10 +61,12 @@ export function AuthProvider({ children }) {
   // server responds requiresOtp:true and we stash the email so the OTP
   // step doesn't need to ask for it again. Otherwise we're already signed
   // in — refetch /me to hydrate the user.
-  const login = useCallback(async ({ email, password }) => {
-    const res = await api.post('/api/auth/login', { email, password });
+  const login = useCallback(async ({ identifier, password }) => {
+    const res = await api.post('/api/auth/login', { identifier, password });
     if (res?.requiresOtp) {
-      setPendingOtpEmail(email);
+      // Server returns the account email (the OTP target) even when the
+      // visitor signed in with a phone number.
+      setPendingOtpEmail(res.email ?? identifier);
       return { requiresOtp: true };
     }
     const me = await refetchMe();

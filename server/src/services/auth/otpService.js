@@ -70,7 +70,7 @@ export async function sendOtp({ email, purpose }) {
   const recipientName = user?.name;
 
   const subject =
-    purpose === 'login' ? 'Your NGO Trees sign-in code' : 'Reset your NGO Trees password';
+    purpose === 'login' ? 'Your Environ sign-in code' : 'Reset your Environ password';
   const html =
     purpose === 'login'
       ? loginOtpTemplate({ otp, name: recipientName })

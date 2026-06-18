@@ -9,29 +9,48 @@ import { logger } from '../../utils/logger.js';
 
 const BCRYPT_ROUNDS = 12;
 
+// Roles allowed to sign in with phone + password only (no email OTP).
+// Admins and site owners always complete the email OTP, regardless of
+// whether they used their email or phone as the identifier.
+const PHONE_NO_OTP_ROLES = new Set(['sponsor', 'volunteer']);
+
 // Step 1 of login. Verifies password, then either issues an OTP (for
 // ngo_admin / site_owner) or signals the caller to mint cookies straight
 // away (donor / volunteer — password-only with lockout).
-export async function startLogin({ email, password }) {
-  const user = await User.findOne({ email, isActive: true })
+export async function startLogin({ identifier, password }) {
+  // Identifier is an email OR a phone number. Emails are stored lower-cased;
+  // phones are stored as entered.
+  const id = String(identifier).trim();
+  const user = await User.findOne({
+    $or: [{ email: id.toLowerCase() }, { phone: id }],
+    isActive: true,
+  })
     .select('+passwordHash +failedLoginCount +lockedUntil')
     .lean();
-  if (!user) throw HttpError.unauthorized('Invalid email or password');
+  if (!user) throw HttpError.unauthorized('Invalid credentials');
 
   assertNotLocked(user);
   const ok = await bcrypt.compare(password, user.passwordHash);
   if (!ok) {
     await recordFailedLogin(User, user._id);
-    throw HttpError.unauthorized('Invalid email or password');
+    throw HttpError.unauthorized('Invalid credentials');
   }
   await resetLoginAttempts(User, user._id);
 
-  if (OTP_LOGIN_ROLES.has(user.role)) {
-    await sendOtp({ email, purpose: 'login' });
-    return { requiresOtp: true };
+  // A phone identifier has no '@'. Sponsors/volunteers signing in by phone
+  // skip the OTP; every other case (admins, site owners, or any email
+  // login) still completes the email OTP step.
+  const loggedInByPhone = !id.includes('@');
+  const phoneBypass = loggedInByPhone && PHONE_NO_OTP_ROLES.has(user.role);
+
+  if (OTP_LOGIN_ROLES.has(user.role) && !phoneBypass) {
+    // The OTP always goes to the account's email — even if the visitor
+    // signed in with their phone — so we return it for the verify step.
+    await sendOtp({ email: user.email, purpose: 'login' });
+    return { requiresOtp: true, email: user.email };
   }
 
-  // Password-only role — caller will mint cookies for this user directly.
+  // Direct sign-in (password only) — caller mints cookies for this user.
   await User.updateOne({ _id: user._id }, { $set: { lastLoginAt: new Date() } });
   return { requiresOtp: false, user };
 }
@@ -117,7 +136,7 @@ export async function completePasswordReset({ email, otp, newPassword }) {
 
   void sendMail({
     to: email,
-    subject: 'Your NGO Trees password was changed',
+    subject: 'Your Environ password was changed',
     html: passwordChangedTemplate({ name: user.name, when: new Date().toUTCString() }),
   });
 

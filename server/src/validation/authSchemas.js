@@ -19,8 +19,9 @@ export const registerSchema = z.object({
   gender: z.enum(GENDERS).optional(),
 });
 
+// Login accepts either an email or a phone number as the identifier.
 export const loginSchema = z.object({
-  email,
+  identifier: z.string().trim().min(1, 'Email or phone is required'),
   password: z.string().min(1),
 });
 

@@ -83,7 +83,7 @@ export async function createUser({
 
   void sendMail({
     to: email,
-    subject: 'Your NGO Trees account is ready',
+    subject: 'Your Environ account is ready',
     html: accountCreatedTemplate({
       name: fullName,
       role,
@@ -247,7 +247,7 @@ export async function resetUserPassword({ id, actor }) {
 
   void sendMail({
     to: target.email,
-    subject: 'Your NGO Trees password was reset',
+    subject: 'Your Environ password was reset',
     html: accountCreatedTemplate({
       name: target.name,
       role: target.role,

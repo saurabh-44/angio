@@ -26,7 +26,7 @@ export default function Login() {
 
   async function onSubmit(values) {
     try {
-      const res = await login({ email: values.email.trim(), password: values.password });
+      const res = await login({ identifier: values.identifier.trim(), password: values.password });
       if (res.requiresOtp) {
         navigate('/login/verify');
         return;
@@ -46,21 +46,18 @@ export default function Login() {
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="identifier">Email or phone</Label>
           <Input
-            id="email"
-            type="email"
-            autoComplete="email"
-            placeholder="you@example.org"
+            id="identifier"
+            type="text"
+            autoComplete="username"
+            placeholder="you@example.org or phone number"
             disabled={isSubmitting}
-            aria-invalid={errors.email ? 'true' : 'false'}
-            {...register('email', {
-              required: 'Email is required',
-              pattern: { value: /\S+@\S+\.\S+/, message: 'Enter a valid email' },
-            })}
+            aria-invalid={errors.identifier ? 'true' : 'false'}
+            {...register('identifier', { required: 'Email or phone is required' })}
           />
-          {errors.email && (
-            <p className="text-xs text-destructive">{errors.email.message}</p>
+          {errors.identifier && (
+            <p className="text-xs text-destructive">{errors.identifier.message}</p>
           )}
         </div>
 
@@ -97,7 +94,7 @@ export default function Login() {
           Sign in
         </Button>
 
-        <div className="flex items-center justify-between gap-3 text-sm">
+        <div className="flex flex-col gap-2 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-3">
           <span className="text-muted-foreground">
             New here?{' '}
             <Link to="/register" className="font-medium text-primary hover:underline">

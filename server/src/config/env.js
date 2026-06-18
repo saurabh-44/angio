@@ -30,7 +30,7 @@ const envSchema = z.object({
   MAIL_PORT: z.coerce.number().int().positive().default(587),
   MAIL_USER: z.string().optional(),
   MAIL_PASS: z.string().optional(),
-  MAIL_FROM_NAME: z.string().default('NGO Trees'),
+  MAIL_FROM_NAME: z.string().default('Environ'),
   MAIL_FROM_EMAIL: z.string().email().optional().or(z.literal('')),
 
   CLOUDINARY_CLOUD_NAME: z.string().optional(),

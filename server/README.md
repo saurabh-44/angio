@@ -1,4 +1,4 @@
-# NGO Trees — Server
+# Environ — Server
 
 Backend for the NGO tree-planting transparency app. Donors pay the NGO offline, the NGO allocates the donation across one or more sites and assigns volunteers, volunteers upload geotagged planting photos and weekly maintenance photos, and donors get a verifiable view of their funded trees.
 

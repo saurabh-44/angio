@@ -1,4 +1,4 @@
-# NGO Trees
+# Environ
 
 A transparency platform that lets donors see every tree their donation funded — geo-tagged, photographed, and maintained on a verifiable weekly schedule.
 
