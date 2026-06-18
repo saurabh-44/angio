@@ -4,12 +4,14 @@ import {
   forgotPasswordSchema,
   loginSchema,
   loginVerifyOtpSchema,
+  registerSchema,
   resetPasswordSchema,
 } from '../validation/authSchemas.js';
 import {
   completeLoginWithOtp,
   completePasswordReset,
   getMe,
+  registerSponsor,
   startLogin,
   startPasswordReset,
 } from '../services/auth/authService.js';
@@ -51,6 +53,14 @@ function mintCookies(res, user) {
   };
   setAccessCookie(res, signAccessToken(subject).token);
   setRefreshCookie(res, signRefreshToken(subject).token);
+}
+
+// Public sponsor self-registration. Creates the account only — the
+// client then calls /login, which runs the usual email-OTP step.
+export async function register(req, res) {
+  const input = registerSchema.parse(req.body);
+  await registerSponsor(input);
+  res.status(201).json({ ok: true });
 }
 
 // Step 1. For ngo_admin/site_owner we send an OTP and respond

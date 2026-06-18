@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { Types } from 'mongoose';
-import { PAYMENT_METHODS } from '../models/Donation.js';
+import { PAYMENT_METHODS, DONATION_STATUSES } from '../models/Donation.js';
 
 const objectId = z.string().refine((v) => Types.ObjectId.isValid(v), {
   message: 'Invalid id',
@@ -18,6 +18,7 @@ export const updateDonationSchema = z.object({
   amount: z.number().positive().optional(),
   paidAt: z.coerce.date().optional(),
   method: z.enum(PAYMENT_METHODS).optional(),
+  status: z.enum(DONATION_STATUSES).optional(),
   note: z.string().trim().max(1000).optional(),
 });
 

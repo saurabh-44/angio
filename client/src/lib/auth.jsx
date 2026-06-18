@@ -72,6 +72,14 @@ export function AuthProvider({ children }) {
     return { requiresOtp: false, user: me ?? res?.user ?? null };
   }, [refetchMe]);
 
+  // Public sponsor self-registration. Creates the account, then runs the
+  // normal login (which, for sponsors, triggers the email-OTP step) so the
+  // caller gets the same { requiresOtp } shape as login().
+  const register = useCallback(async (input) => {
+    await api.post('/api/auth/register', input);
+    return login({ email: input.email, password: input.password });
+  }, [login]);
+
   const verifyLoginOtp = useCallback(async ({ otp }) => {
     if (!pendingOtpEmail) throw new Error('No pending login — start over.');
     await api.post('/api/auth/login/verify', { email: pendingOtpEmail, otp });
@@ -110,6 +118,7 @@ export function AuthProvider({ children }) {
       role: user?.role ?? null,
       mustChangePassword: !!user?.forcePasswordChange,
       login,
+      register,
       verifyLoginOtp,
       logout,
       resetPasswordComplete,
@@ -121,6 +130,7 @@ export function AuthProvider({ children }) {
       status,
       pendingOtpEmail,
       login,
+      register,
       verifyLoginOtp,
       logout,
       resetPasswordComplete,

@@ -36,6 +36,29 @@ export async function startLogin({ email, password }) {
   return { requiresOtp: false, user };
 }
 
+// Public sponsor self-registration. Creates a 'sponsor' account the
+// visitor can immediately log into (which then runs the normal email-OTP
+// step). Role is hard-coded here — the client can never request another
+// role. `name` is auto-composed from first/last by the User pre-save hook.
+export async function registerSponsor({ firstName, lastName, email, phone, password, dob, gender }) {
+  const existing = await User.findOne({ email }).select('_id').lean();
+  if (existing) throw HttpError.conflict('An account with this email already exists');
+
+  const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+  await User.create({
+    firstName,
+    lastName,
+    email,
+    phone,
+    dob,
+    gender,
+    role: 'sponsor',
+    passwordHash,
+    isActive: true,
+    forcePasswordChange: false,
+  });
+}
+
 // Step 2 — used only for roles that went through OTP in step 1.
 export async function completeLoginWithOtp({ email, otp }) {
   await verifyOtp({ email, purpose: 'login', otp });

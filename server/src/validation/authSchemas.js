@@ -1,8 +1,23 @@
 import { z } from 'zod';
+import { GENDERS } from '../models/User.js';
 
 const email = z.string().email().trim().toLowerCase();
 const otp = z.string().regex(/^\d{6}$/, '6-digit code expected');
 const password = z.string().min(8, 'Password must be at least 8 characters').max(128);
+const personName = z.string().trim().min(1).max(60);
+const phone = z.string().trim().min(4).max(32);
+
+// Public sponsor self-registration. Role is forced to 'sponsor' in the
+// service — never accepted from the client.
+export const registerSchema = z.object({
+  firstName: personName,
+  lastName: personName,
+  email,
+  phone,
+  password,
+  dob: z.coerce.date().optional(),
+  gender: z.enum(GENDERS).optional(),
+});
 
 export const loginSchema = z.object({
   email,

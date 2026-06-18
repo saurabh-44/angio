@@ -19,6 +19,7 @@ export const createSiteSchema = z.object({
   pinCode: z.string().trim().max(16).optional(),
   geo,
   capacity: z.number().int().min(0).default(0),
+  pricePerTreeInr: z.number().min(0).optional(),
   notes: z.string().trim().max(2000).optional(),
   owner: objectId,
 });
@@ -32,6 +33,7 @@ export const updateSiteSchema = z.object({
   pinCode: z.string().trim().max(16).optional(),
   geo: geo.optional(),
   capacity: z.number().int().min(0).optional(),
+  pricePerTreeInr: z.number().min(0).optional(),
   notes: z.string().trim().max(2000).optional(),
   owner: objectId.optional(),
 });

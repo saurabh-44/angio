@@ -7,9 +7,17 @@ import {
   createSite,
   deleteSite,
   getSite,
+  listAvailableSites,
   listSites,
   updateSite,
 } from '../services/sites/siteService.js';
+
+// Curated, capacity-filtered site list any authenticated user can read —
+// powers the sponsor order wizard's site picker.
+export async function getAvailableSites(_req, res) {
+  const result = await listAvailableSites();
+  res.json(result);
+}
 
 export async function postSite(req, res) {
   const input = createSiteSchema.parse(req.body);

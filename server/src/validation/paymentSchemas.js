@@ -1,10 +1,17 @@
 import { z } from 'zod';
+import { Types } from 'mongoose';
 
-// Donor-initiated "Sponsor N trees" — the donor's only input is how many
-// trees they want to fund. The server multiplies by TREE_UNIT_PRICE_INR
-// so the client can't pick the amount.
+const objectId = z.string().refine((v) => Types.ObjectId.isValid(v), {
+  message: 'Invalid id',
+});
+
+// Sponsor-initiated "Sponsor N trees". The sponsor chooses how many trees
+// and (optionally) which site + date. The server resolves the per-tree
+// price (per-site, else global) so the client can't pick the amount.
 export const createSponsorOrderSchema = z.object({
   treeCount: z.number().int().positive().max(1000),
+  site: objectId.optional(),
+  donationDate: z.coerce.date().optional(),
   note: z.string().trim().max(500).optional(),
 });
 

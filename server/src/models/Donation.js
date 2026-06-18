@@ -32,6 +32,12 @@ const donationSchema = new Schema(
     // Donor-side intent at the time of payment. NGO admin allocates
     // these target trees across sites once payment is verified.
     treeCount: { type: Number, min: 0 },
+    // Self-service order intent. `intendedSite` is the site the sponsor
+    // chose to fund — on payment-verify we auto-create the Allocation to
+    // it. Null for admin-recorded donations (allocated manually later).
+    // `donationDate` is the sponsor-set date (defaults to "now").
+    intendedSite: { type: Schema.Types.ObjectId, ref: 'Site', index: true },
+    donationDate: { type: Date },
     note: { type: String, trim: true, maxlength: 1000 },
     // recordedBy is the NGO admin for offline donations, OR the donor
     // themselves for self-service Razorpay donations.

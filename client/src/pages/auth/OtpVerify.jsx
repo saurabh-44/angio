@@ -26,7 +26,13 @@ export default function OtpVerify() {
     setBusy(true);
     try {
       const me = await verifyLoginOtp({ otp });
-      const dest = ROLE_HOME[me?.role] ?? '/';
+      // Resume a sponsor's in-flight order if they came from the hero
+      // (tree count stashed before signup). The wizard reads + clears it.
+      const pendingOrder = sessionStorage.getItem('pendingSponsorTrees');
+      const dest =
+        pendingOrder && me?.role === 'sponsor'
+          ? '/sponsor/sponsor'
+          : ROLE_HOME[me?.role] ?? '/';
       navigate(dest, { replace: true });
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : 'Could not verify code.';

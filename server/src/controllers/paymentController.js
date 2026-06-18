@@ -4,6 +4,8 @@ import {
 } from '../validation/paymentSchemas.js';
 import {
   createSponsorOrder,
+  getSponsorOrder,
+  listSponsorOrders,
   sponsorshipInfo,
   verifySponsorPayment,
 } from '../services/payments/paymentService.js';
@@ -28,4 +30,14 @@ export async function postVerifyPayment(req, res) {
     actor: req.auth,
   });
   res.json({ ok: true, donation });
+}
+
+export async function getOrders(req, res) {
+  const result = await listSponsorOrders({ actor: req.auth });
+  res.json(result);
+}
+
+export async function getOrderById(req, res) {
+  const order = await getSponsorOrder({ id: req.params.id, actor: req.auth });
+  res.json({ order });
 }

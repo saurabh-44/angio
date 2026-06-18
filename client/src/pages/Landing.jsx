@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   motion,
   useMotionValue,
@@ -16,7 +17,6 @@ import {
   Menu,
   ShieldCheck,
   Sprout,
-  Users,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button.jsx';
 import { Badge } from '@/components/ui/badge.jsx';
@@ -35,7 +35,6 @@ export default function Landing() {
     <div className="min-h-screen bg-background text-foreground">
       <TopNav />
       <Hero />
-      <ImpactStrip />
       <HowItWorks />
       <Roles />
       <TrustBlock />
@@ -86,17 +85,17 @@ function TopNav() {
 
         <nav className="hidden md:flex items-center gap-7 text-sm">
           <a href="#how" className="text-muted-foreground hover:text-foreground transition-colors">How it works</a>
-          <a href="#roles" className="text-muted-foreground hover:text-foreground transition-colors">Who it's for</a>
+          <a href="#roles" className="text-muted-foreground hover:text-foreground transition-colors">What you get</a>
           <a href="#trust" className="text-muted-foreground hover:text-foreground transition-colors">Why trust it</a>
         </nav>
 
         <div className="flex items-center gap-2">
-          <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+          <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex text-[15px]">
             <Link to="/login">Sign in</Link>
           </Button>
-          <Button asChild size="sm">
-            <Link to="/login">
-              Open dashboard <ArrowRight className="h-4 w-4" />
+          <Button asChild size="sm" className="text-sm">
+            <Link to="/register">
+              Sponsor a tree <ArrowRight className="h-4 w-4" />
             </Link>
           </Button>
           <Button variant="ghost" size="icon" className="md:hidden" aria-label="Menu">
@@ -153,60 +152,189 @@ function Hero() {
       <FloatingLeaves disabled={reduced} />
 
       <motion.div
-        className="relative max-w-7xl mx-auto px-4 sm:px-6 py-20 sm:py-28 lg:py-36"
+        className="relative max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-20 lg:py-28"
         initial="hidden"
         animate="show"
         variants={v.container}
       >
-        <motion.div variants={v.fadeUp}>
-          <Badge variant="default">Transparent tree-planting</Badge>
-        </motion.div>
-        <motion.h1
-          className="mt-6 font-heading text-4xl sm:text-5xl lg:text-7xl font-bold tracking-tight leading-[1.05] max-w-4xl"
-          variants={v.fadeUp}
-        >
-          See every tree your donation{' '}
-          <span className="text-primary">funded.</span>
-        </motion.h1>
-        <motion.p
-          className="mt-6 text-base sm:text-lg text-muted-foreground max-w-2xl leading-relaxed"
-          variants={v.fadeUp}
-        >
-          Sponsors pay. Volunteers plant. Site owners care for the saplings every week. You get
-          geo-tagged photo proof &mdash; from the moment a tree goes in the ground to the day it
-          starts giving shade.
-        </motion.p>
+        <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
+          {/* Left — narrative + proof */}
+          <div>
+            <motion.div variants={v.fadeUp}>
+              <Badge variant="default">Transparent tree-planting</Badge>
+            </motion.div>
+            <motion.h1
+              className="mt-6 font-heading text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight leading-[1.05]"
+              variants={v.fadeUp}
+            >
+              See every tree your donation{' '}
+              <span className="text-primary">funded.</span>
+            </motion.h1>
+            <motion.p
+              className="mt-5 max-w-xl text-base sm:text-lg text-muted-foreground leading-relaxed"
+              variants={v.fadeUp}
+            >
+              Sponsors pay. Volunteers plant. Site owners care for the saplings. You get
+              geo-tagged photo proof &mdash; from the moment a tree goes in the ground to the day it
+              starts giving shade.
+            </motion.p>
 
-        <motion.div className="mt-9 flex flex-col sm:flex-row gap-3" variants={v.fadeUp}>
-          <Button asChild size="lg" className="text-base">
-            <Link to="/login">
-              Open your dashboard <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
-          <Button asChild size="lg" variant="outline" className="text-base">
-            <a href="#how">How it works</a>
-          </Button>
-        </motion.div>
+            <motion.div className="mt-7" variants={v.fadeUp}>
+              <Button asChild variant="outline" size="lg">
+                <a href="#how">
+                  How it works <ArrowRight className="h-4 w-4" />
+                </a>
+              </Button>
+            </motion.div>
 
-        <motion.div
-          className="mt-12 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted-foreground"
-          variants={v.fadeUp}
-        >
-          <span className="inline-flex items-center gap-1.5">
-            <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> GPS-pinned
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Photo proof every planting
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Weekly maintenance log
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Sponsor-scoped dashboards
-          </span>
-        </motion.div>
+            <motion.div
+              className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2.5 text-xs text-muted-foreground"
+              variants={v.fadeUp}
+            >
+              <span className="inline-flex items-center gap-1.5">
+                <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> GPS-pinned
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Photo proof every planting
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Maintenance log &amp; map
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Sponsor-scoped dashboards
+              </span>
+            </motion.div>
+
+          </div>
+
+          {/* Right — conversion widget */}
+          <motion.div variants={v.fadeUp} className="w-full">
+            <SponsorWidget />
+          </motion.div>
+        </div>
       </motion.div>
     </section>
+  );
+}
+
+// Hero conversion widget. Lets a logged-out visitor pick how many trees
+// to sponsor, stashes that choice in sessionStorage, and sends them to
+// register. After signup the order wizard resumes with the count.
+function SponsorWidget() {
+  const navigate = useNavigate();
+  const [count, setCount] = useState(1);
+  const clamp = (n) => Math.max(1, Math.min(1000, Math.round(n) || 1));
+
+  function go(note) {
+    sessionStorage.setItem('pendingSponsorTrees', String(clamp(count)));
+    if (note) sessionStorage.setItem('pendingSponsorNote', note);
+    else sessionStorage.removeItem('pendingSponsorNote');
+    navigate('/register');
+  }
+
+  return (
+    <div className="grid gap-4 w-full sm:max-w-md sm:mx-auto lg:ml-auto lg:mr-0">
+      {/* Primary — sponsor now */}
+      <div className="bento-card relative p-6 sm:p-7 bg-card/95 backdrop-blur border border-border/60 ring-1 ring-black/[0.03] shadow-[0_24px_70px_-28px_rgba(6,78,59,0.35)]">
+        <div className="flex items-center justify-between gap-3">
+          <div className="inline-flex items-center gap-1.5 text-xs uppercase tracking-widest text-primary font-medium">
+            <Sprout className="h-3.5 w-3.5" aria-hidden /> Sponsor trees
+          </div>
+          <span className="rounded-full bg-leaf-100 px-2.5 py-0.5 text-[11px] font-semibold text-leaf-700">
+            100% trackable
+          </span>
+        </div>
+        <p className="mt-3 text-sm text-muted-foreground">How many trees would you like to fund?</p>
+        <div className="mt-4 flex justify-center">
+          <Stepper count={count} setCount={setCount} />
+        </div>
+        <Button className="mt-5 w-full" size="lg" onClick={() => go()}>
+          Sponsor now <ArrowRight className="h-4 w-4" />
+        </Button>
+        <div className="mt-3 flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground">
+          <ShieldCheck className="h-3.5 w-3.5 text-primary" aria-hidden />
+          Secure payment via Razorpay · GPS + photo proof
+        </div>
+        <div className="mt-4 border-t border-border/60 pt-3 text-center text-sm text-muted-foreground">
+          Already a member?{' '}
+          <Link
+            to="/login"
+            className="font-semibold text-primary underline decoration-primary/30 underline-offset-4 transition-colors hover:decoration-primary"
+          >
+            Sign in
+          </Link>
+        </div>
+      </div>
+
+      {/* Secondary — celebrate */}
+      <div className="bento-card p-4 sm:p-5 surface-biophilic border border-border/60 flex items-center gap-4">
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-primary/10 text-primary">
+          <Leaf className="h-5 w-5" aria-hidden />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-semibold text-foreground">Celebrate with plantation</div>
+          <p className="text-xs text-muted-foreground leading-snug">
+            A birthday, anniversary, or memory in someone's name.
+          </p>
+        </div>
+        <Button variant="outline" size="sm" className="shrink-0" onClick={() => go('Celebration plantation')}>
+          Plant <ArrowRight className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function Stepper({ count, setCount }) {
+  // Local text state so the field can be cleared and re-typed freely
+  // (e.g. wipe "1" to type "20"). We DON'T force the lower bound on every
+  // keystroke — that's what made it snap back to 1. Bounds are enforced
+  // on blur; +/- always commit a valid number. The order flow re-clamps
+  // to >= 1 on continue, so an empty field can never submit 0 trees.
+  const [draft, setDraft] = useState(String(count));
+
+  function commit(n) {
+    const c = Math.max(1, Math.min(1000, Math.floor(Number(n)) || 1));
+    setCount(c);
+    setDraft(String(c));
+  }
+
+  return (
+    <div className="inline-flex items-center rounded-xl border border-border bg-background overflow-hidden">
+      <button
+        type="button"
+        onClick={() => commit(count - 1)}
+        className="h-11 w-11 grid place-items-center text-xl hover:bg-secondary cursor-pointer"
+        aria-label="Decrease"
+      >
+        −
+      </button>
+      <input
+        type="text"
+        inputMode="numeric"
+        value={draft}
+        onChange={(e) => {
+          const t = e.target.value;
+          // Allow empty (mid-edit) or up to 4 digits; ignore other input.
+          if (t === '' || /^\d{1,4}$/.test(t)) {
+            setDraft(t);
+            if (t !== '') setCount(Math.max(1, Math.min(1000, parseInt(t, 10))));
+          }
+        }}
+        onBlur={() => commit(draft)}
+        onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+        className="h-11 w-16 text-center font-heading text-lg font-bold bg-transparent border-x border-border outline-none"
+        aria-label="Number of trees"
+      />
+      <button
+        type="button"
+        onClick={() => commit(count + 1)}
+        className="h-11 w-11 grid place-items-center text-xl hover:bg-secondary cursor-pointer"
+        aria-label="Increase"
+      >
+        +
+      </button>
+    </div>
   );
 }
 
@@ -303,64 +431,35 @@ function FloatingLeaves({ disabled }) {
   );
 }
 
-function ImpactStrip() {
-  const v = useVariants();
-  return (
-    <section className="border-y border-border/60 bg-card">
-      <motion.div
-        className="max-w-7xl mx-auto px-4 sm:px-6 py-10 grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-10"
-        initial="hidden"
-        whileInView="show"
-        viewport={{ once: true, amount: 0.4 }}
-        variants={v.container}
-      >
-        {[
-          ['47,238', 'Trees planted'],
-          ['216', 'Active sites'],
-          ['412', 'Sponsors trust us'],
-          ['98.4%', 'Watered on time'],
-        ].map(([value, label]) => (
-          <motion.div key={label} variants={v.fadeUp}>
-            <div className="font-heading text-3xl sm:text-4xl font-bold text-foreground tracking-tight">
-              {value}
-            </div>
-            <div className="mt-1 text-sm text-muted-foreground">{label}</div>
-          </motion.div>
-        ))}
-      </motion.div>
-    </section>
-  );
-}
-
 function HowItWorks() {
   const v = useVariants();
   const steps = [
     {
       icon: HandCoins,
-      title: 'Donate',
-      body: 'You pay the NGO directly. Cash, UPI, bank transfer — whatever works. The NGO records every donation with a date and a method.',
+      title: 'Sponsor',
+      body: 'Choose how many trees to fund and pay securely online. Every contribution is recorded with a date and method.',
     },
     {
       icon: Sprout,
       title: 'NGO allocates',
-      body: 'Your contribution gets split across one or more sites, each with a target tree count. You see exactly where your money is going.',
+      body: 'Your trees are assigned to real planting sites, each with a target count — so you can see exactly where they go.',
     },
     {
       icon: Camera,
       title: 'Volunteers plant',
-      body: 'On the ground, volunteers capture GPS and a photo of every tree as they put it in the soil. No tree goes unrecorded.',
+      body: 'On the ground, volunteers capture the GPS location and a photo of every tree as it goes in the soil.',
     },
     {
       icon: ShieldCheck,
-      title: 'You verify, weekly',
-      body: 'Every week, a fresh watering photo per tree. Pin-by-pin on a map you can scroll through any time.',
+      title: 'You verify',
+      body: 'Volunteers post fresh watering photos for every tree — pinned on a map you can open any time.',
     },
   ];
   return (
     <section id="how" className="py-20 sm:py-28">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <motion.div
-          className="max-w-2xl"
+          className="max-w-3xl mx-auto text-center"
           initial="hidden"
           whileInView="show"
           viewport={{ once: true, amount: 0.5 }}
@@ -368,37 +467,43 @@ function HowItWorks() {
         >
           <motion.div variants={v.fadeUp}><Badge variant="success">How it works</Badge></motion.div>
           <motion.h2
-            className="mt-4 font-heading text-3xl sm:text-4xl font-bold tracking-tight"
+            className="mt-4 font-heading text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight leading-tight"
             variants={v.fadeUp}
           >
-            From your donation to a growing tree, recorded every step.
+            From your donation to a growing tree.
           </motion.h2>
-          <motion.p className="mt-3 text-muted-foreground" variants={v.fadeUp}>
-            Four stages, all visible to you. No middleman, no opaque "trust us" — just the
-            evidence trail.
+          <motion.p className="mt-3 text-sm sm:text-base text-muted-foreground" variants={v.fadeUp}>
+            Four stages, every one visible to you — just the evidence trail.
           </motion.p>
         </motion.div>
 
         <motion.ol
-          className="mt-12 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5"
+          className="mt-14 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5"
           initial="hidden"
           whileInView="show"
           viewport={{ once: true, amount: 0.2 }}
           variants={v.container}
         >
           {steps.map((s, i) => (
-            <motion.li key={s.title} variants={v.fadeUp}>
+            <motion.li key={s.title} variants={v.fadeUp} className="h-full">
               <Tilt3D className="h-full">
-                <div className="bento-card p-6 flex flex-col gap-4 relative h-full">
-                  <span className="absolute top-4 right-5 font-mono text-xs text-muted-foreground/60">
-                    0{i + 1}
-                  </span>
-                  <span className="grid h-11 w-11 place-items-center rounded-2xl bg-primary/10 text-primary">
-                    <s.icon className="h-5 w-5" aria-hidden />
-                  </span>
+                <div className="bento-card group/card relative h-full overflow-hidden border-border bg-gradient-to-b from-card to-secondary/25 p-6 flex flex-col gap-5 shadow-sm transition-all duration-300 hover:border-primary/40 hover:shadow-lg">
+                  {/* Top accent that draws in on hover */}
+                  <span
+                    aria-hidden
+                    className="absolute inset-x-0 top-0 h-1 origin-left scale-x-0 bg-gradient-to-r from-primary to-leaf-400 transition-transform duration-300 group-hover/card:scale-x-100"
+                  />
+                  <div className="flex items-center justify-between">
+                    <span className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-leaf-100 to-leaf-50 text-leaf-700 ring-1 ring-leaf-200/70 shadow-sm">
+                      <s.icon className="h-5 w-5" aria-hidden />
+                    </span>
+                    <span className="font-heading text-4xl font-extrabold leading-none text-leaf-300">
+                      0{i + 1}
+                    </span>
+                  </div>
                   <div>
-                    <h3 className="font-heading text-base font-semibold mb-1.5">{s.title}</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{s.body}</p>
+                    <h3 className="font-heading text-lg font-semibold tracking-tight">{s.title}</h3>
+                    <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{s.body}</p>
                   </div>
                 </div>
               </Tilt3D>
@@ -414,27 +519,27 @@ function Roles() {
   const v = useVariants();
   const cards = [
     {
-      icon: HandCoins,
-      title: 'For sponsors',
-      body: 'Sign in to see where your trees are, photos of every planting, and weekly watering proof.',
+      icon: ShieldCheck,
+      title: 'Proof, not promises',
+      body: 'Every tree you fund is GPS-pinned and photographed the day it goes in the soil — see each one, not a number in a report.',
       tone: 'leaf',
     },
     {
-      icon: MapPin,
-      title: 'For site owners',
-      body: 'Manage your plots, assign volunteers, and keep a weekly maintenance schedule in one place.',
+      icon: Camera,
+      title: 'Watch them grow',
+      body: 'Follow your trees on a live map, with fresh photos from the field as they go from sapling to shade.',
       tone: 'sky',
     },
     {
-      icon: Sprout,
-      title: 'For volunteers',
-      body: "Big buttons, GPS capture, phone camera upload. Designed for the field, not the desk.",
+      icon: MapPin,
+      title: 'See where your money goes',
+      body: 'Your contribution is tied to real planting sites with target counts — traceable right down to the date.',
       tone: 'amber',
     },
     {
-      icon: Users,
-      title: 'For the NGO',
-      body: 'See everything. Onboard sponsors, allocate funds, assign volunteers, and prove your impact.',
+      icon: Leaf,
+      title: 'Impact you can show',
+      body: 'Get an estimated CO₂ offset and a downloadable certificate for every contribution you make.',
       tone: 'leaf',
     },
   ];
@@ -447,22 +552,22 @@ function Roles() {
     <section id="roles" className="py-20 sm:py-28 bg-secondary/40 border-y border-border/60">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <motion.div
-          className="max-w-2xl"
+          className="max-w-3xl mx-auto text-center"
           initial="hidden"
           whileInView="show"
           viewport={{ once: true, amount: 0.5 }}
           variants={v.container}
         >
-          <motion.div variants={v.fadeUp}><Badge variant="accent">Who it's for</Badge></motion.div>
+          <motion.div variants={v.fadeUp}><Badge variant="success">What you get</Badge></motion.div>
           <motion.h2
             className="mt-4 font-heading text-3xl sm:text-4xl font-bold tracking-tight"
             variants={v.fadeUp}
           >
-            One platform. Four perspectives.
+            Your donation, every step in view.
           </motion.h2>
-          <motion.p className="mt-3 text-muted-foreground" variants={v.fadeUp}>
-            Each role sees exactly what they need &mdash; nothing more, nothing less. Sponsor data stays
-            private to the sponsor, site data stays with its owner.
+          <motion.p className="mt-3 mx-auto max-w-2xl text-muted-foreground" variants={v.fadeUp}>
+            No vague annual report. From the moment you pay to the day your trees give shade, you can
+            follow every one you funded.
           </motion.p>
         </motion.div>
 
@@ -476,8 +581,12 @@ function Roles() {
           {cards.map((c) => (
             <motion.div key={c.title} variants={v.fadeUp}>
               <Tilt3D max={6} className="h-full">
-                <article className="bento-card p-6 sm:p-8 flex items-start gap-5 h-full">
-                  <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl ${tones[c.tone]}`}>
+                <article className="bento-card group/card relative overflow-hidden border-border p-6 sm:p-7 flex items-start gap-5 h-full shadow-sm transition-all duration-300 hover:border-primary/40 hover:shadow-lg">
+                  <span
+                    aria-hidden
+                    className="absolute inset-x-0 top-0 h-1 origin-left scale-x-0 bg-gradient-to-r from-primary to-leaf-400 transition-transform duration-300 group-hover/card:scale-x-100"
+                  />
+                  <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl ring-1 ring-black/[0.04] shadow-sm ${tones[c.tone]}`}>
                     <c.icon className="h-6 w-6" aria-hidden />
                   </div>
                   <div>
@@ -500,8 +609,8 @@ function TrustBlock() {
   const points = [
     [MapPin, "GPS captured at the moment the tree goes in the soil."],
     [Camera, "Photo upload straight from the volunteer's phone."],
-    [Droplets, "Weekly watering log — one fresh photo per tree, per week."],
-    [ShieldCheck, "Role-scoped dashboards. Your data is yours alone."],
+    [Droplets, "Watering photos from the field, so you can watch each tree thrive."],
+    [ShieldCheck, "A private dashboard — your trees and your data, seen only by you."],
   ];
   return (
     <section id="trust" className="py-20 sm:py-28">
@@ -525,7 +634,8 @@ function TrustBlock() {
           >
             Most donations vanish into a pdf annual report. Here, every rupee is tied to a
             specific allocation, every allocation to a specific tree, every tree to a specific
-            GPS coordinate, and every tree to a weekly watering photo. You can scroll the proof.
+            GPS coordinate, and every tree to a watering photo from the field. You can scroll
+            the proof.
           </motion.p>
           <ul className="mt-8 space-y-3">
             {points.map(([Icon, text]) => (
@@ -552,19 +662,19 @@ function TrustBlock() {
               className="bento-card surface-biophilic p-8 sm:p-10 space-y-6"
             >
               <div className="grid grid-cols-3 gap-3">
-                {[['GPS', 'Pinned'], ['Photo', 'Proof'], ['Weekly', 'Verified']].map(([v1, l]) => (
+                {[['GPS', 'Pinned'], ['Photo', 'Proof'], ['Map', 'Live']].map(([v1, l]) => (
                   <div key={l} className="rounded-2xl bg-card/80 backdrop-blur border border-border/60 p-3 text-center">
                     <div className="font-heading text-sm font-bold text-foreground tracking-tight">{v1}</div>
                     <div className="mt-0.5 text-[11px] text-muted-foreground">{l}</div>
                   </div>
                 ))}
               </div>
-              <blockquote className="text-lg sm:text-xl font-heading font-semibold tracking-tight leading-snug text-foreground">
-                "I can finally see where the trees from my donation are. Not a number in a report &mdash;
-                a real photo with the GPS pin to prove it."
-              </blockquote>
+              <p className="text-lg sm:text-xl font-heading font-semibold tracking-tight leading-snug text-foreground">
+                Every contribution becomes a record you can open &mdash; a GPS pin, a planting photo,
+                and ongoing care updates, all tied to your trees.
+              </p>
               <div className="text-sm text-muted-foreground">
-                &mdash; A sponsor, after their first weekly update
+                Nothing to take on faith. Just scroll the proof.
               </div>
             </motion.div>
           </Tilt3D>
@@ -589,24 +699,29 @@ function ClosingCta() {
           className="font-heading text-3xl sm:text-5xl font-bold tracking-tight leading-tight"
           variants={v.fadeUp}
         >
-          Already have an account?
+          Plant a tree you can watch grow.
         </motion.h2>
         <motion.p
-          className="mt-3 text-base sm:text-lg text-card/70 max-w-xl mx-auto leading-relaxed"
+          className="mt-4 text-base sm:text-lg text-card/70 max-w-2xl mx-auto leading-relaxed"
           variants={v.fadeUp}
         >
-          Sign in to see your trees, manage your site, or record fieldwork.
+          Pick how many, pay securely, and follow each tree from the field.
         </motion.p>
         <motion.div className="mt-8 flex justify-center" variants={v.fadeUp}>
           <Button asChild size="lg" variant="accent" className="text-base">
-            <Link to="/login">
-              Open dashboard <ArrowRight className="h-4 w-4" />
+            <Link to="/register">
+              Sponsor a tree <ArrowRight className="h-4 w-4" />
             </Link>
           </Button>
         </motion.div>
-        <motion.p className="mt-6 text-xs text-card/50" variants={v.fadeUp}>
-          New here? Sponsor, site owner, and volunteer accounts are created by the NGO. Contact them
-          to get yours.
+        <motion.p className="mt-6 text-sm text-card/60" variants={v.fadeUp}>
+          Already have an account?{' '}
+          <Link
+            to="/login"
+            className="font-semibold text-card underline decoration-card/30 underline-offset-4 transition-colors hover:decoration-card"
+          >
+            Sign in
+          </Link>
         </motion.p>
       </motion.div>
     </section>
@@ -615,13 +730,35 @@ function ClosingCta() {
 
 function Footer() {
   return (
-    <footer className="py-10 sm:py-14 bg-background">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center gap-4 sm:justify-between text-sm text-muted-foreground">
-        <div className="inline-flex items-center gap-2.5">
-          <Leaf className="h-4 w-4 text-primary" aria-hidden />
-          <span className="font-medium text-foreground">NGO Trees</span>
+    <footer className="border-t border-border/60 bg-background py-10 sm:py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col gap-8 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="inline-flex items-center gap-2.5">
+            <span className="grid h-8 w-8 place-items-center rounded-xl bg-primary/10 text-primary">
+              <Leaf className="h-4 w-4" aria-hidden />
+            </span>
+            <span className="font-heading font-bold text-foreground">NGO Trees</span>
+          </div>
+          <p className="mt-3 max-w-xs text-sm text-muted-foreground leading-relaxed">
+            Every tree your donation funds — planted, mapped, and proven.
+          </p>
         </div>
-        <div>&copy; {new Date().getFullYear()} NGO Trees</div>
+        <div className="flex flex-col items-start gap-3 sm:items-end">
+          <span className="text-sm font-medium text-foreground">Ready to grow your forest?</span>
+          <div className="flex items-center gap-3">
+            <Button asChild variant="outline" size="sm">
+              <Link to="/login">Sign in</Link>
+            </Button>
+            <Button asChild size="sm">
+              <Link to="/register">
+                Sponsor a tree <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 mt-8 border-t border-border/60 pt-6 text-xs text-muted-foreground">
+        &copy; {new Date().getFullYear()} NGO Trees. All rights reserved.
       </div>
     </footer>
   );

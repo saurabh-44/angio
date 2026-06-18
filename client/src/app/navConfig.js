@@ -45,10 +45,10 @@ export const NAV_BY_ROLE = {
   sponsor: [
     { to: '/sponsor', label: 'Overview', icon: LayoutDashboard, end: true },
     { to: '/sponsor/sponsor', label: 'Sponsor trees', icon: Sparkles },
+    { to: '/sponsor/orders', label: 'My Orders', icon: HandCoins },
     { to: '/sponsor/trees', label: 'My Trees', icon: Leaf },
     { to: '/sponsor/map', label: 'Map view', icon: Map },
     { to: '/sponsor/maintenance', label: 'Maintenance', icon: Droplets },
-    { to: '/sponsor/donations', label: 'Donations', icon: HandCoins },
   ],
   volunteer: [
     { to: '/volunteer', label: 'Overview', icon: LayoutDashboard, end: true },

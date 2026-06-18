@@ -5,6 +5,8 @@ import { sendMail } from '../../config/mail.js';
 import { loginOtpTemplate } from '../../mail/templates/loginOtp.js';
 import { passwordResetOtpTemplate } from '../../mail/templates/passwordResetOtp.js';
 import { HttpError } from '../../utils/httpError.js';
+import { env } from '../../config/env.js';
+import { logger } from '../../utils/logger.js';
 
 const OTP_TTL_MS = 5 * 60 * 1000;
 const MAX_ATTEMPTS = 5;
@@ -30,6 +32,16 @@ export async function sendOtp({ email, purpose }) {
 
   const otp = generateOtp();
   const expiresAt = new Date(now.getTime() + OTP_TTL_MS);
+
+  // Dev convenience: always print the code to the server console so you
+  // can sign in with any (even fake) email — no real inbox or SMTP needed.
+  // Guarded by NODE_ENV so production logs never leak live OTPs.
+  if (!env.isProd) {
+    logger.warn(
+      { email, purpose, otp },
+      `========== DEV OTP  ${otp}  →  ${email} [${purpose}] ==========`,
+    );
+  }
 
   if (existing) {
     existing.otp = otp;

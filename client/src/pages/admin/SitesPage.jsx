@@ -66,7 +66,7 @@ import {
 import { useUsers } from '@/queries/users.js';
 import { useAuth } from '@/lib/auth.jsx';
 import { ApiError } from '@/lib/api.js';
-import { formatDate, formatGeo } from '@/lib/format.js';
+import { formatAmount, formatDate, formatGeo } from '@/lib/format.js';
 
 const LIMIT = 20;
 
@@ -159,6 +159,7 @@ export default function SitesPage() {
                   <TableHead>Site</TableHead>
                   <TableHead>Owner</TableHead>
                   <TableHead>Capacity</TableHead>
+                  <TableHead>Price/tree</TableHead>
                   <TableHead>Coords</TableHead>
                   <TableHead>Added</TableHead>
                   <TableHead className="w-12 text-right" />
@@ -186,7 +187,10 @@ export default function SitesPage() {
                       </div>
                     </TableCell>
                     <TableCell className="font-mono tabular-nums text-sm">
-                      {s.capacity ?? 0}
+                      {s.capacity ? s.capacity : '∞'}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {s.pricePerTreeInr != null ? formatAmount(s.pricePerTreeInr) : '—'}
                     </TableCell>
                     <TableCell className="font-mono text-xs text-muted-foreground">
                       {formatGeo(s.geo)}
@@ -378,16 +382,30 @@ function SiteFormFields({ register, errors, owner, setOwner, disabled, onUseMyLo
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="site-capacity">Capacity</Label>
-        <Input
-          id="site-capacity"
-          type="number"
-          min="0"
-          placeholder="How many trees can fit here"
-          disabled={disabled}
-          {...register('capacity', { valueAsNumber: true, min: 0 })}
-        />
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label htmlFor="site-capacity">Capacity</Label>
+          <Input
+            id="site-capacity"
+            type="number"
+            min="0"
+            placeholder="0 = unlimited"
+            disabled={disabled}
+            {...register('capacity', { valueAsNumber: true, min: 0 })}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="site-price">Price per tree (₹)</Label>
+          <Input
+            id="site-price"
+            type="number"
+            min="0"
+            step="any"
+            placeholder="Blank = default price"
+            disabled={disabled}
+            {...register('pricePerTreeInr', { valueAsNumber: true, min: 0 })}
+          />
+        </div>
       </div>
 
       <div className="space-y-2">
@@ -452,6 +470,7 @@ function SiteFormDialog({ open, onOpenChange }) {
         pinCode: values.pinCode?.trim() || undefined,
         geo: { lat: values.lat, lng: values.lng },
         capacity: values.capacity || 0,
+        pricePerTreeInr: Number.isFinite(values.pricePerTreeInr) ? values.pricePerTreeInr : undefined,
         owner,
       });
       success('Site added');
@@ -513,6 +532,7 @@ function SiteFormSheet({ site, onClose }) {
       lat: site?.geo?.lat ?? 0,
       lng: site?.geo?.lng ?? 0,
       capacity: site?.capacity ?? 0,
+      pricePerTreeInr: site?.pricePerTreeInr ?? '',
     }),
     [site],
   );
@@ -569,6 +589,7 @@ function SiteFormSheet({ site, onClose }) {
           pinCode: values.pinCode?.trim() ?? '',
           geo: { lat: values.lat, lng: values.lng },
           capacity: values.capacity || 0,
+          pricePerTreeInr: Number.isFinite(values.pricePerTreeInr) ? values.pricePerTreeInr : undefined,
           owner: owner || undefined,
         },
       });

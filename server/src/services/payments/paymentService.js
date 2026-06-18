@@ -1,10 +1,15 @@
 import { Donation } from '../../models/Donation.js';
 import { User } from '../../models/User.js';
+import { Site } from '../../models/Site.js';
+import { Allocation } from '../../models/Allocation.js';
+import { Plant } from '../../models/Plant.js';
 import { env } from '../../config/env.js';
 import { isRazorpayConfigured, razorpay, verifyPaymentSignature } from '../../config/razorpay.js';
 import { HttpError } from '../../utils/httpError.js';
 import { sendMail } from '../../config/mail.js';
 import { donationReceivedTemplate } from '../../mail/templates/donationReceived.js';
+import { remainingCapacityForSite } from '../sites/siteService.js';
+import { co2KgForPlant } from '../co2/co2Service.js';
 import { logger } from '../../utils/logger.js';
 
 // Step 1 of the sponsor flow. Creates a pending Donation row + a
@@ -15,7 +20,7 @@ import { logger } from '../../utils/logger.js';
 // reliably tied to a row we can find later in the webhook/verify step,
 // and so an abandoned checkout still leaves a 'pending' record the NGO
 // admin can audit.
-export async function createSponsorOrder({ treeCount, note, actor }) {
+export async function createSponsorOrder({ treeCount, site, donationDate, note, actor }) {
   if (actor.role !== 'sponsor') {
     throw HttpError.forbidden('Only sponsors can sponsor trees');
   }
@@ -27,7 +32,25 @@ export async function createSponsorOrder({ treeCount, note, actor }) {
     );
   }
 
-  const unitPrice = env.TREE_UNIT_PRICE_INR;
+  // Resolve the per-tree price: the chosen site's price if set, else the
+  // global default. Site is optional — a sponsor can fund the pool and let
+  // the admin place the trees. When a site IS chosen, reject orders that
+  // overflow its remaining capacity.
+  let unitPrice = env.TREE_UNIT_PRICE_INR;
+  let intendedSite;
+  if (site) {
+    const siteDoc = await Site.findById(site).select('pricePerTreeInr').lean();
+    if (!siteDoc) throw HttpError.badRequest('Selected site not found');
+    if (typeof siteDoc.pricePerTreeInr === 'number' && siteDoc.pricePerTreeInr > 0) {
+      unitPrice = siteDoc.pricePerTreeInr;
+    }
+    const remaining = await remainingCapacityForSite(site);
+    if (remaining !== null && remaining !== Infinity && treeCount > remaining) {
+      throw HttpError.badRequest(`This site only has room for ${remaining} more tree(s)`);
+    }
+    intendedSite = site;
+  }
+
   const amount = treeCount * unitPrice;
   if (amount <= 0) throw HttpError.badRequest('Invalid amount');
 
@@ -56,12 +79,14 @@ export async function createSponsorOrder({ treeCount, note, actor }) {
     amount,
     currency: 'INR',
     paidAt: new Date(),
+    donationDate: donationDate ?? new Date(),
     method: 'online',
     status: 'pending',
     razorpay: { orderId: order.id },
     treeCount,
+    intendedSite,
     note: note?.trim() || undefined,
-    recordedBy: actor.userId, // donor records their own self-service donation
+    recordedBy: actor.userId, // sponsor records their own self-service donation
   });
 
   return {
@@ -109,6 +134,31 @@ export async function verifySponsorPayment({ orderId, paymentId, signature, acto
   };
   await donation.save();
 
+  // Self-service order with a chosen site → reserve the trees against that
+  // site now (create the Allocation) so volunteers can plant. Idempotent.
+  // Non-fatal: payment already succeeded, so a hiccup here just leaves the
+  // donation unallocated for the admin to place — never error the verify.
+  if (donation.intendedSite) {
+    try {
+      const existing = await Allocation.findOne({ donation: donation._id })
+        .select('_id')
+        .lean();
+      if (!existing) {
+        await Allocation.create({
+          donation: donation._id,
+          donor: donation.donor,
+          site: donation.intendedSite,
+          targetPlants: donation.treeCount,
+          allocatedAmount: donation.amount,
+          createdBy: donation.donor,
+          note: 'Self-service sponsor order',
+        });
+      }
+    } catch (err) {
+      logger.error({ err, donation: String(donation._id) }, 'auto-allocation failed (non-fatal)');
+    }
+  }
+
   // Fire-and-forget receipt email (Gmail SMTP can take 10–15s; we
   // don't want the verify response blocked on that).
   void (async () => {
@@ -134,8 +184,91 @@ export async function verifySponsorPayment({ orderId, paymentId, signature, acto
   return donation.toObject();
 }
 
-// Donor's "what's it cost?" + "is online payment available?" view used
-// on the sponsor page. Cheap, no auth needed beyond donor.
+// ───────────────────────── Orders (status views) ─────────────────────────
+
+export const ORDER_STATUSES = [
+  'pending', // payment not completed
+  'processing', // paid, awaiting site placement (no allocation yet)
+  'yet_to_plant', // allocated to a site, nothing planted yet
+  'in_progress', // some trees planted
+  'planted', // target met
+  'failed',
+  'refunded',
+];
+
+function deriveOrderStatus({ paymentStatus, hasAllocation, planted, target }) {
+  if (paymentStatus !== 'paid') return paymentStatus; // pending / failed / refunded
+  if (!hasAllocation) return 'processing';
+  if (planted <= 0) return 'yet_to_plant';
+  if (planted < target) return 'in_progress';
+  return 'planted';
+}
+
+// Turns one Donation into a sponsor-facing "order" — joins its
+// allocation(s) + plants to derive a status and CO₂ figure.
+async function decorateOrder(donation) {
+  const allocations = await Allocation.find({ donation: donation._id })
+    .populate('site', 'name address geo')
+    .lean();
+  const target =
+    allocations.reduce((s, a) => s + (a.targetPlants ?? 0), 0) || donation.treeCount || 0;
+
+  let planted = 0;
+  let co2Kg = 0;
+  if (allocations.length) {
+    const plants = await Plant.find({ allocation: { $in: allocations.map((a) => a._id) } })
+      .select('plantedAt status speciesRef')
+      .populate('speciesRef', 'co2PerYearKg')
+      .lean();
+    planted = plants.length;
+    for (const p of plants) co2Kg += co2KgForPlant(p);
+  }
+
+  const firstSite = allocations[0]?.site;
+  return {
+    id: String(donation._id),
+    date: donation.donationDate ?? donation.paidAt ?? donation.createdAt,
+    treeCount: donation.treeCount ?? target,
+    amount: donation.amount,
+    currency: donation.currency ?? 'INR',
+    paymentStatus: donation.status,
+    method: donation.method,
+    status: deriveOrderStatus({
+      paymentStatus: donation.status,
+      hasAllocation: allocations.length > 0,
+      planted,
+      target,
+    }),
+    planted,
+    target,
+    co2Kg: Math.round(co2Kg * 10) / 10,
+    site: firstSite
+      ? { id: String(firstSite._id ?? firstSite), name: firstSite.name ?? null }
+      : null,
+    createdAt: donation.createdAt,
+  };
+}
+
+export async function listSponsorOrders({ actor }) {
+  if (actor.role !== 'sponsor') {
+    throw HttpError.forbidden('Only sponsors can view their orders');
+  }
+  const donations = await Donation.find({ donor: actor.userId }).sort({ createdAt: -1 }).lean();
+  const items = await Promise.all(donations.map((d) => decorateOrder(d)));
+  return { items };
+}
+
+export async function getSponsorOrder({ id, actor }) {
+  if (actor.role !== 'sponsor') {
+    throw HttpError.forbidden('Only sponsors can view their orders');
+  }
+  const donation = await Donation.findOne({ _id: id, donor: actor.userId }).lean();
+  if (!donation) throw HttpError.notFound('Order not found');
+  return decorateOrder(donation);
+}
+
+// Sponsor's "what's it cost?" + "is online payment available?" view used
+// on the sponsor page. Cheap, no auth needed beyond sponsor.
 export function sponsorshipInfo({ actor }) {
   if (actor.role !== 'sponsor') {
     throw HttpError.forbidden('Only sponsors can view sponsorship pricing');

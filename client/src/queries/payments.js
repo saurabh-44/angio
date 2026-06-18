@@ -4,6 +4,8 @@ import { donationKeys } from './donations.js';
 
 export const paymentKeys = {
   info: ['payments', 'info'],
+  orders: ['payments', 'orders'],
+  order: (id) => ['payments', 'orders', id],
 };
 
 export function useSponsorshipInfo() {
@@ -12,6 +14,23 @@ export function useSponsorshipInfo() {
     queryFn: () => api.get('/api/payments/info'),
     // Pricing rarely changes — give it a longer stale window.
     staleTime: 5 * 60_000,
+  });
+}
+
+// The sponsor's own orders (each backed by a Donation), with derived
+// status + CO₂.
+export function useSponsorOrders() {
+  return useQuery({
+    queryKey: paymentKeys.orders,
+    queryFn: () => api.get('/api/payments/orders'),
+  });
+}
+
+export function useSponsorOrder(id) {
+  return useQuery({
+    queryKey: paymentKeys.order(id),
+    queryFn: () => api.get(`/api/payments/orders/${id}`),
+    enabled: !!id,
   });
 }
 
@@ -27,6 +46,7 @@ export function useVerifyPayment() {
     mutationFn: (body) => api.post('/api/payments/verify', body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: donationKeys.all });
+      qc.invalidateQueries({ queryKey: paymentKeys.orders });
     },
   });
 }

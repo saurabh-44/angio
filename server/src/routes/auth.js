@@ -8,6 +8,7 @@ import {
   forgotPasswordSchema,
   loginSchema,
   loginVerifyOtpSchema,
+  registerSchema,
   resetPasswordSchema,
 } from '../validation/authSchemas.js';
 import {
@@ -18,11 +19,18 @@ import {
   logout,
   me,
   refresh,
+  register,
   resetPassword,
 } from '../controllers/authController.js';
 
 export const authRouter = Router();
 
+authRouter.post(
+  '/register',
+  authLimiter,
+  validate(registerSchema, 'body'),
+  asyncHandler(register),
+);
 authRouter.post(
   '/login',
   authLimiter,

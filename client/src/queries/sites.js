@@ -23,6 +23,15 @@ export function useSites(params = {}) {
   });
 }
 
+// Capacity-filtered, sponsor-readable site list for the order wizard.
+export function useAvailableSites() {
+  return useQuery({
+    queryKey: ['sites', 'available'],
+    queryFn: () => api.get('/api/sites/available'),
+    staleTime: 60_000,
+  });
+}
+
 export function useSite(id) {
   return useQuery({
     queryKey: siteKeys.detail(id),

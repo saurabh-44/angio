@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
-import AuthShell, { AuthFooterLink } from '@/components/AuthShell.jsx';
+import AuthShell from '@/components/AuthShell.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
@@ -42,10 +42,7 @@ export default function Login() {
   return (
     <AuthShell
       title="Welcome back"
-      subtitle="Sign in to view planting progress, manage sites, or record fieldwork."
-      footer={
-        <AuthFooterLink to="/forgot-password" prefix="Trouble signing in?" label="Reset password" />
-      }
+      subtitle="Sign in to see your trees — every planting photo, GPS pin, and update."
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
         <div className="space-y-2">
@@ -68,12 +65,7 @@ export default function Login() {
         </div>
 
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="password">Password</Label>
-            <Link to="/forgot-password" className="text-xs font-medium text-primary hover:underline">
-              Forgot?
-            </Link>
-          </div>
+          <Label htmlFor="password">Password</Label>
           <div className="relative">
             <Input
               id="password"
@@ -105,9 +97,20 @@ export default function Login() {
           Sign in
         </Button>
 
-        <p className="text-xs text-muted-foreground text-center">
-          We'll email you a one-time code after the password step.
-        </p>
+        <div className="flex items-center justify-between gap-3 text-sm">
+          <span className="text-muted-foreground">
+            New here?{' '}
+            <Link to="/register" className="font-medium text-primary hover:underline">
+              Create a sponsor account
+            </Link>
+          </span>
+          <Link
+            to="/forgot-password"
+            className="shrink-0 font-medium text-primary hover:underline whitespace-nowrap"
+          >
+            Reset password
+          </Link>
+        </div>
       </form>
     </AuthShell>
   );

@@ -58,6 +58,7 @@ import {
   useCreateDonation,
   useDeleteAllocation,
   useDonations,
+  useUpdateDonation,
 } from '@/queries/donations.js';
 import { useSites } from '@/queries/sites.js';
 import { useUsers } from '@/queries/users.js';
@@ -73,6 +74,22 @@ const METHOD_OPTIONS = [
   { value: 'cheque', label: 'Cheque' },
   { value: 'other', label: 'Other' },
 ];
+
+// Payment status — online sponsor orders start `pending` until Razorpay
+// verification flips them to `paid`; an abandoned/failed checkout stays
+// `pending` until the admin marks it. Offline records are `paid`.
+const DONATION_STATUSES = ['pending', 'paid', 'failed', 'refunded'];
+const DONATION_STATUS_META = {
+  pending: { label: 'Pending', variant: 'outline' },
+  paid: { label: 'Paid', variant: 'success' },
+  failed: { label: 'Failed', variant: 'destructive' },
+  refunded: { label: 'Refunded', variant: 'muted' },
+};
+
+function DonationStatusBadge({ status }) {
+  const meta = DONATION_STATUS_META[status] ?? { label: status ?? 'unknown', variant: 'muted' };
+  return <Badge variant={meta.variant}>{meta.label}</Badge>;
+}
 
 export default function DonationsPage() {
   const [donorFilter, setDonorFilter] = useState('');
@@ -137,6 +154,7 @@ export default function DonationsPage() {
                   <TableHead>Sponsor</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Method</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Paid</TableHead>
                   <TableHead>Recorded</TableHead>
                   <TableHead className="text-right">Allocations</TableHead>
@@ -160,6 +178,9 @@ export default function DonationsPage() {
                     </TableCell>
                     <TableCell>
                       <Badge variant="muted" className="capitalize">{d.method?.replace('_', ' ')}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <DonationStatusBadge status={d.status} />
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {formatDate(d.paidAt)}
@@ -399,6 +420,10 @@ function DonationDetailSheet({ donation, onClose }) {
           <SummaryStat icon={Leaf} label="Target trees" value={String(allocatedPlants)} />
         </div>
 
+        <div className="mt-5">
+          <DonationStatusChanger donation={donation} />
+        </div>
+
         <div className="mt-6 flex-1 overflow-y-auto pr-1">
           <div className="mb-2 flex items-center justify-between">
             <h3 className="font-heading text-sm font-semibold text-foreground">Allocations</h3>
@@ -425,6 +450,39 @@ function DonationDetailSheet({ donation, onClose }) {
         </div>
       </SheetContent>
     </Sheet>
+  );
+}
+
+function DonationStatusChanger({ donation }) {
+  const update = useUpdateDonation();
+  const { success, error: toastError } = useToast();
+  const current = donation.status ?? 'pending';
+
+  async function onChange(status) {
+    if (status === current) return;
+    try {
+      await update.mutateAsync({ id: donation.id ?? donation._id, patch: { status } });
+      success('Status updated', `Marked as ${DONATION_STATUS_META[status]?.label ?? status}.`);
+    } catch (err) {
+      toastError("Couldn't update status", err instanceof ApiError ? err.message : 'Try again.');
+    }
+  }
+
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 p-3.5">
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="text-sm text-muted-foreground">Payment status</span>
+        <DonationStatusBadge status={current} />
+      </div>
+      <Select value={current} onValueChange={onChange} disabled={update.isPending}>
+        <SelectTrigger className="w-36 shrink-0"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          {DONATION_STATUSES.map((s) => (
+            <SelectItem key={s} value={s}>{DONATION_STATUS_META[s]?.label ?? s}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 }
 

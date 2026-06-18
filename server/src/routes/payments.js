@@ -7,6 +7,8 @@ import {
 import { authLimiter } from '../middleware/rateLimit.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import {
+  getOrderById,
+  getOrders,
   getSponsorshipInfo,
   postSponsorOrder,
   postVerifyPayment,
@@ -20,6 +22,10 @@ export const paymentsRouter = Router();
 paymentsRouter.use(requireAuth, blockIfForcedPasswordChange, requireRole('sponsor'));
 
 paymentsRouter.get('/info', asyncHandler(getSponsorshipInfo));
+
+// Sponsor's own orders (status / CO₂ views). Read-only.
+paymentsRouter.get('/orders', asyncHandler(getOrders));
+paymentsRouter.get('/orders/:id', asyncHandler(getOrderById));
 
 // authLimiter applied to write endpoints so a misbehaving client (or a
 // script) can't spam order creation / signature verification.

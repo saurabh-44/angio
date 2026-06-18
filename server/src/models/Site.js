@@ -22,6 +22,10 @@ const siteSchema = new Schema(
     pinCode: { type: String, trim: true, maxlength: 16 },
     geo: { type: geoSchema, required: true },
     capacity: { type: Number, min: 0, default: 0 },
+    // Price per tree a sponsor pays to fund a planting at this site, in
+    // INR. Admin-set; falls back to the global TREE_UNIT_PRICE_INR when
+    // unset (or when a sponsor funds without choosing a site).
+    pricePerTreeInr: { type: Number, min: 0 },
     notes: { type: String, trim: true, maxlength: 2000 },
     owner: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     // When the current owner (Site Incharge) took over this site. Set on

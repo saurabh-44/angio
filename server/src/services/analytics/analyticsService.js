@@ -71,7 +71,7 @@ export async function adminOverview() {
     healthLogs,
   ] = await Promise.all([
     Plant.find({}).select('status plantedAt').lean(),
-    Donation.find({ status: { $ne: 'pending' } })
+    Donation.find({ status: 'paid' })
       .select('amount paidAt status')
       .lean(),
     MaintenanceLog.find({}).select('weekOf').lean(),
@@ -91,7 +91,7 @@ export async function adminOverview() {
       { $project: { _id: 0, name: '$site.name', count: 1 } },
     ]),
     Donation.aggregate([
-      { $match: { status: { $ne: 'pending' } } },
+      { $match: { status: 'paid' } },
       {
         $group: {
           _id: '$donor',

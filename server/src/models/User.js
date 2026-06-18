@@ -67,10 +67,12 @@ userSchema.index(
   { unique: true, partialFilterExpression: { isDeleted: false } },
 );
 
-// Keep the denormalised `name` in sync with the split parts. Only fires
-// when first/last are actually present so direct `name`-only creates
+// Keep the denormalised `name` in sync with the split parts. Runs on
+// `validate` (NOT `save`) so the composed `name` exists before the
+// required-field check — registration sends only firstName/lastName.
+// Only fires when first/last are present, so direct `name`-only creates
 // (seed users, Excel import) keep working untouched.
-userSchema.pre('save', function syncName() {
+userSchema.pre('validate', function syncName() {
   if (this.isModified('firstName') || this.isModified('lastName')) {
     const composed = [this.firstName, this.lastName].filter(Boolean).join(' ').trim();
     if (composed) this.name = composed;

@@ -17,6 +17,7 @@ import Landing from '@/pages/Landing.jsx';
 
 // Auth chunks
 const Login = lazy(() => import('@/pages/auth/Login.jsx'));
+const Register = lazy(() => import('@/pages/auth/Register.jsx'));
 const OtpVerify = lazy(() => import('@/pages/auth/OtpVerify.jsx'));
 const ForgotPassword = lazy(() => import('@/pages/auth/ForgotPassword.jsx'));
 const ResetPassword = lazy(() => import('@/pages/auth/ResetPassword.jsx'));
@@ -43,6 +44,7 @@ const SponsorTrees = lazy(() => import('@/pages/sponsor/SponsorTrees.jsx'));
 const SponsorMap = lazy(() => import('@/pages/sponsor/SponsorMap.jsx'));
 const SponsorMaintenance = lazy(() => import('@/pages/sponsor/SponsorMaintenance.jsx'));
 const SponsorDonations = lazy(() => import('@/pages/sponsor/SponsorDonations.jsx'));
+const SponsorOrders = lazy(() => import('@/pages/sponsor/SponsorOrders.jsx'));
 const SponsorTree = lazy(() => import('@/pages/sponsor/SponsorTree.jsx'));
 
 // Volunteer chunks
@@ -82,6 +84,7 @@ export default function AppRouter() {
       <Routes>
         {/* Public auth tree */}
         <Route path="/login" element={<PublicAuth element={<Login />} />} />
+        <Route path="/register" element={<PublicAuth element={<Register />} />} />
         <Route path="/login/verify" element={<PublicAuth element={<OtpVerify />} />} />
         <Route path="/forgot-password" element={<PublicAuth element={<ForgotPassword />} />} />
         <Route path="/reset-password" element={<PublicAuth element={<ResetPassword />} />} />
@@ -147,6 +150,7 @@ export default function AppRouter() {
         >
           <Route index element={<SponsorHome />} />
           <Route path="sponsor" element={<SponsorTree />} />
+          <Route path="orders" element={<SponsorOrders />} />
           <Route path="trees" element={<SponsorTrees />} />
           <Route path="map" element={<SponsorMap />} />
           <Route path="maintenance" element={<SponsorMaintenance />} />
