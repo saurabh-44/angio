@@ -11,7 +11,7 @@ import {
   completeLoginWithOtp,
   completePasswordReset,
   getMe,
-  registerSponsor,
+  startSignup,
   startLogin,
   startPasswordReset,
 } from '../services/auth/authService.js';
@@ -57,10 +57,12 @@ function mintCookies(res, user) {
 
 // Public sponsor self-registration. Creates the account only — the
 // client then calls /login, which runs the usual email-OTP step.
+// Step 1 of self-registration. No account is created yet — we email an OTP
+// and only create the User once it's verified (via /login/verify).
 export async function register(req, res) {
   const input = registerSchema.parse(req.body);
-  await registerSponsor(input);
-  res.status(201).json({ ok: true });
+  const { email } = await startSignup(input);
+  res.status(200).json({ requiresOtp: true, email });
 }
 
 // Step 1. For ngo_admin/site_owner we send an OTP and respond

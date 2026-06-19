@@ -17,6 +17,19 @@ const razorpaySchema = new Schema(
   { _id: false },
 );
 
+// Billing address captured at order time (sponsor self-service flow).
+const addressSchema = new Schema(
+  {
+    line1: { type: String, trim: true, maxlength: 200 },
+    line2: { type: String, trim: true, maxlength: 200 },
+    city: { type: String, trim: true, maxlength: 120 },
+    state: { type: String, trim: true, maxlength: 120 },
+    pinCode: { type: String, trim: true, maxlength: 16 },
+    country: { type: String, trim: true, maxlength: 120 },
+  },
+  { _id: false },
+);
+
 const donationSchema = new Schema(
   {
     donor: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
@@ -38,6 +51,8 @@ const donationSchema = new Schema(
     // `donationDate` is the sponsor-set date (defaults to "now").
     intendedSite: { type: Schema.Types.ObjectId, ref: 'Site', index: true },
     donationDate: { type: Date },
+    // Billing address the sponsor entered for this order.
+    billingAddress: { type: addressSchema },
     note: { type: String, trim: true, maxlength: 1000 },
     // recordedBy is the NGO admin for offline donations, OR the donor
     // themselves for self-service Razorpay donations.

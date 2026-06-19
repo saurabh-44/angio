@@ -424,6 +424,17 @@ function DonationDetailSheet({ donation, onClose }) {
           <DonationStatusChanger donation={donation} />
         </div>
 
+        {formatAddress(donation.billingAddress) && (
+          <div className="mt-4 rounded-2xl border border-border/60 p-3.5">
+            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <MapPin className="h-4 w-4 text-primary" aria-hidden /> Billing address
+            </div>
+            <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
+              {formatAddress(donation.billingAddress)}
+            </p>
+          </div>
+        )}
+
         <div className="mt-6 flex-1 overflow-y-auto pr-1">
           <div className="mb-2 flex items-center justify-between">
             <h3 className="font-heading text-sm font-semibold text-foreground">Allocations</h3>
@@ -451,6 +462,15 @@ function DonationDetailSheet({ donation, onClose }) {
       </SheetContent>
     </Sheet>
   );
+}
+
+// Joins a stored address sub-doc into a single readable line; '' if empty.
+function formatAddress(a) {
+  if (!a) return '';
+  return [a.line1, a.line2, a.city, a.state, a.pinCode, a.country]
+    .map((s) => (s ? String(s).trim() : ''))
+    .filter(Boolean)
+    .join(', ');
 }
 
 function DonationStatusChanger({ donation }) {

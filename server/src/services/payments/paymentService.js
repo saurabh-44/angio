@@ -20,7 +20,7 @@ import { logger } from '../../utils/logger.js';
 // reliably tied to a row we can find later in the webhook/verify step,
 // and so an abandoned checkout still leaves a 'pending' record the NGO
 // admin can audit.
-export async function createSponsorOrder({ treeCount, site, donationDate, note, actor }) {
+export async function createSponsorOrder({ treeCount, site, donationDate, note, address, saveAddress, actor }) {
   if (actor.role !== 'sponsor') {
     throw HttpError.forbidden('Only sponsors can sponsor trees');
   }
@@ -85,9 +85,17 @@ export async function createSponsorOrder({ treeCount, site, donationDate, note, 
     razorpay: { orderId: order.id },
     treeCount,
     intendedSite,
+    billingAddress: address,
     note: note?.trim() || undefined,
     recordedBy: actor.userId, // sponsor records their own self-service donation
   });
+
+  // Persist the address to the sponsor's profile if they opted to save it.
+  const addressHasContent =
+    address && Object.values(address).some((v) => typeof v === 'string' && v.trim());
+  if (saveAddress && addressHasContent) {
+    await User.updateOne({ _id: actor.userId }, { $set: { address } });
+  }
 
   return {
     donation: donation.toObject(),

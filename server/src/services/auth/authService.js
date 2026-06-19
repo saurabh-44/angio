@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { User, OTP_LOGIN_ROLES } from '../../models/User.js';
+import { PendingSignup } from '../../models/PendingSignup.js';
 import { HttpError } from '../../utils/httpError.js';
 import { sendOtp, verifyOtp } from './otpService.js';
 import { assertNotLocked, recordFailedLogin, resetLoginAttempts } from './loginLockout.js';
@@ -13,6 +14,9 @@ const BCRYPT_ROUNDS = 12;
 // Admins and site owners always complete the email OTP, regardless of
 // whether they used their email or phone as the identifier.
 const PHONE_NO_OTP_ROLES = new Set(['sponsor', 'volunteer']);
+
+// How long an unverified pending signup survives before it's auto-purged.
+const SIGNUP_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
 // Step 1 of login. Verifies password, then either issues an OTP (for
 // ngo_admin / site_owner) or signals the caller to mint cookies straight
@@ -55,35 +59,68 @@ export async function startLogin({ identifier, password }) {
   return { requiresOtp: false, user };
 }
 
-// Public sponsor self-registration. Creates a 'sponsor' account the
-// visitor can immediately log into (which then runs the normal email-OTP
-// step). Role is hard-coded here — the client can never request another
-// role. `name` is auto-composed from first/last by the User pre-save hook.
-export async function registerSponsor({ firstName, lastName, email, phone, password, dob, gender }) {
+// Step 1 of sponsor self-registration. We DON'T create the User yet — the
+// password-hashed signup is stashed in PendingSignup and an email OTP is
+// sent. The real account is created only once that OTP is verified (see
+// completeLoginWithOtp), so unverified / spam signups never become real
+// accounts. Role is hard-coded to 'sponsor'.
+export async function startSignup({ firstName, lastName, email, phone, password, dob, gender }) {
   const existing = await User.findOne({ email }).select('_id').lean();
   if (existing) throw HttpError.conflict('An account with this email already exists');
 
+  const phoneTaken = await User.findOne({ phone }).select('_id').lean();
+  if (phoneTaken) throw HttpError.conflict('An account with this phone number already exists');
+
   const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
-  await User.create({
-    firstName,
-    lastName,
-    email,
-    phone,
-    dob,
-    gender,
-    role: 'sponsor',
-    passwordHash,
-    isActive: true,
-    forcePasswordChange: false,
-  });
+  // Upsert so re-submitting the form (or a fresh attempt) just refreshes
+  // the pending record + OTP rather than piling up duplicates.
+  await PendingSignup.findOneAndUpdate(
+    { email },
+    {
+      $set: {
+        firstName,
+        lastName,
+        email,
+        phone,
+        dob,
+        gender,
+        passwordHash,
+        expiresAt: new Date(Date.now() + SIGNUP_TTL_MS),
+      },
+    },
+    { upsert: true },
+  );
+
+  await sendOtp({ email, purpose: 'login' });
+  return { email };
 }
 
-// Step 2 — used only for roles that went through OTP in step 1.
+// Step 2 — verifies the email OTP. Also the FINAL step of sponsor
+// self-registration: if the email belongs to a PendingSignup (no real
+// account yet), verifying the OTP is what actually creates the account.
 export async function completeLoginWithOtp({ email, otp }) {
   await verifyOtp({ email, purpose: 'login', otp });
 
-  const user = await User.findOne({ email, isActive: true }).lean();
-  if (!user) throw HttpError.unauthorized('Account not found');
+  let user = await User.findOne({ email, isActive: true }).lean();
+  if (!user) {
+    // No account yet → must be a verified sponsor signup. Create it now.
+    const pending = await PendingSignup.findOne({ email }).lean();
+    if (!pending) throw HttpError.unauthorized('Account not found');
+    const created = await User.create({
+      firstName: pending.firstName,
+      lastName: pending.lastName,
+      email: pending.email,
+      phone: pending.phone,
+      dob: pending.dob,
+      gender: pending.gender,
+      role: 'sponsor',
+      passwordHash: pending.passwordHash,
+      isActive: true,
+      forcePasswordChange: false,
+    });
+    await PendingSignup.deleteOne({ email });
+    user = await User.findById(created._id).lean();
+  }
 
   await User.updateOne({ _id: user._id }, { $set: { lastLoginAt: new Date() } });
   return user;
@@ -98,6 +135,7 @@ export async function getMe(userId) {
       email: user.email,
       name: user.name,
       phone: user.phone ?? null,
+      address: user.address ?? null,
       role: user.role,
       isActive: user.isActive,
       isPrimary: !!user.isPrimary,

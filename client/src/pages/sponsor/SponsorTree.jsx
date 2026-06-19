@@ -58,6 +58,16 @@ export default function SponsorTree() {
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [placed, setPlaced] = useState(null);
+  // Billing address — prefilled from the sponsor's saved address (if any).
+  const [address, setAddress] = useState(() => ({
+    line1: user?.address?.line1 ?? '',
+    line2: user?.address?.line2 ?? '',
+    city: user?.address?.city ?? '',
+    state: user?.address?.state ?? '',
+    pinCode: user?.address?.pinCode ?? '',
+    country: user?.address?.country ?? 'India',
+  }));
+  const [saveAddress, setSaveAddress] = useState(true);
 
   // Resume the hero's choice (tree count + optional celebration note).
   useEffect(() => {
@@ -104,6 +114,11 @@ export default function SponsorTree() {
 
   async function handlePay() {
     if (busy) return;
+    // Billing address is required to place an order.
+    if (!address.line1?.trim() || !address.city?.trim() || !address.state?.trim() || !address.pinCode?.trim()) {
+      toastError('Billing address needed', 'Please fill your address (street, city, state, and PIN) to continue.');
+      return;
+    }
     setBusy(true);
     // Tracks whether Razorpay actually captured the money. If verification
     // fails AFTER this point, the payment succeeded — we must NOT tell the
@@ -120,6 +135,15 @@ export default function SponsorTree() {
         site: siteId !== ANY_SITE ? siteId : undefined,
         donationDate: donationDate || undefined,
         note: note.trim() || undefined,
+        address: {
+          line1: address.line1.trim(),
+          line2: address.line2.trim() || undefined,
+          city: address.city.trim(),
+          state: address.state.trim(),
+          pinCode: address.pinCode.trim(),
+          country: address.country.trim() || undefined,
+        },
+        saveAddress,
       });
       const response = await openRazorpayCheckout({
         keyId: orderRes.razorpay.keyId,
@@ -198,6 +222,10 @@ export default function SponsorTree() {
           date={donationDate}
           busy={busy}
           razorpayReady={razorpayReady}
+          address={address}
+          setAddress={setAddress}
+          saveAddress={saveAddress}
+          setSaveAddress={setSaveAddress}
           onBack={() => setStep(1)}
           onPay={handlePay}
         />
@@ -385,7 +413,8 @@ function TreeDetailStep({
   );
 }
 
-function BillingStep({ user, count, unit, total, siteName, date, busy, razorpayReady, onBack, onPay }) {
+function BillingStep({ user, count, unit, total, siteName, date, busy, razorpayReady, address, setAddress, saveAddress, setSaveAddress, onBack, onPay }) {
+  const field = (key) => (e) => setAddress((a) => ({ ...a, [key]: e.target.value }));
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5">
       <section className="lg:col-span-6 bento-card p-6 sm:p-8 space-y-4">
@@ -394,6 +423,48 @@ function BillingStep({ user, count, unit, total, siteName, date, busy, razorpayR
         <ReadOnlyField label="Name" value={user?.name} />
         <ReadOnlyField label="Email" value={user?.email} />
         <ReadOnlyField label="Phone" value={user?.phone ?? '—'} />
+
+        <div className="border-t border-border/60 pt-4">
+          <h3 className="font-heading text-sm font-semibold">Billing address</h3>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="addr-line1">Address</Label>
+          <Input id="addr-line1" value={address.line1} onChange={field('line1')} placeholder="House no. / street" disabled={busy} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="addr-line2">Apartment, landmark (optional)</Label>
+          <Input id="addr-line2" value={address.line2} onChange={field('line2')} disabled={busy} />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Label htmlFor="addr-city">City</Label>
+            <Input id="addr-city" value={address.city} onChange={field('city')} disabled={busy} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="addr-state">State</Label>
+            <Input id="addr-state" value={address.state} onChange={field('state')} disabled={busy} />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Label htmlFor="addr-pin">PIN code</Label>
+            <Input id="addr-pin" value={address.pinCode} onChange={field('pinCode')} inputMode="numeric" disabled={busy} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="addr-country">Country</Label>
+            <Input id="addr-country" value={address.country} onChange={field('country')} disabled={busy} />
+          </div>
+        </div>
+        <label className="flex items-center gap-2.5 pt-1 text-sm text-foreground cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={saveAddress}
+            onChange={(e) => setSaveAddress(e.target.checked)}
+            disabled={busy}
+            className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
+          />
+          Save this address for next time
+        </label>
       </section>
 
       <aside className="lg:col-span-6 space-y-4">

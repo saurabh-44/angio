@@ -11,6 +11,19 @@ export const OTP_LOGIN_ROLES = new Set(['ngo_admin', 'site_owner', 'sponsor', 'v
 
 export const GENDERS = ['male', 'female', 'other', 'prefer_not_to_say'];
 
+// Reusable postal address shape (billing/shipping).
+const addressSchema = new Schema(
+  {
+    line1: { type: String, trim: true, maxlength: 200 },
+    line2: { type: String, trim: true, maxlength: 200 },
+    city: { type: String, trim: true, maxlength: 120 },
+    state: { type: String, trim: true, maxlength: 120 },
+    pinCode: { type: String, trim: true, maxlength: 16 },
+    country: { type: String, trim: true, maxlength: 120 },
+  },
+  { _id: false },
+);
+
 const userSchema = new Schema(
   {
     email: { type: String, required: true, trim: true, lowercase: true },
@@ -25,6 +38,9 @@ const userSchema = new Schema(
     // Date of birth + gender — captured for every account per the spec.
     dob: { type: Date },
     gender: { type: String, enum: GENDERS },
+    // Saved billing address — set when a sponsor opts to "save for next
+    // time" during the order flow. Optional.
+    address: { type: addressSchema },
     phone: { type: String, trim: true, maxlength: 32 },
     role: { type: String, enum: ROLES, required: true, index: true },
 
@@ -65,6 +81,14 @@ const userSchema = new Schema(
 userSchema.index(
   { email: 1 },
   { unique: true, partialFilterExpression: { isDeleted: false } },
+);
+
+// Phone is unique among live users that actually have one. The partial
+// filter lets multiple (admin-created) users omit a phone, and lets a
+// number be re-used after the holder is soft-deleted.
+userSchema.index(
+  { phone: 1 },
+  { unique: true, partialFilterExpression: { phone: { $type: 'string' }, isDeleted: false } },
 );
 
 // Keep the denormalised `name` in sync with the split parts. Runs on

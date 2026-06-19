@@ -74,13 +74,15 @@ export function AuthProvider({ children }) {
     return { requiresOtp: false, user: me ?? res?.user ?? null };
   }, [refetchMe]);
 
-  // Public sponsor self-registration. Creates the account, then runs the
-  // normal login (which, for sponsors, triggers the email-OTP step) so the
-  // caller gets the same { requiresOtp } shape as login().
+  // Public sponsor self-registration. The account is NOT created yet — the
+  // server emails an OTP and only creates the User once it's verified (via
+  // the same /login/verify step), so unverified signups never become
+  // accounts. We stash the email and route the caller to the OTP screen.
   const register = useCallback(async (input) => {
-    await api.post('/api/auth/register', input);
-    return login({ email: input.email, password: input.password });
-  }, [login]);
+    const res = await api.post('/api/auth/register', input);
+    setPendingOtpEmail(res?.email ?? input.email);
+    return { requiresOtp: true };
+  }, []);
 
   const verifyLoginOtp = useCallback(async ({ otp }) => {
     if (!pendingOtpEmail) throw new Error('No pending login — start over.');

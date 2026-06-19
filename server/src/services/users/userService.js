@@ -57,6 +57,11 @@ export async function createUser({
   const existing = await User.findOne({ email }).select('_id').lean();
   if (existing) throw HttpError.conflict('An account with this email already exists');
 
+  if (phone) {
+    const phoneTaken = await User.findOne({ phone }).select('_id').lean();
+    if (phoneTaken) throw HttpError.conflict('An account with this phone number already exists');
+  }
+
   // Compose the denormalised display name from the split parts (falling
   // back to an explicit `name` for any non-form caller).
   const fullName =
