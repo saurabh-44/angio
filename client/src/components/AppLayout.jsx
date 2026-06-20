@@ -1,7 +1,8 @@
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sheet, SheetContent } from '@/components/ui/sheet.jsx';
 import { Spinner } from '@/components/ui/spinner.jsx';
+import { primeNativePermissions } from '@/lib/nativePermissions.js';
 import Sidebar from './Sidebar.jsx';
 import TopBar from './TopBar.jsx';
 
@@ -14,6 +15,12 @@ import TopBar from './TopBar.jsx';
 // chrome around them.
 export default function AppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Prime native camera + location permissions once the user reaches an
+  // authenticated screen (issue #5). No-op on web; idempotent on native.
+  useEffect(() => {
+    primeNativePermissions();
+  }, []);
 
   return (
     <div className="min-h-screen flex bg-background">

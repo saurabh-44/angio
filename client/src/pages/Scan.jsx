@@ -62,6 +62,16 @@ export default function Scan() {
       setStatus('starting');
       handledRef.current = false;
       try {
+        // Native: make sure the OS camera permission is granted before we
+        // spin up the scanner (issue #1/#5) — prompts on demand if the
+        // user hasn't decided yet. No-op on web.
+        const { ensureCameraPermission } = await import('@/lib/nativePermissions.js');
+        const perm = await ensureCameraPermission();
+        if (cancelled) return;
+        if (perm === 'denied') {
+          setStatus('denied');
+          return;
+        }
         // Dynamic import keeps the (~80 KB) lib out of the initial bundle.
         const { Html5Qrcode } = await import('html5-qrcode');
         if (cancelled) return;
@@ -69,7 +79,10 @@ export default function Scan() {
         scannerRef.current = instance;
 
         await instance.start(
-          { facingMode: { ideal: 'environment' } },
+          // html5-qrcode only accepts a string or { exact }. A plain
+          // string prefers the rear camera but still works on devices
+          // that only have a front one (no hard "exact" failure).
+          { facingMode: 'environment' },
           {
             fps: 10,
             // Square scanning box centred in the viewport.

@@ -45,5 +45,13 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Environ uses the camera to scan tree QR codes and capture planting and maintenance photos.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Environ uses your location to geo-tag where each tree is planted and to show trees on the map.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Environ needs photo access so you can attach planting and maintenance photos.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Environ saves QR codes and certificates to your photo library.</string>
 </dict>
 </plist>
