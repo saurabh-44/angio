@@ -116,7 +116,7 @@ export function ToastProvider({ children }) {
             }}
           />
         ))}
-        <ToastPrimitive.Viewport className="fixed top-4 right-4 z-[100] flex max-h-screen w-full max-w-sm flex-col gap-2 outline-none" />
+        <ToastPrimitive.Viewport className="fixed z-[100] flex max-h-screen flex-col gap-2 outline-none top-[max(1rem,calc(env(safe-area-inset-top)+0.5rem))] left-[max(1rem,env(safe-area-inset-left))] right-[max(1rem,env(safe-area-inset-right))] sm:left-auto sm:w-full sm:max-w-sm" />
       </ToastPrimitive.Provider>
     </ToastContext.Provider>
   );
