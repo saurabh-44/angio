@@ -31,7 +31,7 @@ const sheetVariants = cva(
           'inset-x-0 bottom-0 border-t border-border/60 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom rounded-t-2xl',
         left: 'inset-y-0 left-0 h-full w-3/4 border-r border-border/60 data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-md',
         right:
-          'inset-y-0 right-0 h-full w-3/4 border-l border-border/60 data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-md',
+          'inset-y-0 right-0 h-full w-3/4 border-l border-border/60 data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-md pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))]',
       },
     },
     defaultVariants: { side: 'right' },
@@ -48,7 +48,7 @@ export const SheetContent = forwardRef(
         {...props}
       >
         {children}
-        <DialogPrimitive.Close className="absolute right-4 top-4 rounded-lg p-1.5 opacity-70 transition-opacity hover:opacity-100 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <DialogPrimitive.Close className="absolute right-4 top-[max(1rem,calc(env(safe-area-inset-top)+0.5rem))] rounded-lg p-1.5 opacity-70 transition-opacity hover:opacity-100 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <X className="h-4 w-4" />
           <span className="sr-only">Close</span>
         </DialogPrimitive.Close>

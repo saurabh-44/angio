@@ -31,7 +31,7 @@ export default function AppLayout() {
 
       <div className="flex-1 flex flex-col min-w-0">
         <TopBar onOpenSidebar={() => setMobileOpen(true)} />
-        <main className="flex-1 px-4 sm:px-6 py-6 max-w-7xl w-full mx-auto animate-fade-in">
+        <main className="flex-1 px-4 sm:px-6 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] max-w-7xl w-full mx-auto animate-fade-in">
           <Suspense
             fallback={
               <div className="grid place-items-center py-24">

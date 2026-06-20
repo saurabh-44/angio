@@ -82,8 +82,8 @@ const NAV_LINKS = [
 function TopNav() {
   const [menuOpen, setMenuOpen] = useState(false);
   return (
-    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur pt-[env(safe-area-inset-top)]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] h-16 flex items-center justify-between">
         <div className="inline-flex items-center gap-2.5">
           <span className="grid h-9 w-9 place-items-center rounded-2xl bg-primary/10 text-primary">
             <Leaf className="h-5 w-5" aria-hidden />
