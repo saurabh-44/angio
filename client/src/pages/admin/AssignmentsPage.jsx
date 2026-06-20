@@ -205,7 +205,8 @@ function CreateVolunteerDialog({ open, onOpenChange }) {
   async function onSubmit(values) {
     try {
       const result = await create.mutateAsync({
-        name: values.name.trim(),
+        firstName: values.firstName.trim(),
+        lastName: values.lastName.trim(),
         email: values.email.trim(),
         phone: values.phone?.trim() || undefined,
         role: 'volunteer',
@@ -234,17 +235,31 @@ function CreateVolunteerDialog({ open, onOpenChange }) {
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-          <div className="space-y-2">
-            <Label htmlFor="v-name">Full name</Label>
-            <Input
-              id="v-name"
-              autoComplete="off"
-              disabled={create.isPending}
-              {...register('name', { required: 'Required' })}
-            />
-            {errors.name && (
-              <p className="text-xs text-destructive">{errors.name.message}</p>
-            )}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="v-firstName">First name</Label>
+              <Input
+                id="v-firstName"
+                autoComplete="off"
+                disabled={create.isPending}
+                {...register('firstName', { required: 'Required' })}
+              />
+              {errors.firstName && (
+                <p className="text-xs text-destructive">{errors.firstName.message}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="v-lastName">Last name</Label>
+              <Input
+                id="v-lastName"
+                autoComplete="off"
+                disabled={create.isPending}
+                {...register('lastName', { required: 'Required' })}
+              />
+              {errors.lastName && (
+                <p className="text-xs text-destructive">{errors.lastName.message}</p>
+              )}
+            </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="v-email">Email</Label>
