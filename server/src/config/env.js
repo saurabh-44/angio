@@ -43,6 +43,9 @@ const envSchema = z.object({
   // works regardless.
   RAZORPAY_KEY_ID: z.string().optional(),
   RAZORPAY_KEY_SECRET: z.string().optional(),
+  // Razorpay dashboard → Webhooks secret. Enables server-to-server payment
+  // reconciliation via /api/payments/webhook.
+  RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
   // What a donor pays per tree they sponsor. Configurable so the NGO can
   // raise/lower prices without a deploy.
   TREE_UNIT_PRICE_INR: z.coerce.number().int().positive().default(200),

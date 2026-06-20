@@ -20,7 +20,8 @@ const LIMIT = 20;
 
 export default function SponsorDonations() {
   const [page, setPage] = useState(1);
-  const { data, isLoading } = useDonations({ page, limit: LIMIT });
+  // Only paid donations count here — pending/failed orders live in My Orders.
+  const { data, isLoading } = useDonations({ page, limit: LIMIT, status: 'paid' });
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
   const lifetimeTotal = items.reduce((s, d) => s + (d.amount ?? 0), 0);

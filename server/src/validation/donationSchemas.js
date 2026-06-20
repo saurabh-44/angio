@@ -24,6 +24,7 @@ export const updateDonationSchema = z.object({
 
 export const listDonationsQuerySchema = z.object({
   donor: objectId.optional(),
+  status: z.enum(DONATION_STATUSES).optional(),
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(500).default(20),
 });

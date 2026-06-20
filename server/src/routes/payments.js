@@ -12,11 +12,17 @@ import {
   getSponsorshipInfo,
   postSponsorOrder,
   postVerifyPayment,
+  postWebhook,
 } from '../controllers/paymentController.js';
 
 export const paymentsRouter = Router();
 
-// All payment endpoints are sponsor-only. Site owners / volunteers /
+// Razorpay server-to-server webhook. NO auth (Razorpay calls it directly);
+// the HMAC signature is verified inside the handler. MUST be declared
+// before the requireAuth gate below.
+paymentsRouter.post('/webhook', asyncHandler(postWebhook));
+
+// All other payment endpoints are sponsor-only. Site owners / volunteers /
 // admins never use this surface — admins record offline payments via
 // /api/donations instead.
 paymentsRouter.use(requireAuth, blockIfForcedPasswordChange, requireRole('sponsor'));
