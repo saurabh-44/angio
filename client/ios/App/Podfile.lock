@@ -1,0 +1,51 @@
+PODS:
+  - Capacitor (8.4.1):
+    - CapacitorCordova
+  - CapacitorCamera (8.2.0):
+    - Capacitor
+    - IONCameraLib (~> 1.0.4)
+  - CapacitorCordova (8.4.1)
+  - CapacitorGeolocation (8.2.0):
+    - Capacitor
+    - IONGeolocationLib (= 2.1.0)
+  - CapacitorPreferences (8.0.1):
+    - Capacitor
+  - IONCameraLib (1.0.4)
+  - IONGeolocationLib (2.1.0)
+
+DEPENDENCIES:
+  - "Capacitor (from `../../node_modules/@capacitor/ios`)"
+  - "CapacitorCamera (from `../../node_modules/@capacitor/camera`)"
+  - "CapacitorCordova (from `../../node_modules/@capacitor/ios`)"
+  - "CapacitorGeolocation (from `../../node_modules/@capacitor/geolocation`)"
+  - "CapacitorPreferences (from `../../node_modules/@capacitor/preferences`)"
+
+SPEC REPOS:
+  trunk:
+    - IONCameraLib
+    - IONGeolocationLib
+
+EXTERNAL SOURCES:
+  Capacitor:
+    :path: "../../node_modules/@capacitor/ios"
+  CapacitorCamera:
+    :path: "../../node_modules/@capacitor/camera"
+  CapacitorCordova:
+    :path: "../../node_modules/@capacitor/ios"
+  CapacitorGeolocation:
+    :path: "../../node_modules/@capacitor/geolocation"
+  CapacitorPreferences:
+    :path: "../../node_modules/@capacitor/preferences"
+
+SPEC CHECKSUMS:
+  Capacitor: 35242afe195b1e53c58ca1b827d1b444c5e6602b
+  CapacitorCamera: 8f6acf83664118321111e76acef86390211ccb08
+  CapacitorCordova: eebe6bcf807b1b06f3f48237650f96bbcd0eef09
+  CapacitorGeolocation: b36f6287bfc9f2eefa04dc900496f2c8ae666136
+  CapacitorPreferences: cca2021f386efb75947c850334447d9ff22b14f1
+  IONCameraLib: f2349804460bd9e3f892e42109b8d996ab3fa19d
+  IONGeolocationLib: 6a7b6f76063fb1b01cfb14fae7d0f526e3c9b271
+
+PODFILE CHECKSUM: f3b8ca2608520aaaa9a4df5a81a2f8911f1b0401
+
+COCOAPODS: 1.16.2

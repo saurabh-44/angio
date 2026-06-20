@@ -7,13 +7,26 @@ import { User } from '../models/User.js';
 // it. Keeps the "Last Active" field useful without a write per request.
 const LAST_ACTIVE_THROTTLE_MS = 5 * 60 * 1000;
 
+// Native apps (Capacitor) can't rely on httpOnly cookies across the
+// webview origin boundary, so they send the JWT as `Authorization:
+// Bearer <token>` instead. Web keeps using the cookie. This reads the
+// header form; null when absent or malformed.
+export function getBearerToken(req) {
+  const header = req.headers.authorization;
+  if (typeof header === 'string' && header.startsWith('Bearer ')) {
+    const token = header.slice(7).trim();
+    return token || null;
+  }
+  return null;
+}
+
 // Verifies the access cookie and attaches `req.auth`. On every request it
 // re-checks the principal in the DB: a deactivated / soft-deleted user,
 // or one whose tokenVersion was bumped (password change), is rejected
 // immediately instead of staying alive until the access token expires.
 export async function requireAuth(req, _res, next) {
   try {
-    const token = req.cookies[ACCESS_COOKIE];
+    const token = req.cookies[ACCESS_COOKIE] || getBearerToken(req);
     if (!token) throw HttpError.unauthorized('Not signed in');
 
     const payload = verifyAccessToken(token);

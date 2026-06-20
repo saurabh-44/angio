@@ -1,0 +1,61 @@
+# Production stack for the Environ API.
+#
+#   caddy   — public edge on :80/:443, auto Let's Encrypt TLS, reverse
+#             proxy to the Node server. Renews certs automatically.
+#   server  — Node/Express API (built from ./server/Dockerfile).
+#   mongo   — MongoDB 7, data on a named volume, NOT exposed to the host
+#             (only the server container can reach it over the internal
+#             network).
+#
+# Bring up:  docker compose up -d --build
+# Logs:      docker compose logs -f server
+# Server reads secrets from ./server/.env (create it on the VPS from the
+# template — never commit it).
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - internal
+
+  server:
+    build: ./server
+    restart: unless-stopped
+    env_file:
+      - ./server/.env
+    environment:
+      # Point the app at the mongo service on the internal network. This
+      # overrides any MONGODB_URI in .env so the container always wins.
+      MONGODB_URI: mongodb://mongo:27017/angio
+      NODE_ENV: production
+      PORT: "4000"
+    depends_on:
+      - mongo
+    networks:
+      - internal
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - server
+    networks:
+      - internal
+
+volumes:
+  mongo-data:
+  caddy-data:
+  caddy-config:
+
+networks:
+  internal:
