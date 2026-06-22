@@ -8,6 +8,7 @@ import {
   useState,
 } from 'react';
 import { api, ApiError } from './api.js';
+import { isNative, hydrateTokens, getRefreshToken, clearTokens } from './nativeAuth.js';
 
 const AuthContext = createContext(null);
 
@@ -54,7 +55,9 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (fetchedOnce.current) return;
     fetchedOnce.current = true;
-    refetchMe().finally(() => setStatus('idle'));
+    // Native: load persisted tokens from secure storage first so the
+    // /me call carries the Authorization header. No-op on web.
+    hydrateTokens().finally(() => refetchMe().finally(() => setStatus('idle')));
   }, [refetchMe]);
 
   // Step 1: password. If the role triggers OTP (ngo_admin/site_owner) the
@@ -94,10 +97,13 @@ export function AuthProvider({ children }) {
 
   const logout = useCallback(async () => {
     try {
-      await api.post('/api/auth/logout');
+      // Native has no refresh cookie — hand the token to the server in
+      // the body so it can revoke it, then wipe local secure storage.
+      await api.post('/api/auth/logout', isNative ? { refreshToken: getRefreshToken() } : undefined);
     } catch {
       // Already-expired session is fine.
     }
+    await clearTokens();
     setUser(null);
     setPendingOtpEmail(null);
   }, []);

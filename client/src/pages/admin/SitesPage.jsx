@@ -57,6 +57,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu.jsx';
 import { useToast } from '@/components/ui/toast.jsx';
+import { openAuthedPdf } from '@/lib/nativeFile.js';
 import {
   useCreateSite,
   useDeleteSite,
@@ -72,8 +73,18 @@ const LIMIT = 20;
 
 export default function SitesPage() {
   const { role } = useAuth();
+  const { error: toastError } = useToast();
   const canCreate = role === 'ngo_admin';
   const canDelete = role === 'ngo_admin';
+
+  async function printQrSheet(site) {
+    const id = site.id ?? site._id;
+    try {
+      await openAuthedPdf(`/api/sites/${id}/qr-sheet.pdf`, `qr-sheet-${id}.pdf`);
+    } catch (err) {
+      toastError('Could not open QR sheet', err?.message ?? 'Please try again.');
+    }
+  }
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
   const [createOpen, setCreateOpen] = useState(false);
@@ -205,19 +216,7 @@ export default function SitesPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => setEditing(s)}>Edit</DropdownMenuItem>
-                          <DropdownMenuItem
-                            onSelect={() => {
-                              // window.open over a navigation so the PDF
-                              // opens in a new tab and the user stays on
-                              // the sites list. Cookies travel because the
-                              // /api path is same-origin (Vite proxy).
-                              window.open(
-                                `/api/sites/${s.id ?? s._id}/qr-sheet.pdf`,
-                                '_blank',
-                                'noopener,noreferrer',
-                              );
-                            }}
-                          >
+                          <DropdownMenuItem onSelect={() => printQrSheet(s)}>
                             <Printer className="mr-2 h-4 w-4" /> Print QR sheet
                           </DropdownMenuItem>
                           {canDelete && (

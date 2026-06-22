@@ -1,7 +1,8 @@
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sheet, SheetContent } from '@/components/ui/sheet.jsx';
 import { Spinner } from '@/components/ui/spinner.jsx';
+import { primeNativePermissions } from '@/lib/nativePermissions.js';
 import Sidebar from './Sidebar.jsx';
 import TopBar from './TopBar.jsx';
 
@@ -14,6 +15,12 @@ import TopBar from './TopBar.jsx';
 // chrome around them.
 export default function AppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Prime native camera + location permissions once the user reaches an
+  // authenticated screen (issue #5). No-op on web; idempotent on native.
+  useEffect(() => {
+    primeNativePermissions();
+  }, []);
 
   return (
     <div className="min-h-screen flex bg-background">
@@ -31,7 +38,7 @@ export default function AppLayout() {
 
       <div className="flex-1 flex flex-col min-w-0">
         <TopBar onOpenSidebar={() => setMobileOpen(true)} />
-        <main className="flex-1 px-4 sm:px-6 py-6 max-w-7xl w-full mx-auto animate-fade-in">
+        <main className="flex-1 px-4 sm:px-6 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] max-w-7xl w-full mx-auto animate-fade-in">
           <Suspense
             fallback={
               <div className="grid place-items-center py-24">

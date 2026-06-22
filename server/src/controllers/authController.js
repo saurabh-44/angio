@@ -30,8 +30,16 @@ import {
   setAccessCookie,
   setRefreshCookie,
 } from '../services/auth/cookies.js';
+import { getBearerToken } from '../middleware/auth.js';
 import { HttpError } from '../utils/httpError.js';
 import { User } from '../models/User.js';
+
+// Native (Capacitor) clients send `X-Client: native` and cannot use
+// cookies, so they need the tokens echoed in the JSON body to store in
+// secure storage. Web clients omit the header and keep using cookies.
+function wantsTokens(req) {
+  return req.get('x-client') === 'native';
+}
 
 function publicUser(user) {
   return {
@@ -45,14 +53,20 @@ function publicUser(user) {
   };
 }
 
-function mintCookies(res, user) {
+// Signs a fresh access+refresh pair, sets the web cookies, and — for
+// native callers — returns the raw tokens so the controller can echo
+// them in the response body. Web callers get `undefined` (cookies only).
+function issueSession(req, res, user) {
   const subject = {
     userId: String(user._id),
     role: user.role,
     tokenVersion: user.tokenVersion ?? 0,
   };
-  setAccessCookie(res, signAccessToken(subject).token);
-  setRefreshCookie(res, signRefreshToken(subject).token);
+  const accessToken = signAccessToken(subject).token;
+  const refreshToken = signRefreshToken(subject).token;
+  setAccessCookie(res, accessToken);
+  setRefreshCookie(res, refreshToken);
+  return wantsTokens(req) ? { accessToken, refreshToken } : undefined;
 }
 
 // Public sponsor self-registration. Creates the account only — the
@@ -74,20 +88,22 @@ export async function login(req, res) {
     res.json({ requiresOtp: true, email: result.email });
     return;
   }
-  mintCookies(res, result.user);
-  res.json({ requiresOtp: false, user: publicUser(result.user) });
+  const tokens = issueSession(req, res, result.user);
+  res.json({ requiresOtp: false, user: publicUser(result.user), tokens });
 }
 
 // Step 2 — only used by roles that went through OTP.
 export async function loginVerify(req, res) {
   const input = loginVerifyOtpSchema.parse(req.body);
   const user = await completeLoginWithOtp(input);
-  mintCookies(res, user);
-  res.json({ user: publicUser(user) });
+  const tokens = issueSession(req, res, user);
+  res.json({ user: publicUser(user), tokens });
 }
 
 export async function refresh(req, res) {
-  const token = req.cookies[REFRESH_COOKIE];
+  // Web sends the refresh token in its httpOnly cookie; native sends it
+  // as a Bearer header (it has no cookie jar across the webview origin).
+  const token = req.cookies[REFRESH_COOKIE] || getBearerToken(req);
   if (!token) throw HttpError.unauthorized('Missing refresh token');
 
   const payload = verifyRefreshToken(token);
@@ -102,15 +118,17 @@ export async function refresh(req, res) {
   if ((user.tokenVersion ?? 0) !== (payload.tv ?? 0)) {
     throw HttpError.unauthorized('Session is no longer valid — please sign in again');
   }
-  mintCookies(res, user);
-  res.json({ ok: true });
+  const tokens = issueSession(req, res, user);
+  res.json({ ok: true, tokens });
 }
 
 export async function logout(req, res) {
   if (req.auth) {
     await revokeJti(req.auth.jti, tokenTtl.refreshSec).catch(() => undefined);
   }
-  const refreshTok = req.cookies[REFRESH_COOKIE];
+  // Native has no refresh cookie — it posts the token in the body so we
+  // can still revoke it server-side.
+  const refreshTok = req.cookies[REFRESH_COOKIE] || req.body?.refreshToken;
   if (refreshTok) {
     try {
       const payload = verifyRefreshToken(refreshTok);
@@ -139,14 +157,14 @@ export async function changePassword(req, res) {
     newPassword: input.newPassword,
   });
 
-  // Mint fresh cookies for THIS session with the bumped tokenVersion so
-  // the caller stays signed in. Every OTHER device is now dead.
-  mintCookies(res, {
+  // Mint a fresh session for THIS caller with the bumped tokenVersion so
+  // they stay signed in. Every OTHER device is now dead.
+  const tokens = issueSession(req, res, {
     _id: req.auth.userId,
     role: req.auth.role,
     tokenVersion,
   });
-  res.json({ ok: true });
+  res.json({ ok: true, tokens });
 }
 
 export async function forgotPassword(req, res) {
@@ -161,6 +179,6 @@ export async function resetPassword(req, res) {
   const user = await completePasswordReset(input);
   // OTP already proved control of the email and they just chose a
   // brand-new password — send them straight in.
-  mintCookies(res, user);
-  res.json({ user: publicUser(user) });
+  const tokens = issueSession(req, res, user);
+  res.json({ user: publicUser(user), tokens });
 }

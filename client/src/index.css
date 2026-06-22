@@ -63,12 +63,21 @@
   * {
     @apply border-border;
   }
+  html, #root {
+    /* Clamp sideways drift from decorative SVGs / wide content. `clip`
+       (not `hidden`) so we don't create a scroll container that would
+       break the sticky TopBar. */
+    overflow-x: clip;
+    max-width: 100%;
+  }
   body {
     @apply bg-background text-foreground font-sans;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
-    /* Belt-and-suspenders guard against decorative SVGs or wide
-       content nudging the viewport sideways on phones. */
-    overflow-x: hidden;
+    overflow-x: clip;
+    max-width: 100%;
+    /* Stop iOS from auto-enlarging text and double-tap zoom in the app. */
+    -webkit-text-size-adjust: 100%;
+    touch-action: manipulation;
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-heading tracking-tight;

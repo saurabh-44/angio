@@ -76,7 +76,11 @@ export async function streamBulkQrSheet({ siteId, actor, res, options = {} }) {
 
   const doc = new PDFDocument({
     size: 'A4',
-    margin: 28,
+    // margin:0 — we position everything absolutely with our own `margin`
+    // constant below. A non-zero pdfkit margin sets maxY = height - margin,
+    // and the footer (drawn at height-24) sits past it, which made
+    // doc.text() auto-add blank pages (1 sheet rendered as 3 pages).
+    margin: 0,
     info: {
       Title: `Tree QR stickers — ${site.name}`,
       Author: 'Environ',
