@@ -1,0 +1,7 @@
+# Caddy auto-provisions and auto-renews a Let's Encrypt certificate for
+# this domain on first request. The `api` subdomain must already have an
+# A record pointing at this VPS before Caddy can complete the ACME
+# challenge.
+api.jainildesai.com {
+	reverse_proxy server:4000
+}

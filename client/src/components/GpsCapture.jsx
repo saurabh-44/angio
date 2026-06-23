@@ -16,12 +16,24 @@ export default function GpsCapture({ value, onChange, disabled }) {
   const { error: toastError } = useToast();
   const [busy, setBusy] = useState(false);
 
-  function capture() {
+  async function capture() {
     if (!navigator.geolocation) {
       toastError('GPS unavailable', 'Your browser does not support geolocation.');
       return;
     }
     setBusy(true);
+    // Native: ensure the OS location permission is granted before reading
+    // GPS (issue #3/#5) — prompts on demand. No-op on web.
+    const { ensureLocationPermission } = await import('@/lib/nativePermissions.js');
+    const perm = await ensureLocationPermission();
+    if (perm === 'denied') {
+      setBusy(false);
+      toastError(
+        'Location permission needed',
+        'Enable location for Environ in Settings, then try again.',
+      );
+      return;
+    }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         onChange({

@@ -9,9 +9,12 @@
 // Why centralized: every page, hook, and form goes through this. Auth/refresh
 // logic stays here so React Query / useAuth / forms don't each reinvent it.
 
+import { isNative, getAccessToken, getRefreshToken, setTokens } from './nativeAuth.js';
+
 // Same-origin by default ('' prefix → fetch goes to whatever origin
 // the page is on, which Vite's dev proxy forwards to localhost:4000).
-// Override only when the API is on a totally different domain in prod.
+// Native builds have no dev proxy and load from a local webview origin,
+// so they MUST point at an absolute API URL via VITE_API_BASE_URL.
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
 
 export class ApiError extends Error {
@@ -38,11 +41,17 @@ async function doRequest(method, path, { body, signal, headers, _retry = false }
   // browser fills in the multipart boundary itself. Pass FormData
   // through verbatim; everything else JSON-encodes.
   const isForm = typeof FormData !== 'undefined' && body instanceof FormData;
+  // Native authenticates with a Bearer token (no cookie jar); web stays
+  // on cookies. `X-Client: native` tells the server to echo refreshed
+  // tokens in the response body.
+  const accessToken = isNative ? getAccessToken() : null;
   const res = await fetch(`${BASE_URL}${path}`, {
     method,
     credentials: 'include',
     headers: {
       ...(body !== undefined && !isForm ? { 'content-type': 'application/json' } : {}),
+      ...(isNative ? { 'x-client': 'native' } : {}),
+      ...(accessToken ? { authorization: `Bearer ${accessToken}` } : {}),
       ...headers,
     },
     body: body !== undefined ? (isForm ? body : JSON.stringify(body)) : undefined,
@@ -59,16 +68,29 @@ async function doRequest(method, path, { body, signal, headers, _retry = false }
     !path.startsWith('/api/auth/forgot-password') &&
     !path.startsWith('/api/auth/reset-password')
   ) {
+    const refreshToken = isNative ? getRefreshToken() : null;
     const refreshed = await fetch(`${BASE_URL}/api/auth/refresh`, {
       method: 'POST',
       credentials: 'include',
+      headers: {
+        ...(isNative ? { 'x-client': 'native' } : {}),
+        ...(refreshToken ? { authorization: `Bearer ${refreshToken}` } : {}),
+      },
     });
     if (refreshed.ok) {
+      // Native gets a new token pair in the body — persist before retry.
+      if (isNative) {
+        const refreshData = await parseJson(refreshed);
+        await setTokens(refreshData?.tokens);
+      }
       return doRequest(method, path, { body, signal, headers, _retry: true });
     }
   }
 
   const data = await parseJson(res);
+  // Persist any token pair handed back by an auth response (native only;
+  // `setTokens` is a no-op on web).
+  if (isNative && res.ok && data?.tokens) await setTokens(data.tokens);
   if (!res.ok) {
     throw new ApiError({
       status: res.status,

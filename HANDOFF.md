@@ -2,9 +2,11 @@
 
 > Read this top-to-bottom in a fresh Claude session before touching code. The repo's README is the product story; this file is the build-state, conventions, and gotchas log.
 
-**Last updated:** 2026-06-17
-**Branch:** main
-**Status:** Dev-complete; awaiting user's manual end-to-end test before production deploy.
+**Last updated:** 2026-06-22
+**Branch:** feat/mobile-capacitor-deploy
+**Status:** Dev-complete; native mobile build + Docker deploy added. Web client hosting pending (issue #10).
+
+**Docs:** [DEPLOYMENT.md](docs/DEPLOYMENT.md) · [ARCHITECTURE.md](docs/ARCHITECTURE.md) · [ENV.md](docs/ENV.md)
 
 ---
 
@@ -28,7 +30,8 @@ A MERN web app for a small NGO that plants trees on behalf of donors. Four roles
 **Server** (`server/`)
 - Node 20 + Express 4 (ESM)
 - MongoDB + Mongoose 8 (per-schema plugins, not global)
-- JWT access + refresh in httpOnly cookies; `tokenVersion` for invalidation + JTI blacklist for revocation
+- JWT access + refresh — **dual-mode auth**: httpOnly cookies on web, `Authorization: Bearer` tokens on native (stored in Capacitor Preferences). Server reads cookie OR Bearer via `getBearerToken()` in `middleware/auth.js`.
+- `tokenVersion` for invalidation + JTI blacklist for revocation
 - Zod for input validation, `asyncHandler` + `HttpError` for error flow
 - Cloudinary signed direct-from-browser uploads
 - Nodemailer SMTP (Gmail) with console-fallback for `.test`/`.example`/`.invalid`/`.local`/`.localhost` TLDs
@@ -47,6 +50,17 @@ A MERN web app for a small NGO that plants trees on behalf of donors. Four roles
 - `html5-qrcode` (lazy) for in-app QR scanning
 - `recharts` for admin analytics
 - `framer-motion` for landing page animations
+
+**Mobile** (`client/` + Capacitor)
+- Capacitor 8 — same React app bundled into iOS / Android native shell
+- `appId: org.environ.app`, `appName: Environ`, `webDir: dist`
+- Native plugins: camera, geolocation, preferences, filesystem, share
+- Native lib modules: `client/src/lib/nativeAuth.js`, `nativePermissions.js`, `nativeFile.js`
+
+**Deploy**
+- Docker Compose: `mongo` (MongoDB 7, named volume, internal-only) + `server` (Node 20 Alpine) + `caddy` (Caddy 2, auto-TLS)
+- One-command update: `./deploy.sh`
+- See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 
 **Dev orchestration:** root `package.json` runs `concurrently` to start server + client. Vite proxies `/api/*` → `http://localhost:4000`, so the browser sees same-origin and cookies travel cleanly.
 
@@ -154,6 +168,10 @@ All marked complete unless noted. **Status: ready for manual QA.**
 - **Don't restart the dev server on port 4000 if one is already running** — you'll get EADDRINUSE. The user typically has `npm run dev` open in a terminal.
 - **`pdfkit` and `xlsx` are CommonJS.** Import them as default.
 - **`html5-qrcode` must be cleaned up on unmount** — the Scan page handles this. Don't render it unconditionally.
+- **`html5-qrcode` `facingMode` must be a plain string** — passing `{ ideal: 'environment' }` crashes the native webview. Use `'environment'` directly.
+- **pdfkit `margin: 0` required for QR sheets** — pdfkit's default margin produces a phantom second (or third) page in the bulk QR PDF. Always pass `{ margins: { top: 0, left: 0, bottom: 0, right: 0 } }`.
+- **`npx cap sync` after every web build** — forgetting this means the native shell runs stale JS. There is no automatic watch.
+- **iOS `Info.plist` needs two keys** — `NSCameraUsageDescription` and `NSLocationWhenInUseUsageDescription` must both be present or the app is rejected by the App Store and crashes on permission request in TestFlight.
 
 ---
 
@@ -209,20 +227,56 @@ npm run build        # production build (use to smoke-check imports compile)
 
 ---
 
-## 9. What's left
+## 9. Mobile & deploy
 
-| # | Status | Item |
-|---|---|---|
-| 1 | **Pending — user is doing this** | Manual end-to-end walkthrough of every flow on a real device |
-| 2 | Pending | Production deploy (hosting choice, env-var setup, MongoDB Atlas, Cloudinary prod creds, Razorpay live keys, real SMTP) |
-| 3 | Pending | Set `COOKIE_SECURE=true` + `COOKIE_SAMESITE=none` for HTTPS prod |
+### Build and open in Xcode / Android Studio
 
-There is no other open dev work. All modules from the SRS shared on 2026-06 (or whenever it was — see commit history) are implemented:
-- 4 role dashboards, donation+allocation flow, plant capture with GPS + photo, weekly maintenance, monitoring extensions (height/DBH/health), QR + scanner + public tree page, payments, certificates (plantation + CO₂), admin analytics charts, Excel import/export, Species + Project master data, responsiveness.
+```bash
+cd client
+npm run build        # Vite production build → dist/
+npx cap sync         # copy dist/ into ios/ and android/, sync plugins
+npx cap open ios     # open Xcode
+npx cap open android # open Android Studio
+```
+
+Run `npx cap sync` after every `npm run build`. Without it the native shell still has stale JS.
+
+### Bearer-auth model (native)
+
+On a native build the API is a different origin from the `capacitor://localhost` webview, so httpOnly cookies don't travel. The native lib:
+1. `nativeAuth.js` — stores access + refresh tokens in Capacitor Preferences (Keychain on iOS). Provides a synchronous `getAccessToken()` used by `api.js` to attach `Authorization: Bearer <token>` and `X-Client: native` headers on every request.
+2. `nativePermissions.js` — `primeNativePermissions()` requests camera + location once after login so OS prompts appear early. `ensureCameraPermission()` / `ensureLocationPermission()` are point-of-use gates that short-circuit on web (always return `'granted'`).
+3. `nativeFile.js` — `openAuthedPdf(apiPath, filename)` fetches PDFs with the Bearer token, writes to `Directory.Cache`, and invokes `Share.share()` → iOS share sheet (Print / Save to Files / Open In…). On web it just calls `window.open()`.
+
+### What to set before shipping a native build
+
+- `client/.env.production` → `VITE_API_BASE_URL=https://api.example.com` (the deployed API, not localhost).
+- Rebuild + sync: `npm run build && npx cap sync`.
+
+→ See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the full VPS + Docker runbook.
 
 ---
 
-## 10. Resume protocol for a fresh Claude session
+## 10. What's left
+
+| # | Status | Item |
+|---|---|---|
+| 1 | **Done** | Manual end-to-end walkthrough of every flow on a real device |
+| 2 | Open | Don't re-enter temp password on first forced-password-change reset (UX issue) |
+| 3 | **Done** | Set `COOKIE_SECURE=true` + `COOKIE_SAMESITE=none` for HTTPS prod |
+| 4 | **Done** | Native PDF open via share sheet (iOS) — `nativeFile.js` |
+| 5 | **Done** | Native permission priming on first authed screen — `nativePermissions.js` |
+| 6 | Open | Sentry error tracking |
+| 7 | Open | CI/CD pipeline on `main` |
+| 8 | **Done** | Docker + Caddy production deploy |
+| 10 | Open | Host the web client and set `CLIENT_ORIGIN` to its URL so QR scan links resolve |
+
+All modules from the original SRS are implemented:
+- 4 role dashboards, donation+allocation flow, plant capture with GPS + photo, weekly maintenance, monitoring extensions (height/DBH/health), QR + scanner + public tree page, payments, certificates (plantation + CO₂), admin analytics charts, Excel import/export, Species + Project master data, responsiveness, native mobile build.
+
+---
+
+## 11. Resume protocol for a fresh Claude session
 
 1. Read this file.
 2. `git log --oneline -20` to see what's landed recently.

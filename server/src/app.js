@@ -39,7 +39,25 @@ export function createApp() {
     }),
   );
 
-  app.use(cors({ origin: env.CLIENT_ORIGIN, credentials: true }));
+  // Web origin uses cookies (credentials). Capacitor native shells load
+  // from a fixed local origin and authenticate with Bearer tokens, so
+  // they must be allowed through too. Requests with no Origin header
+  // (native HTTP plugin, curl) are allowed.
+  const allowedOrigins = new Set([
+    env.CLIENT_ORIGIN,
+    'capacitor://localhost', // iOS
+    'http://localhost', // Android webview
+    'https://localhost', // Android webview (https scheme)
+  ]);
+  app.use(
+    cors({
+      origin(origin, cb) {
+        if (!origin || allowedOrigins.has(origin)) return cb(null, true);
+        return cb(new Error('Not allowed by CORS'));
+      },
+      credentials: true,
+    }),
+  );
 
   app.use(
     express.json({

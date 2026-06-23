@@ -12,8 +12,8 @@ export default function Sidebar({ onNavigate }) {
   const items = NAV_BY_ROLE[role] ?? [];
 
   return (
-    <nav className="flex h-full flex-col bg-card border-r border-border/60">
-      <div className="px-6 py-6">
+    <nav className="flex h-full flex-col bg-card border-r border-border/60 pl-[env(safe-area-inset-left)]">
+      <div className="px-6 pb-6 pt-[max(1.5rem,env(safe-area-inset-top))]">
         <div className="inline-flex items-center gap-2.5">
           <span className="grid h-9 w-9 place-items-center rounded-2xl bg-primary/10 text-primary">
             <Leaf className="h-5 w-5" aria-hidden />
@@ -50,7 +50,7 @@ export default function Sidebar({ onNavigate }) {
         ))}
       </ul>
 
-      <div className="px-6 py-5 border-t border-border/60">
+      <div className="px-6 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] border-t border-border/60">
         <div className="rounded-2xl bg-secondary/60 px-4 py-3">
           <div className="text-[11px] uppercase tracking-widest text-muted-foreground">
             Signed in
