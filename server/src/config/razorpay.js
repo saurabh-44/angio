@@ -48,3 +48,16 @@ export function verifyPaymentSignature({ orderId, paymentId, signature }) {
 export function isRazorpayConfigured() {
   return Boolean(env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET);
 }
+
+// Verifies a Razorpay webhook: HMAC-SHA256(rawBody, webhookSecret) must
+// equal the X-Razorpay-Signature header. rawBody is the unparsed request
+// buffer (parsing then re-stringifying would change the bytes).
+export function verifyWebhookSignature(rawBody, signature) {
+  const secret = env.RAZORPAY_WEBHOOK_SECRET;
+  if (!secret || !rawBody || !signature) return false;
+  const expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
+  const a = Buffer.from(expected);
+  const b = Buffer.from(String(signature));
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
+}

@@ -18,6 +18,7 @@ export function useDonations(params = {}) {
     queryFn: () => {
       const sp = new URLSearchParams();
       if (params.donor) sp.set('donor', params.donor);
+      if (params.status) sp.set('status', params.status);
       if (params.page) sp.set('page', params.page);
       if (params.limit) sp.set('limit', params.limit);
       const qs = sp.toString();

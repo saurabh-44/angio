@@ -34,9 +34,10 @@ export async function createDonation({ input, actor }) {
   return donation.toObject();
 }
 
-export async function listDonations({ donor, page, limit, actor }) {
+export async function listDonations({ donor, status, page, limit, actor }) {
   const filter = { ...donorScopeFilter(actor) };
   if (donor && actor.role === 'ngo_admin') filter.donor = donor;
+  if (status) filter.status = status;
   const skip = (page - 1) * limit;
   const [items, total] = await Promise.all([
     Donation.find(filter)

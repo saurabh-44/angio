@@ -33,8 +33,8 @@ export default function SponsorHome() {
   const plantsAll = usePlants({ limit: 6 });
   const plantsAlive = usePlants({ status: 'alive', limit: 1 });
   const logs = useMaintenance({ limit: 4 });
-  const donations = useDonations({ limit: 1 });
-  const donationsForTotal = useDonations({ limit: 100 });
+  const donations = useDonations({ limit: 1, status: 'paid' });
+  const donationsForTotal = useDonations({ limit: 100, status: 'paid' });
   const co2 = useDonorCo2();
   const treesPlanted = plantsAll.data?.total ?? 0;
 

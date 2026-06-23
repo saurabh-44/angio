@@ -5,10 +5,12 @@ import {
 import {
   createSponsorOrder,
   getSponsorOrder,
+  handleRazorpayWebhook,
   listSponsorOrders,
   sponsorshipInfo,
   verifySponsorPayment,
 } from '../services/payments/paymentService.js';
+import { verifyWebhookSignature } from '../config/razorpay.js';
 
 export async function getSponsorshipInfo(req, res) {
   const result = sponsorshipInfo({ actor: req.auth });
@@ -30,6 +32,19 @@ export async function postVerifyPayment(req, res) {
     actor: req.auth,
   });
   res.json({ ok: true, donation });
+}
+
+// Razorpay webhook. Verify the HMAC signature against the RAW body, then
+// hand the parsed event to the service. Always 200 on a valid signature so
+// Razorpay doesn't retry-storm us; 400 only for a bad/absent signature.
+export async function postWebhook(req, res) {
+  const signature = req.headers['x-razorpay-signature'];
+  if (!verifyWebhookSignature(req.rawBody, signature)) {
+    res.status(400).json({ ok: false });
+    return;
+  }
+  await handleRazorpayWebhook(req.body);
+  res.json({ ok: true });
 }
 
 export async function getOrders(req, res) {

@@ -109,69 +109,60 @@ export async function createSponsorOrder({ treeCount, site, donationDate, note, 
   };
 }
 
-// Step 2. Razorpay's checkout returns three fields after a successful
-// payment; the browser posts them to us. We re-derive the signature
-// from order_id + "|" + payment_id and compare. If valid, we flip the
-// matching Donation from 'pending' to 'paid' and email a receipt.
-export async function verifySponsorPayment({ orderId, paymentId, signature, actor }) {
-  if (actor.role !== 'sponsor') {
-    throw HttpError.forbidden('Only sponsors can verify their own donations');
+// Atomically transition a pending order → paid. Race-safe and idempotent:
+// only ONE caller (the browser verify OR the Razorpay webhook) wins the
+// findOneAndUpdate; concurrent/duplicate calls find no pending row and do
+// nothing. Returns the freshly-paid donation, or null if it was already
+// paid / not found.
+async function transitionOrderToPaid({ orderId, paymentId, signature, donorId }) {
+  const query = { 'razorpay.orderId': orderId, status: 'pending' };
+  if (donorId) query.donor = donorId;
+  const donation = await Donation.findOneAndUpdate(
+    query,
+    {
+      $set: {
+        status: 'paid',
+        paidAt: new Date(),
+        'razorpay.paymentId': paymentId,
+        ...(signature ? { 'razorpay.signature': signature } : {}),
+      },
+    },
+    { new: true },
+  );
+  if (!donation) return null;
+
+  await ensureAllocation(donation);
+  void sendReceipt(donation, paymentId);
+  return donation;
+}
+
+// Self-service order with a chosen site → reserve the trees against that
+// site (create the Allocation). Idempotent + non-fatal: payment already
+// succeeded, so a hiccup here just leaves it for the admin to place.
+async function ensureAllocation(donation) {
+  if (!donation.intendedSite) return;
+  try {
+    const existing = await Allocation.findOne({ donation: donation._id }).select('_id').lean();
+    if (existing) return;
+    await Allocation.create({
+      donation: donation._id,
+      donor: donation.donor,
+      site: donation.intendedSite,
+      targetPlants: donation.treeCount,
+      allocatedAmount: donation.amount,
+      createdBy: donation.donor,
+      note: 'Self-service sponsor order',
+    });
+  } catch (err) {
+    logger.error({ err, donation: String(donation._id) }, 'auto-allocation failed (non-fatal)');
   }
+}
 
-  const ok = verifyPaymentSignature({ orderId, paymentId, signature });
-  if (!ok) {
-    throw HttpError.badRequest('Payment signature did not match');
-  }
-
-  const donation = await Donation.findOne({
-    'razorpay.orderId': orderId,
-    donor: actor.userId,
-  });
-  if (!donation) throw HttpError.notFound('Donation not found for that order');
-
-  // Idempotent — replay of a verify call returns the same successful
-  // result rather than double-emailing.
-  if (donation.status === 'paid') return donation.toObject();
-
-  donation.status = 'paid';
-  donation.paidAt = new Date();
-  donation.razorpay = {
-    orderId,
-    paymentId,
-    signature,
-  };
-  await donation.save();
-
-  // Self-service order with a chosen site → reserve the trees against that
-  // site now (create the Allocation) so volunteers can plant. Idempotent.
-  // Non-fatal: payment already succeeded, so a hiccup here just leaves the
-  // donation unallocated for the admin to place — never error the verify.
-  if (donation.intendedSite) {
+// Fire-and-forget receipt email (Gmail SMTP can take 10–15s).
+function sendReceipt(donation, paymentId) {
+  return (async () => {
     try {
-      const existing = await Allocation.findOne({ donation: donation._id })
-        .select('_id')
-        .lean();
-      if (!existing) {
-        await Allocation.create({
-          donation: donation._id,
-          donor: donation.donor,
-          site: donation.intendedSite,
-          targetPlants: donation.treeCount,
-          allocatedAmount: donation.amount,
-          createdBy: donation.donor,
-          note: 'Self-service sponsor order',
-        });
-      }
-    } catch (err) {
-      logger.error({ err, donation: String(donation._id) }, 'auto-allocation failed (non-fatal)');
-    }
-  }
-
-  // Fire-and-forget receipt email (Gmail SMTP can take 10–15s; we
-  // don't want the verify response blocked on that).
-  void (async () => {
-    try {
-      const donor = await User.findById(actor.userId).select('name email').lean();
+      const donor = await User.findById(donation.donor).select('name email').lean();
       if (!donor) return;
       await sendMail({
         to: donor.email,
@@ -188,8 +179,53 @@ export async function verifySponsorPayment({ orderId, paymentId, signature, acto
       logger.warn({ err }, 'donation receipt email failed (non-fatal)');
     }
   })();
+}
 
-  return donation.toObject();
+// Step 2 (browser path). Verifies the Razorpay checkout signature, then
+// atomically marks the order paid. Idempotent — a replayed verify (or a
+// webhook that already settled it) returns the donation without re-running
+// the side effects.
+export async function verifySponsorPayment({ orderId, paymentId, signature, actor }) {
+  if (actor.role !== 'sponsor') {
+    throw HttpError.forbidden('Only sponsors can verify their own donations');
+  }
+
+  const ok = verifyPaymentSignature({ orderId, paymentId, signature });
+  if (!ok) throw HttpError.badRequest('Payment signature did not match');
+
+  const paid = await transitionOrderToPaid({ orderId, paymentId, signature, donorId: actor.userId });
+  if (paid) return paid.toObject();
+
+  const existing = await Donation.findOne({
+    'razorpay.orderId': orderId,
+    donor: actor.userId,
+  }).lean();
+  if (!existing) throw HttpError.notFound('Donation not found for that order');
+  return existing;
+}
+
+// Mark a pending order failed (Razorpay payment.failed webhook).
+async function markOrderFailed(orderId) {
+  await Donation.findOneAndUpdate(
+    { 'razorpay.orderId': orderId, status: 'pending' },
+    { $set: { status: 'failed' } },
+  );
+}
+
+// Razorpay server-to-server webhook handler. The reconciliation source of
+// truth: settles "money captured but the browser verify never reached us"
+// (and marks genuinely-failed payments failed). The controller verifies
+// the webhook signature before calling this.
+export async function handleRazorpayWebhook(event) {
+  const type = event?.event;
+  if (type === 'payment.captured' || type === 'order.paid') {
+    const payment = event.payload?.payment?.entity;
+    const orderId = payment?.order_id ?? event.payload?.order?.entity?.id;
+    if (orderId) await transitionOrderToPaid({ orderId, paymentId: payment?.id });
+  } else if (type === 'payment.failed') {
+    const orderId = event.payload?.payment?.entity?.order_id;
+    if (orderId) await markOrderFailed(orderId);
+  }
 }
 
 // ───────────────────────── Orders (status views) ─────────────────────────

@@ -298,6 +298,10 @@ function TreeDetailStep({
     if (!editing) setCountDraft(String(count));
   }, [count, editing]);
 
+  const selectedSite = siteId !== ANY_SITE ? availableSites.find((s) => s.id === siteId) : null;
+  const overCapacity =
+    selectedSite && selectedSite.remaining != null && count > selectedSite.remaining;
+
   return (
     <div className="bento-card p-6 sm:p-8 space-y-6 max-w-2xl">
       <h2 className="font-heading text-base font-semibold">Tree detail</h2>
@@ -326,6 +330,13 @@ function TreeDetailStep({
         {!sitesLoading && availableSites.length === 0 && (
           <p className="text-xs text-muted-foreground">
             No sites have open capacity right now — the NGO will place your trees.
+          </p>
+        )}
+        {overCapacity && (
+          <p className="text-xs text-amber-600">
+            {selectedSite.name} has room for only {selectedSite.remaining} more tree
+            {selectedSite.remaining === 1 ? '' : 's'}. Reduce the count, or choose “Any
+            site” so the NGO can split your {count} trees across multiple sites.
           </p>
         )}
       </div>
@@ -405,7 +416,7 @@ function TreeDetailStep({
         <div className="text-sm text-muted-foreground">
           Total <span className="font-heading text-lg font-bold text-foreground">{formatAmount(count * unit)}</span>
         </div>
-        <Button size="lg" onClick={onNext}>
+        <Button size="lg" onClick={onNext} disabled={overCapacity}>
           Create order <ArrowRight className="h-4 w-4" />
         </Button>
       </div>

@@ -1,811 +1,428 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import {
-  motion,
-  useMotionValue,
-  useReducedMotion,
-  useSpring,
-} from 'framer-motion';
-import {
-  ArrowRight,
-  Camera,
-  CheckCircle2,
-  Droplets,
-  HandCoins,
-  Leaf,
-  MapPin,
-  Menu,
-  ShieldCheck,
-  Sprout,
-  X,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button.jsx';
-import { Badge } from '@/components/ui/badge.jsx';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ChevronDown, Leaf } from 'lucide-react';
+import { ROLE_HOME, useAuth } from '@/lib/auth.jsx';
+import { BODY_FONT, HEADING_FONT } from '@/components/GlassAuthScreen.jsx';
 
-// Public marketing root. Shown to anyone who hits "/" while signed out.
-// Signed-in users get redirected to their role home via PublicRoot.
-//
-// Motion layers on top of the scroll-fade-ups:
-//   1. Floating leaf SVGs drifting across the hero — infinite, gentle.
-//   2. 3D mouse-follow tilt on the how-it-works + role cards. Cards
-//      rotate ~6° toward the cursor on hover.
-//
-// All disabled when prefers-reduced-motion is set.
+// Public marketing root (Figma design). Signed-in users are redirected to
+// their role home via PublicRoot, so this is primarily the logged-out entry.
 export default function Landing() {
+  // Stop the rubber-band overscroll so neither the dark hero top nor the light
+  // footer bottom reveals a background gap when you scroll past the edges.
+  useEffect(() => {
+    const html = document.documentElement;
+    const prev = html.style.overscrollBehavior;
+    html.style.overscrollBehavior = 'none';
+    return () => {
+      html.style.overscrollBehavior = prev;
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <TopNav />
+      <HeroNav />
       <Hero />
-      <HowItWorks />
-      <Roles />
-      <TrustBlock />
-      <ClosingCta />
+      <MissionSection />
       <Footer />
     </div>
   );
 }
 
-function useVariants() {
-  const reduced = useReducedMotion();
-  const transition = reduced
-    ? { duration: 0 }
-    : { duration: 0.55, ease: [0.22, 1, 0.36, 1] };
+// ── Hero ────────────────────────────────────────────────────────────────
+// Nav links map to in-page section ids (#home/#mission/#contact) so the active
+// item can follow the scroll. "Contribute" is the register CTA (a route).
+const NAV_LINKS = [
+  { label: 'Home', to: '#home' },
+  { label: 'About Us', to: '#mission' },
+  { label: 'Contribute', to: '/register' },
+  { label: 'Contact Us', to: '#contact' },
+];
+const SPY_IDS = ['home', 'mission', 'contact'];
 
-  return {
-    container: {
-      hidden: {},
-      show: reduced
-        ? { transition: { staggerChildren: 0 } }
-        : { transition: { staggerChildren: 0.08, delayChildren: 0.05 } },
-    },
-    fadeUp: {
-      hidden: reduced ? { opacity: 1 } : { opacity: 0, y: 24 },
-      show: { opacity: 1, y: 0, transition },
-    },
-    fadeRight: {
-      hidden: reduced ? { opacity: 1 } : { opacity: 0, x: -32 },
-      show: { opacity: 1, x: 0, transition },
-    },
-    scaleIn: {
-      hidden: reduced ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.96 },
-      show: { opacity: 1, scale: 1, transition },
-    },
-  };
+// Glass pill button used for the hero CTAs.
+const glassPill =
+  'rounded-full border border-white/50 bg-white/30 px-8 py-4 text-center text-base text-[#F8FDFF] backdrop-blur-[2px] transition-colors hover:bg-white/45';
+
+// Highlights whichever section is crossing the vertical centre of the viewport.
+function useScrollSpy(ids) {
+  const [activeId, setActiveId] = useState(ids[0]);
+  useEffect(() => {
+    const els = ids.map((id) => document.getElementById(id)).filter(Boolean);
+    if (!els.length) return undefined;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) setActiveId(entry.target.id);
+        });
+      },
+      { rootMargin: '-45% 0px -45% 0px' },
+    );
+    els.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [ids]);
+  return activeId;
 }
 
-const NAV_LINKS = [
-  ['#how', 'How it works'],
-  ['#roles', 'What you get'],
-  ['#trust', 'Why trust it'],
-];
-
-function TopNav() {
-  const [menuOpen, setMenuOpen] = useState(false);
+// Fixed top nav — stays visible while scrolling and highlights the active
+// section. The white pill reads cleanly over both the hero photo and the
+// dark-green sections below.
+function HeroNav() {
+  const { user } = useAuth();
+  const activeId = useScrollSpy(SPY_IDS);
   return (
-    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur pt-[env(safe-area-inset-top)]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] h-16 flex items-center justify-between">
-        <div className="inline-flex items-center gap-2.5">
-          <span className="grid h-9 w-9 place-items-center rounded-2xl bg-primary/10 text-primary">
-            <Leaf className="h-5 w-5" aria-hidden />
-          </span>
-          <span className="font-heading text-base font-bold tracking-tight">Environ</span>
-        </div>
+    <header className="fixed inset-x-0 top-0 z-50">
+      <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 pt-6 sm:px-6">
+        {/* Left spacer keeps the pill nav centred on desktop. */}
+        <div className="hidden flex-1 md:block" />
 
-        <nav className="hidden md:flex items-center gap-7 text-sm">
-          {NAV_LINKS.map(([href, label]) => (
-            <a key={href} href={href} className="text-muted-foreground hover:text-foreground transition-colors">
-              {label}
-            </a>
-          ))}
-        </nav>
-
-        <div className="flex items-center gap-2">
-          <Button asChild variant="ghost" size="sm" className="hidden md:inline-flex text-[15px]">
-            <Link to="/login">Sign in</Link>
-          </Button>
-          <Button asChild size="sm" className="hidden md:inline-flex text-sm">
-            <Link to="/register">
-              Sponsor a tree <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden"
-            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-            aria-expanded={menuOpen}
-            onClick={() => setMenuOpen((o) => !o)}
-          >
-            {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
-        </div>
-      </div>
-
-      {/* Mobile menu — under md only, toggled by the hamburger */}
-      {menuOpen && (
-        <div className="md:hidden border-t border-border/60 bg-background">
-          <nav className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-col">
-            {NAV_LINKS.map(([href, label]) => (
-              <a
-                key={href}
-                href={href}
-                onClick={() => setMenuOpen(false)}
-                className="rounded-lg px-2 py-2.5 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-              >
+        {/* Centered pill nav. The Login CTA lives inside the pill (desktop)
+            as a premium gradient button. */}
+        <nav className="hidden items-center gap-1 rounded-full border border-[#E2E8F0] bg-white p-1.5 shadow-xl shadow-black/10 md:inline-flex">
+          {NAV_LINKS.map(({ label, to }) => {
+            // Active when this link's section is the one in view. Nav items use a
+            // light-green tint so they read differently from the dark Login CTA.
+            const active = to === `#${activeId}`;
+            const cls = `rounded-full px-6 py-3 text-base transition-colors ${
+              active
+                ? 'bg-[#0B5000]/10 font-medium text-[#0B5000]'
+                : 'text-[#001F00] hover:bg-[#0B5000]/10 hover:text-[#0B5000]'
+            }`;
+            return to.startsWith('#') ? (
+              <a key={label} href={to} className={cls}>
                 {label}
               </a>
-            ))}
+            ) : (
+              <Link key={label} to={to} className={cls}>
+                {label}
+              </Link>
+            );
+          })}
+          {!user && (
             <Link
               to="/login"
-              onClick={() => setMenuOpen(false)}
-              className="rounded-lg px-2 py-2.5 text-sm font-medium text-foreground hover:bg-secondary transition-colors"
+              className="ml-1 rounded-full bg-gradient-to-br from-[#0B5000] to-[#001F00] px-7 py-3 text-base font-medium text-[#F8FDFF] shadow-[0_10px_24px_-10px_rgba(11,80,0,0.75)] ring-1 ring-white/10 transition-all hover:to-[#0B5000]"
             >
-              Sign in
+              Login
             </Link>
-            <Button asChild className="mt-2 w-full">
-              <Link to="/register" onClick={() => setMenuOpen(false)}>
-                Sponsor a tree <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          </nav>
+          )}
+        </nav>
+
+        {/* Right: user chip (logged in) or a mobile-only Login (pill is desktop-only) */}
+        <div className="flex flex-1 items-center justify-end">
+          {user ? (
+            <Link
+              to={ROLE_HOME[user.role] ?? '/'}
+              className="inline-flex items-center gap-2 rounded-full bg-white py-1.5 pl-1.5 pr-4 text-[#001F00] shadow-lg shadow-black/10"
+            >
+              <span className="grid h-9 w-9 place-items-center rounded-full bg-[#0B5000] text-sm font-semibold text-white">
+                {(user.name || 'U')
+                  .split(' ')
+                  .map((s) => s[0])
+                  .slice(0, 2)
+                  .join('')
+                  .toUpperCase()}
+              </span>
+              <span className="max-w-[140px] truncate text-sm font-medium">{user.name}</span>
+              <ChevronDown className="h-4 w-4 shrink-0" aria-hidden />
+            </Link>
+          ) : (
+            <Link
+              to="/login"
+              className="rounded-full bg-gradient-to-br from-[#0B5000] to-[#001F00] px-6 py-2.5 text-sm font-medium text-[#F8FDFF] shadow-sm md:hidden"
+            >
+              Login
+            </Link>
+          )}
         </div>
-      )}
+      </div>
     </header>
   );
 }
 
-function Hero() {
-  const reduced = useReducedMotion();
-  const v = useVariants();
-
+function StatCard({ label, value, sub }) {
   return (
-    <section className="relative overflow-hidden">
-      {/* Biophilic background washes. */}
-      <div className="absolute inset-0 surface-biophilic" aria-hidden />
+    <div
+      className="flex min-h-[160px] flex-col justify-between rounded-md bg-white p-5"
+      style={{ fontFamily: BODY_FONT }}
+    >
+      <div className="text-sm font-medium text-[#001F00] sm:text-base">{label}</div>
+      <div>
+        <div
+          className="whitespace-nowrap text-4xl font-bold leading-none text-[#001F00] sm:text-[48px]"
+          style={{ fontFamily: HEADING_FONT }}
+        >
+          {value}
+        </div>
+        <div className="mt-1.5 text-sm font-medium text-[#001F00] sm:text-base">{sub}</div>
+      </div>
+    </div>
+  );
+}
 
-      {/* Far blobs — slow rotation gives depth without distracting motion. */}
+function Hero() {
+  return (
+    <section
+      id="home"
+      className="relative min-h-screen w-full overflow-hidden"
+      style={{ fontFamily: BODY_FONT }}
+    >
+      <img
+        src="/auth-bg.png"
+        alt=""
+        aria-hidden
+        className="absolute inset-0 h-full w-full object-cover"
+      />
+      {/* Gentle darkening for headline legibility — heavier at the bottom. */}
       <div
         aria-hidden
-        className="absolute inset-0 [mask-image:radial-gradient(ellipse_at_top,white,transparent_65%)]"
-      >
-        <motion.svg
-          className="absolute -top-32 -right-20 w-[600px] text-leaf-100 opacity-70"
-          viewBox="0 0 200 200"
-          animate={reduced ? undefined : { rotate: [0, 8, 0] }}
-          transition={reduced ? undefined : { duration: 24, repeat: Infinity, ease: 'easeInOut' }}
-          style={{ originX: '50%', originY: '50%' }}
-        >
-          <path
-            fill="currentColor"
-            d="M40,-66.5C52,-58,62.5,-49,68.7,-37.7C74.9,-26.4,76.7,-13.2,75.4,-0.7C74.2,11.7,69.8,23.5,63,33.4C56.1,43.4,46.8,51.4,36.2,58.4C25.6,65.3,12.8,71.1,-0.3,71.6C-13.4,72.1,-26.8,67.3,-38.4,60.5C-50,53.7,-59.8,44.9,-66.2,33.8C-72.7,22.7,-75.7,11.3,-75.1,0.3C-74.6,-10.7,-70.4,-21.4,-64,-30.7C-57.6,-39.9,-49,-47.7,-39,-56.6C-29,-65.5,-14.5,-75.5,-0.5,-74.7C13.6,-73.9,27.1,-75,40,-66.5Z"
-            transform="translate(100 100)"
-          />
-        </motion.svg>
-        <motion.svg
-          className="absolute -bottom-40 -left-20 w-[520px] text-amber-100 opacity-60"
-          viewBox="0 0 200 200"
-          animate={reduced ? undefined : { rotate: [0, -10, 0] }}
-          transition={reduced ? undefined : { duration: 28, repeat: Infinity, ease: 'easeInOut' }}
-          style={{ originX: '50%', originY: '50%' }}
-        >
-          <path
-            fill="currentColor"
-            d="M52.8,-65.5C66.3,-54.5,73.5,-36.4,76.5,-18.1C79.5,0.3,78.2,18.9,69.8,33.2C61.3,47.5,45.7,57.5,29.4,63.3C13.1,69.1,-4,70.6,-19.6,66.5C-35.3,62.4,-49.6,52.5,-58.5,39C-67.5,25.5,-71.2,8.4,-69.8,-8.1C-68.3,-24.6,-61.8,-40.5,-50.4,-51.7C-39.1,-62.9,-22.8,-69.4,-4.6,-64.3C13.6,-59.2,39.4,-42.4,52.8,-65.5Z"
-            transform="translate(100 100)"
-          />
-        </motion.svg>
-      </div>
-
-      <FloatingLeaves disabled={reduced} />
-
-      <motion.div
-        className="relative max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-20 lg:py-28"
-        initial="hidden"
-        animate="show"
-        variants={v.container}
-      >
-        <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
-          {/* Left — narrative + proof */}
-          <div>
-            <motion.div variants={v.fadeUp}>
-              <Badge variant="default">Transparent tree-planting</Badge>
-            </motion.div>
-            <motion.h1
-              className="mt-6 font-heading text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight leading-[1.05]"
-              variants={v.fadeUp}
-            >
-              See every tree your donation{' '}
-              <span className="text-primary">funded.</span>
-            </motion.h1>
-            <motion.p
-              className="mt-5 max-w-xl text-base sm:text-lg text-muted-foreground leading-relaxed"
-              variants={v.fadeUp}
-            >
-              Sponsors pay. Volunteers plant. Site owners care for the saplings. You get
-              geo-tagged photo proof &mdash; from the moment a tree goes in the ground to the day it
-              starts giving shade.
-            </motion.p>
-
-            <motion.div className="mt-7 hidden sm:block" variants={v.fadeUp}>
-              <Button asChild variant="outline" size="lg">
-                <a href="#how">
-                  How it works <ArrowRight className="h-4 w-4" />
-                </a>
-              </Button>
-            </motion.div>
-
-            <motion.div
-              className="mt-8 hidden sm:flex flex-wrap items-center gap-x-5 gap-y-2.5 text-xs text-muted-foreground"
-              variants={v.fadeUp}
-            >
-              <span className="inline-flex items-center gap-1.5">
-                <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> GPS-pinned
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Photo proof every planting
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Maintenance log &amp; map
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Sponsor-scoped dashboards
-              </span>
-            </motion.div>
-
-          </div>
-
-          {/* Right — conversion widget */}
-          <motion.div variants={v.fadeUp} className="w-full">
-            <SponsorWidget />
-          </motion.div>
-        </div>
-      </motion.div>
-    </section>
-  );
-}
-
-// Hero conversion widget. Lets a logged-out visitor pick how many trees
-// to sponsor, stashes that choice in sessionStorage, and sends them to
-// register. After signup the order wizard resumes with the count.
-function SponsorWidget() {
-  const navigate = useNavigate();
-  const [count, setCount] = useState(1);
-  const clamp = (n) => Math.max(1, Math.min(1000, Math.round(n) || 1));
-
-  function go(note) {
-    sessionStorage.setItem('pendingSponsorTrees', String(clamp(count)));
-    if (note) sessionStorage.setItem('pendingSponsorNote', note);
-    else sessionStorage.removeItem('pendingSponsorNote');
-    navigate('/register');
-  }
-
-  return (
-    <div className="grid gap-4 w-full sm:max-w-md sm:mx-auto lg:ml-auto lg:mr-0">
-      {/* Primary — sponsor now */}
-      <div className="bento-card relative p-6 sm:p-7 bg-card/95 backdrop-blur border border-border/60 ring-1 ring-black/[0.03] shadow-[0_24px_70px_-28px_rgba(6,78,59,0.35)]">
-        <div className="flex items-center justify-between gap-3">
-          <div className="inline-flex items-center gap-1.5 text-xs uppercase tracking-widest text-primary font-medium">
-            <Sprout className="h-3.5 w-3.5" aria-hidden /> Sponsor trees
-          </div>
-          <span className="rounded-full bg-leaf-100 px-2.5 py-0.5 text-[11px] font-semibold text-leaf-700">
-            100% trackable
-          </span>
-        </div>
-        <p className="mt-3 text-sm text-muted-foreground">How many trees would you like to fund?</p>
-        <div className="mt-4 flex justify-center">
-          <Stepper count={count} setCount={setCount} />
-        </div>
-        <Button className="mt-5 w-full" size="lg" onClick={() => go()}>
-          Sponsor now <ArrowRight className="h-4 w-4" />
-        </Button>
-        <div className="mt-3 flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground">
-          <ShieldCheck className="h-3.5 w-3.5 text-primary" aria-hidden />
-          Secure payment via Razorpay · GPS + photo proof
-        </div>
-        <div className="mt-4 border-t border-border/60 pt-3 text-center text-sm text-muted-foreground">
-          Already a member?{' '}
-          <Link
-            to="/login"
-            className="font-semibold text-primary underline decoration-primary/30 underline-offset-4 transition-colors hover:decoration-primary"
-          >
-            Sign in
-          </Link>
-        </div>
-      </div>
-
-      {/* Secondary — celebrate */}
-      <div className="bento-card p-4 sm:p-5 surface-biophilic border border-border/60 flex items-center gap-4">
-        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-primary/10 text-primary">
-          <Leaf className="h-5 w-5" aria-hidden />
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="text-sm font-semibold text-foreground">Celebrate with plantation</div>
-          <p className="text-xs text-muted-foreground leading-snug">
-            A birthday, anniversary, or memory in someone's name.
-          </p>
-        </div>
-        <Button variant="outline" size="sm" className="shrink-0" onClick={() => go('Celebration plantation')}>
-          Plant <ArrowRight className="h-4 w-4" />
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function Stepper({ count, setCount }) {
-  // Local text state so the field can be cleared and re-typed freely
-  // (e.g. wipe "1" to type "20"). We DON'T force the lower bound on every
-  // keystroke — that's what made it snap back to 1. Bounds are enforced
-  // on blur; +/- always commit a valid number. The order flow re-clamps
-  // to >= 1 on continue, so an empty field can never submit 0 trees.
-  const [draft, setDraft] = useState(String(count));
-
-  function commit(n) {
-    const c = Math.max(1, Math.min(1000, Math.floor(Number(n)) || 1));
-    setCount(c);
-    setDraft(String(c));
-  }
-
-  return (
-    <div className="inline-flex items-center rounded-xl border border-border bg-background overflow-hidden">
-      <button
-        type="button"
-        onClick={() => commit(count - 1)}
-        className="h-11 w-11 grid place-items-center text-xl hover:bg-secondary cursor-pointer"
-        aria-label="Decrease"
-      >
-        −
-      </button>
-      <input
-        type="text"
-        inputMode="numeric"
-        value={draft}
-        onChange={(e) => {
-          const t = e.target.value;
-          // Allow empty (mid-edit) or up to 4 digits; ignore other input.
-          if (t === '' || /^\d{1,4}$/.test(t)) {
-            setDraft(t);
-            if (t !== '') setCount(Math.max(1, Math.min(1000, parseInt(t, 10))));
-          }
-        }}
-        onBlur={() => commit(draft)}
-        onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-        className="h-11 w-16 text-center font-heading text-lg font-bold bg-transparent border-x border-border outline-none"
-        aria-label="Number of trees"
+        className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/10 to-black/45"
       />
-      <button
-        type="button"
-        onClick={() => commit(count + 1)}
-        className="h-11 w-11 grid place-items-center text-xl hover:bg-secondary cursor-pointer"
-        aria-label="Increase"
-      >
-        +
-      </button>
-    </div>
-  );
-}
 
-// Wrapper that tilts its child toward the mouse cursor in 3D, using
-// perspective + rotateX/rotateY. `max` is the maximum tilt in degrees
-// for any axis. We use spring values so the rotation feels heavy, not
-// jittery. Touch devices and reduced-motion get no tilt.
-function Tilt3D({ children, max = 8, className }) {
-  const reduced = useReducedMotion();
-  const rx = useMotionValue(0);
-  const ry = useMotionValue(0);
-  // Spring so the tilt eases back to centre, doesn't snap.
-  const rxs = useSpring(rx, { stiffness: 120, damping: 14 });
-  const rys = useSpring(ry, { stiffness: 120, damping: 14 });
+      <div className="relative mx-auto flex min-h-screen max-w-7xl flex-col px-4 sm:px-6">
+        {/* Spacer for the fixed nav. */}
+        <div aria-hidden className="h-20 sm:h-24" />
 
-  if (reduced) {
-    // Reduced-motion: just a flat div, no perspective, no listeners.
-    return <div className={className}>{children}</div>;
-  }
-
-  function onMove(e) {
-    const r = e.currentTarget.getBoundingClientRect();
-    // Normalize -0.5..0.5 across the card.
-    const x = (e.clientX - r.left) / r.width - 0.5;
-    const y = (e.clientY - r.top) / r.height - 0.5;
-    ry.set(x * max * 2);
-    rx.set(-y * max * 2);
-  }
-  function onLeave() {
-    rx.set(0);
-    ry.set(0);
-  }
-
-  return (
-    <motion.div
-      onMouseMove={onMove}
-      onMouseLeave={onLeave}
-      style={{
-        rotateX: rxs,
-        rotateY: rys,
-        transformPerspective: 900,
-        transformStyle: 'preserve-3d',
-      }}
-      className={className}
-    >
-      {/* Inner translateZ lifts the content slightly off the card face —
-          gives the rotation a touch of parallax. */}
-      <div style={{ transform: 'translateZ(20px)' }}>{children}</div>
-    </motion.div>
-  );
-}
-
-// A handful of slowly drifting leaf SVGs scattered across the hero.
-// Each leaf has its own seeded offset/duration so they don't sync up.
-function FloatingLeaves({ disabled }) {
-  if (disabled) return null;
-  // Six leaves, each with a distinct path through the hero. xPct +
-  // delay seed the look; duration controls speed.
-  const leaves = [
-    { left: '10%', size: 22, delay: 0, duration: 18, drift: 40 },
-    { left: '28%', size: 16, delay: 4, duration: 22, drift: -30 },
-    { left: '48%', size: 26, delay: 2, duration: 20, drift: 50 },
-    { left: '66%', size: 14, delay: 6, duration: 24, drift: -45 },
-    { left: '82%', size: 20, delay: 1, duration: 19, drift: 35 },
-    { left: '92%', size: 18, delay: 8, duration: 26, drift: -50 },
-  ];
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
-      {leaves.map((l, i) => (
-        <motion.svg
-          key={i}
-          style={{ left: l.left, width: l.size, height: l.size }}
-          className="absolute -top-8 text-leaf-500/60"
-          viewBox="0 0 24 24"
-          fill="currentColor"
-          animate={{
-            y: ['0%', '110vh'],
-            x: [0, l.drift, 0, -l.drift, 0],
-            rotate: [0, 90, 180, 270, 360],
-            opacity: [0, 0.7, 0.7, 0.7, 0],
-          }}
-          transition={{
-            duration: l.duration,
-            delay: l.delay,
-            repeat: Infinity,
-            ease: 'linear',
-          }}
-        >
-          {/* Simplified leaf path */}
-          <path d="M12 2c-3 4-7 7-7 12a7 7 0 0 0 14 0c0-5-4-8-7-12z" />
-        </motion.svg>
-      ))}
-    </div>
-  );
-}
-
-function HowItWorks() {
-  const v = useVariants();
-  const steps = [
-    {
-      icon: HandCoins,
-      title: 'Sponsor',
-      body: 'Choose how many trees to fund and pay securely online. Every contribution is recorded with a date and method.',
-    },
-    {
-      icon: Sprout,
-      title: 'NGO allocates',
-      body: 'Your trees are assigned to real planting sites, each with a target count — so you can see exactly where they go.',
-    },
-    {
-      icon: Camera,
-      title: 'Volunteers plant',
-      body: 'On the ground, volunteers capture the GPS location and a photo of every tree as it goes in the soil.',
-    },
-    {
-      icon: ShieldCheck,
-      title: 'You verify',
-      body: 'Volunteers post fresh watering photos for every tree — pinned on a map you can open any time.',
-    },
-  ];
-  return (
-    <section id="how" className="py-20 sm:py-28">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <motion.div
-          className="max-w-3xl mx-auto text-center"
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, amount: 0.5 }}
-          variants={v.container}
-        >
-          <motion.div variants={v.fadeUp}><Badge variant="success">How it works</Badge></motion.div>
-          <motion.h2
-            className="mt-4 font-heading text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight leading-tight"
-            variants={v.fadeUp}
+        {/* Headline + CTAs */}
+        <div className="mt-16 max-w-3xl sm:mt-20 lg:mt-24">
+          <h1
+            className="text-4xl font-bold leading-[1.12] text-white sm:text-5xl lg:text-[64px] lg:leading-[1.08]"
+            style={{ fontFamily: HEADING_FONT }}
           >
-            From your donation to a growing tree.
-          </motion.h2>
-          <motion.p className="mt-3 text-sm sm:text-base text-muted-foreground" variants={v.fadeUp}>
-            Four stages, every one visible to you — just the evidence trail.
-          </motion.p>
-        </motion.div>
-
-        <motion.ol
-          className="mt-14 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5"
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, amount: 0.2 }}
-          variants={v.container}
-        >
-          {steps.map((s, i) => (
-            <motion.li key={s.title} variants={v.fadeUp} className="h-full">
-              <Tilt3D className="h-full">
-                <div className="bento-card group/card relative h-full overflow-hidden border-border bg-gradient-to-b from-card to-secondary/25 p-6 flex flex-col gap-5 shadow-sm transition-all duration-300 hover:border-primary/40 hover:shadow-lg">
-                  {/* Top accent that draws in on hover */}
-                  <span
-                    aria-hidden
-                    className="absolute inset-x-0 top-0 h-1 origin-left scale-x-0 bg-gradient-to-r from-primary to-leaf-400 transition-transform duration-300 group-hover/card:scale-x-100"
-                  />
-                  <div className="flex items-center justify-between">
-                    <span className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-leaf-100 to-leaf-50 text-leaf-700 ring-1 ring-leaf-200/70 shadow-sm">
-                      <s.icon className="h-5 w-5" aria-hidden />
-                    </span>
-                    <span className="font-heading text-4xl font-extrabold leading-none text-leaf-300">
-                      0{i + 1}
-                    </span>
-                  </div>
-                  <div>
-                    <h3 className="font-heading text-lg font-semibold tracking-tight">{s.title}</h3>
-                    <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{s.body}</p>
-                  </div>
-                </div>
-              </Tilt3D>
-            </motion.li>
-          ))}
-        </motion.ol>
-      </div>
-    </section>
-  );
-}
-
-function Roles() {
-  const v = useVariants();
-  const cards = [
-    {
-      icon: ShieldCheck,
-      title: 'Proof, not promises',
-      body: 'Every tree you fund is GPS-pinned and photographed the day it goes in the soil — see each one, not a number in a report.',
-      tone: 'leaf',
-    },
-    {
-      icon: Camera,
-      title: 'Watch them grow',
-      body: 'Follow your trees on a live map, with fresh photos from the field as they go from sapling to shade.',
-      tone: 'sky',
-    },
-    {
-      icon: MapPin,
-      title: 'See where your money goes',
-      body: 'Your contribution is tied to real planting sites with target counts — traceable right down to the date.',
-      tone: 'amber',
-    },
-    {
-      icon: Leaf,
-      title: 'Impact you can show',
-      body: 'Get an estimated CO₂ offset and a downloadable certificate for every contribution you make.',
-      tone: 'leaf',
-    },
-  ];
-  const tones = {
-    leaf: 'bg-leaf-100 text-leaf-700',
-    sky: 'bg-secondary text-secondary-foreground',
-    amber: 'bg-amber-100 text-amber-600',
-  };
-  return (
-    <section id="roles" className="py-20 sm:py-28 bg-secondary/40 border-y border-border/60">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <motion.div
-          className="max-w-3xl mx-auto text-center"
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, amount: 0.5 }}
-          variants={v.container}
-        >
-          <motion.div variants={v.fadeUp}><Badge variant="success">What you get</Badge></motion.div>
-          <motion.h2
-            className="mt-4 font-heading text-3xl sm:text-4xl font-bold tracking-tight"
-            variants={v.fadeUp}
-          >
-            Your donation, every step in view.
-          </motion.h2>
-          <motion.p className="mt-3 mx-auto max-w-2xl text-muted-foreground" variants={v.fadeUp}>
-            No vague annual report. From the moment you pay to the day your trees give shade, you can
-            follow every one you funded.
-          </motion.p>
-        </motion.div>
-
-        <motion.div
-          className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5"
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, amount: 0.2 }}
-          variants={v.container}
-        >
-          {cards.map((c) => (
-            <motion.div key={c.title} variants={v.fadeUp}>
-              <Tilt3D max={6} className="h-full">
-                <article className="bento-card group/card relative overflow-hidden border-border p-6 sm:p-7 flex items-start gap-5 h-full shadow-sm transition-all duration-300 hover:border-primary/40 hover:shadow-lg">
-                  <span
-                    aria-hidden
-                    className="absolute inset-x-0 top-0 h-1 origin-left scale-x-0 bg-gradient-to-r from-primary to-leaf-400 transition-transform duration-300 group-hover/card:scale-x-100"
-                  />
-                  <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl ring-1 ring-black/[0.04] shadow-sm ${tones[c.tone]}`}>
-                    <c.icon className="h-6 w-6" aria-hidden />
-                  </div>
-                  <div>
-                    <h3 className="font-heading text-lg font-semibold mb-1.5">{c.title}</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{c.body}</p>
-                  </div>
-                </article>
-              </Tilt3D>
-            </motion.div>
-          ))}
-        </motion.div>
-      </div>
-    </section>
-  );
-}
-
-function TrustBlock() {
-  const v = useVariants();
-  const reduced = useReducedMotion();
-  const points = [
-    [MapPin, "GPS captured at the moment the tree goes in the soil."],
-    [Camera, "Photo upload straight from the volunteer's phone."],
-    [Droplets, "Watering photos from the field, so you can watch each tree thrive."],
-    [ShieldCheck, "A private dashboard — your trees and your data, seen only by you."],
-  ];
-  return (
-    <section id="trust" className="py-20 sm:py-28">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
-        <motion.div
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, amount: 0.3 }}
-          variants={v.container}
-        >
-          <motion.div variants={v.fadeRight}><Badge variant="success">Why trust it</Badge></motion.div>
-          <motion.h2
-            className="mt-4 font-heading text-3xl sm:text-4xl font-bold tracking-tight"
-            variants={v.fadeRight}
-          >
-            Trust isn't a promise. It's a record.
-          </motion.h2>
-          <motion.p
-            className="mt-4 text-muted-foreground leading-relaxed"
-            variants={v.fadeRight}
-          >
-            Most donations vanish into a pdf annual report. Here, every rupee is tied to a
-            specific allocation, every allocation to a specific tree, every tree to a specific
-            GPS coordinate, and every tree to a watering photo from the field. You can scroll
-            the proof.
-          </motion.p>
-          <ul className="mt-8 space-y-3">
-            {points.map(([Icon, text]) => (
-              <motion.li key={text} className="flex items-start gap-3" variants={v.fadeRight}>
-                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
-                  <Icon className="h-4 w-4" aria-hidden />
-                </span>
-                <span className="text-sm text-foreground leading-relaxed pt-1">{text}</span>
-              </motion.li>
-            ))}
-          </ul>
-        </motion.div>
-
-        <motion.div
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, amount: 0.3 }}
-          variants={v.scaleIn}
-        >
-          <Tilt3D max={5} className="h-full">
-            <motion.div
-              animate={reduced ? undefined : { y: [0, -6, 0] }}
-              transition={reduced ? undefined : { duration: 6, repeat: Infinity, ease: 'easeInOut' }}
-              className="bento-card surface-biophilic p-8 sm:p-10 space-y-6"
-            >
-              <div className="grid grid-cols-3 gap-3">
-                {[['GPS', 'Pinned'], ['Photo', 'Proof'], ['Map', 'Live']].map(([v1, l]) => (
-                  <div key={l} className="rounded-2xl bg-card/80 backdrop-blur border border-border/60 p-3 text-center">
-                    <div className="font-heading text-sm font-bold text-foreground tracking-tight">{v1}</div>
-                    <div className="mt-0.5 text-[11px] text-muted-foreground">{l}</div>
-                  </div>
-                ))}
-              </div>
-              <p className="text-lg sm:text-xl font-heading font-semibold tracking-tight leading-snug text-foreground">
-                Every contribution becomes a record you can open &mdash; a GPS pin, a planting photo,
-                and ongoing care updates, all tied to your trees.
-              </p>
-              <div className="text-sm text-muted-foreground">
-                Nothing to take on faith. Just scroll the proof.
-              </div>
-            </motion.div>
-          </Tilt3D>
-        </motion.div>
-      </div>
-    </section>
-  );
-}
-
-function ClosingCta() {
-  const v = useVariants();
-  return (
-    <section className="bg-foreground text-card border-y border-foreground py-16 sm:py-24">
-      <motion.div
-        className="max-w-4xl mx-auto px-4 sm:px-6 text-center"
-        initial="hidden"
-        whileInView="show"
-        viewport={{ once: true, amount: 0.5 }}
-        variants={v.container}
-      >
-        <motion.h2
-          className="font-heading text-3xl sm:text-5xl font-bold tracking-tight leading-tight"
-          variants={v.fadeUp}
-        >
-          Plant a tree you can watch grow.
-        </motion.h2>
-        <motion.p
-          className="mt-4 text-base sm:text-lg text-card/70 max-w-2xl mx-auto leading-relaxed"
-          variants={v.fadeUp}
-        >
-          Pick how many, pay securely, and follow each tree from the field.
-        </motion.p>
-        <motion.div className="mt-8 flex justify-center" variants={v.fadeUp}>
-          <Button asChild size="lg" variant="accent" className="text-base">
-            <Link to="/register">
-              Sponsor a tree <ArrowRight className="h-4 w-4" />
+            Let’s Save
+            <br />
+            The Trees Together
+          </h1>
+          <div className="mt-7 flex flex-wrap items-center gap-3">
+            <Link to="/register" className={glassPill}>
+              Make Contribution
             </Link>
-          </Button>
-        </motion.div>
-        <motion.p className="mt-6 text-sm text-card/60" variants={v.fadeUp}>
-          Already have an account?{' '}
-          <Link
-            to="/login"
-            className="font-semibold text-card underline decoration-card/30 underline-offset-4 transition-colors hover:decoration-card"
-          >
-            Sign in
-          </Link>
-        </motion.p>
-      </motion.div>
+            <a href="#mission" className={glassPill + ' min-w-[140px]'}>
+              Read More
+            </a>
+          </div>
+        </div>
+
+        {/* Stat cards near the bottom of the photo */}
+        <div className="mt-auto grid w-full max-w-3xl grid-cols-1 gap-4 pb-10 sm:grid-cols-[1fr_1.3fr] sm:pb-16">
+          <StatCard label="Plantation Sites" value="123+" sub="Across Gujarat, India" />
+          <StatCard
+            label={
+              <>
+                CO<sub>2</sub> Absorbed
+              </>
+            }
+            value="100k Tone"
+            sub="Since 2026"
+          />
+        </div>
+      </div>
     </section>
   );
 }
 
+// ── Mission + Execution ───────────────────────────────────────────────────
+// Deep forest-green section: "Our Mission" pill, the Restore Environment
+// headline, lorem copy + Download-App, then the giant "From Thought to
+// Execution" ghost headline with the grey decorative circles beneath it.
+const MISSION_BG = '#06280F';
+
+function AppleMark() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-7 w-7 text-white" fill="currentColor" aria-hidden>
+      <path d="M17.05 12.04c-.03-2.6 2.12-3.85 2.22-3.91-1.21-1.77-3.1-2.01-3.77-2.04-1.6-.16-3.13.94-3.94.94-.81 0-2.07-.92-3.4-.89-1.75.03-3.36 1.02-4.26 2.58-1.82 3.16-.46 7.83 1.3 10.39.86 1.25 1.89 2.66 3.24 2.61 1.3-.05 1.79-.84 3.36-.84 1.57 0 2.01.84 3.39.81 1.4-.02 2.29-1.28 3.15-2.54.99-1.46 1.4-2.87 1.42-2.94-.03-.01-2.73-1.05-2.76-4.16zM14.6 4.84c.72-.87 1.2-2.08 1.07-3.28-1.03.04-2.28.69-3.02 1.56-.66.77-1.24 2-1.08 3.18 1.15.09 2.33-.59 3.03-1.46z" />
+    </svg>
+  );
+}
+
+function PlayMark() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-7 w-7 text-white" fill="currentColor" aria-hidden>
+      <path d="M3.6 2.25c-.27.16-.45.46-.45.86v17.78c0 .4.18.7.45.86l9.7-9.75-9.7-9.75zM15.9 14.5l2.34-2.35-2.35-2.36-2.86 2.36 2.87 2.35zm-2.16-2.99 2.35-2.36L5.4 2.86l8.34 8.65zm0 1.27-8.35 8.66 10.7-6.3-2.35-2.36z" />
+    </svg>
+  );
+}
+
+function MissionSection() {
+  return (
+    <section
+      id="mission"
+      className="relative scroll-mt-24 overflow-hidden"
+      style={{ backgroundColor: MISSION_BG, fontFamily: BODY_FONT }}
+    >
+      <div className="relative z-10 mx-auto max-w-7xl px-4 pt-20 pb-10 sm:px-6 sm:pt-28 sm:pb-12">
+        <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr] lg:gap-12">
+          {/* Left — pill + headline */}
+          <div>
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/40 px-8 py-3 text-base text-white">
+              <span className="h-1.5 w-1.5 rounded-full bg-white" aria-hidden />
+              Our Mission
+            </span>
+            <h2
+              className="mt-8 text-3xl font-bold text-white sm:text-4xl lg:text-[40px] xl:text-[48px]"
+              style={{ fontFamily: HEADING_FONT, lineHeight: 1.3 }}
+            >
+              Restore Environment
+              <br />
+              By Planting More Trees
+            </h2>
+          </div>
+
+          {/* Right — copy + download */}
+          <div className="flex flex-col gap-9">
+            <p className="text-base leading-[30px] text-[#F8FDFF]/90">
+              Environ makes tree-planting something you can actually see. Sponsors fund the
+              saplings, our volunteers plant them across verified sites in Gujarat, and local site
+              owners nurture each one as it grows. Every tree you fund is GPS-pinned and
+              photographed the day it&apos;s planted, then followed with watering updates from the
+              field — no vague annual report, just proof you can scroll as real green cover is
+              restored, one tree at a time.
+            </p>
+            <div className="flex flex-wrap items-center gap-x-10 gap-y-6">
+              <a
+                href="#"
+                className="inline-flex items-center gap-2 rounded-full border border-white/50 bg-white/30 px-9 py-4 text-base text-[#F8FDFF] backdrop-blur-[2px] transition-colors hover:bg-white/40"
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-white" aria-hidden />
+                Download Our App
+              </a>
+              <div className="flex flex-col items-center gap-1.5">
+                <span className="text-base text-white">Available On</span>
+                <div className="flex items-center gap-5">
+                  <AppleMark />
+                  <PlayMark />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Closing statement — large faded headline as the section's sign-off. */}
+      <div className="overflow-hidden px-4 pb-16 pt-4 text-center sm:px-6 sm:pb-24">
+        <div
+          className="select-none whitespace-nowrap text-[5.5vw] font-bold leading-none text-[#0B5000]/45"
+          style={{ fontFamily: HEADING_FONT }}
+          aria-hidden
+        >
+          From Thought to Execution
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// A footer link column (Navigate / Discover / Our App).
+function FooterCol({ title, links }) {
+  return (
+    <div>
+      <h3 className="text-xl font-medium text-black sm:text-2xl">{title}</h3>
+      <ul className="mt-8 flex flex-col gap-5">
+        {links.map(([label, to]) => (
+          <li key={label}>
+            {to.startsWith('#') || to.startsWith('mailto') || to.startsWith('tel') ? (
+              <a href={to} className="text-base text-black transition-colors hover:text-[#0B5000]">
+                {label}
+              </a>
+            ) : (
+              <Link to={to} className="text-base text-black transition-colors hover:text-[#0B5000]">
+                {label}
+              </Link>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+// Light Figma footer: centred contribution CTA, four link columns
+// (the last is Contact Us with pill buttons), then a copyright bar.
 function Footer() {
   return (
-    <footer className="border-t border-border/60 bg-background py-10 sm:py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col gap-8 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="inline-flex items-center gap-2.5">
-            <span className="grid h-8 w-8 place-items-center rounded-xl bg-primary/10 text-primary">
-              <Leaf className="h-4 w-4" aria-hidden />
+    <footer
+      id="contact"
+      className="scroll-mt-24 bg-white text-[#001F00]"
+      style={{ fontFamily: BODY_FONT }}
+    >
+      <div className="mx-auto max-w-7xl px-6 py-16 sm:px-8 sm:py-20 lg:px-12">
+        {/* Contribution CTA */}
+        <div className="flex flex-col items-center text-center">
+          <div className="inline-flex items-center gap-3">
+            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-[#0B5000] text-white">
+              <Leaf className="h-6 w-6" aria-hidden />
             </span>
-            <span className="font-heading font-bold text-foreground">Environ</span>
+            <span className="text-3xl font-bold text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>
+              Environ
+            </span>
           </div>
-          <p className="mt-3 max-w-xs text-sm text-muted-foreground leading-relaxed">
-            Every tree your donation funds — planted, mapped, and proven.
+          <h2
+            className="mt-8 text-2xl font-semibold text-[#001F00] sm:text-[32px]"
+            style={{ fontFamily: HEADING_FONT }}
+          >
+            Make Your First Contribution Today
+          </h2>
+          <p className="mt-4 max-w-[655px] text-base leading-[25px] tracking-[0.01em] text-[#1E1E1E]">
+            Fund your first tree today and watch it grow — every contribution is planted,
+            GPS-pinned, and tracked with photo proof from the field.
           </p>
         </div>
-        <div className="flex w-full flex-col items-start gap-3 sm:w-auto sm:items-end">
-          <span className="text-sm font-medium text-foreground">Ready to grow your forest?</span>
-          <div className="flex w-full items-center gap-3 sm:w-auto">
-            <Button asChild variant="outline" size="sm" className="flex-1 sm:flex-none">
-              <Link to="/login">Sign in</Link>
-            </Button>
-            <Button asChild size="sm" className="flex-1 sm:flex-none">
-              <Link to="/register">
-                Sponsor a tree <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
+
+        {/* Link columns */}
+        <div className="mt-16 grid grid-cols-2 gap-10 sm:mt-20 lg:grid-cols-[1fr_1fr_1fr_1.6fr] lg:gap-8">
+          <FooterCol
+            title="Navigate"
+            links={[
+              ['Home', '#home'],
+              ['About Us', '#mission'],
+              ['Contribute', '/register'],
+              ['Get In Touch', '#contact'],
+            ]}
+          />
+          <FooterCol
+            title="Discover"
+            links={[
+              ['Latest News', '#'],
+              ['Blogs', '#'],
+            ]}
+          />
+          <FooterCol
+            title="Our App"
+            links={[
+              ['App Store', '#'],
+              ['Play Store', '#'],
+            ]}
+          />
+          <div className="col-span-2 lg:col-span-1">
+            <h3 className="text-xl font-medium text-black sm:text-2xl">Contact Us</h3>
+            <div className="mt-8 flex flex-col gap-5">
+              <a
+                href="mailto:epcp.envirom@gmail.com"
+                className="rounded-full border border-[#1E1E1E] px-8 py-4 text-center text-base text-[#1E1E1E] transition-colors hover:bg-[#1E1E1E]/5"
+              >
+                epcp.envirom@gmail.com
+              </a>
+              <a
+                href="tel:+917226803611"
+                className="rounded-full border border-[#1E1E1E] px-8 py-4 text-center text-base text-[#1E1E1E] transition-colors hover:bg-[#1E1E1E]/5"
+              >
+                +91 72268 03611
+              </a>
+            </div>
           </div>
         </div>
-      </div>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 mt-8 border-t border-border/60 pt-6 text-xs text-muted-foreground">
-        &copy; {new Date().getFullYear()} Environ. All rights reserved.
+
+        {/* Copyright bar */}
+        <div className="mt-16 flex flex-col gap-4 border-t border-[#001F00]/15 pt-6 text-base text-[#001F00] sm:flex-row sm:items-center sm:justify-between">
+          <span>&copy; npcpl. All rights reserved {new Date().getFullYear()}</span>
+          <div className="flex items-center gap-8">
+            <a href="#" className="transition-colors hover:text-[#0B5000]">
+              Privacy &amp; Policy
+            </a>
+            <a href="#" className="transition-colors hover:text-[#0B5000]">
+              Terms &amp; Condition
+            </a>
+          </div>
+        </div>
       </div>
     </footer>
   );
