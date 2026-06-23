@@ -5,3 +5,9 @@
 api.jainildesai.com {
 	reverse_proxy server:4000
 }
+
+# Web portal — the React SPA. Auto-TLS like the api subdomain; needs an
+# `app` A record pointing at this VPS before the first request.
+app.jainildesai.com {
+	reverse_proxy web:80
+}
