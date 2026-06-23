@@ -3,10 +3,18 @@
 ## Architecture
 
 ```
-Client app / website → api.example.com (Caddy :443 auto-TLS) → server:4000 (Docker) → mongo:27017 (internal only, not exposed to host)
+Client app (capacitor://localhost) ──────────────────────────────────────────┐
+                                                                              │
+Browser SPA (https://environ.example.com) → web:80 (Docker, Caddy static)   │
+                                                                              │
+                        Edge Caddy :443 auto-TLS                             │
+                        api.example.com  → server:4000                       │
+                        environ.example.com → web:80                         │
+                            ▼                                                 │
+                    server:4000 (Docker) → mongo:27017 (internal only)      ◄┘
 ```
 
-Three containers on one network (`internal`): `caddy`, `server`, `mongo`. Mongo is never reachable from outside the host.
+Four containers on one network (`internal`): `caddy`, `server`, `mongo`, `web`. Mongo is never reachable from outside the host.
 
 ---
 
@@ -30,13 +38,14 @@ Three containers on one network (`internal`): `caddy`, `server`, `mongo`. Mongo 
 
 ## DNS
 
-Add an `A` record in your DNS registrar:
+Add **two** `A` records in your DNS registrar:
 
-| Name | Type | Value |
-|------|------|-------|
-| `api` | A | `<VPS_IP>` |
+| Name | Type | Value | Purpose |
+|------|------|-------|---------|
+| `api` | A | `<VPS_IP>` | API server |
+| `environ` | A | `<VPS_IP>` | Web SPA (serves QR scan links) |
 
-Set it to **DNS-only / grey-cloud** (no proxy). Caddy uses the Let's Encrypt HTTP-01 challenge to issue TLS — it needs a direct TCP connection from ACME servers to port 80 on this machine. A CDN proxy in front intercepts that connection and TLS issuance fails.
+Set both to **DNS-only / grey-cloud** (no proxy). Caddy uses the Let's Encrypt HTTP-01 challenge — it needs a direct TCP connection from ACME servers to port 80. A CDN proxy intercepts that connection and TLS issuance fails.
 
 Update `deploy/Caddyfile` to match your actual domain before deploying.
 
@@ -45,25 +54,19 @@ Update `deploy/Caddyfile` to match your actual domain before deploying.
 ## Get the code onto the VPS
 
 ```bash
-# Option A — public repo
-git clone <repo-url> /opt/angio
-cd /opt/angio
-git checkout feat/mobile-capacitor-deploy
+# clone directly on the VPS
+git clone <repo-url> ~/angio
+cd ~/angio
 ```
 
-> **Important:** `docker-compose.yml` lives only on the `feat/mobile-capacitor-deploy` branch. The `main` branch does not have it.
-
-```bash
-# Option B — rsync from local machine
-rsync -avz --exclude '.git' /local/path/angio/ user@<VPS_IP>:/opt/angio/
-```
+> **Note:** `docker-compose.yml` is on `main`. The workflow deploys from `main`.
 
 ---
 
 ## Secrets
 
 ```bash
-cd /opt/angio
+cd ~/angio
 cp server/.env.production.example server/.env
 ```
 
@@ -73,31 +76,58 @@ Open `server/.env` and fill in:
 |-----|--------------|
 | `JWT_ACCESS_SECRET` | `openssl rand -base64 48` |
 | `JWT_REFRESH_SECRET` | `openssl rand -base64 48` (different value) |
-| `CLIENT_ORIGIN` | URL of your hosted web client (e.g. `https://app.example.com`) |
+| `CLIENT_ORIGIN` | `https://environ.example.com` (the web SPA subdomain) |
 | `PUBLIC_URL` | `https://api.example.com` |
+| `COOKIE_SECURE` | `true` |
+| `COOKIE_SAMESITE` | `none` (required for cross-subdomain cookies: `environ` → `api`) |
 | `CLOUDINARY_*` | Cloudinary dashboard → Settings → Access Keys |
 | `RESEND_API_KEY` | Resend dashboard (preferred), **or** fill `MAIL_*` for SMTP |
 | `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` | Razorpay dashboard (use live keys in prod) |
+| `RAZORPAY_WEBHOOK_SECRET` | `openssl rand -hex 32` — set the **same value** in the Razorpay dashboard webhook config |
 | `PRIMARY_NGO_ADMIN_EMAIL` / `PASSWORD` / `NAME` | Seed values; user is forced to change password on first login |
 
 > **Do not set `MONGODB_URI`** — `docker-compose.yml` injects `mongodb://mongo:27017/angio` and overrides any value in `.env`.
 
-> **Cookie settings for HTTPS prod:** set `COOKIE_SECURE=true` and `COOKIE_SAMESITE=none` so the hosted web client can send cookies cross-site to the api subdomain.
+---
+
+## Web client
+
+The `web` service in `docker-compose.yml` builds the React SPA via a multi-stage `client/Dockerfile`:
+
+1. **Build stage** — `node:22-alpine` runs `npm run build` (Vite). `VITE_API_BASE_URL` is passed as a build `ARG` and baked into the bundle.
+2. **Serve stage** — `caddy:2-alpine` serves `/srv` with SPA fallback (`try_files {path} /index.html`) and gzip. Listens on port 80 internally.
+
+The edge Caddy reverse-proxies `environ.example.com` → `web:80` with auto-TLS.
+
+**Why this matters:** QR codes encode `${CLIENT_ORIGIN}/tree/{publicCode}`. With the web client hosted at `environ.example.com`, scanning a QR code opens the public tree page in the browser without needing the native app installed.
+
+Set `VITE_API_BASE_URL` in the `web` service's build args in `docker-compose.yml`:
+
+```yaml
+web:
+  build:
+    context: ./client
+    args:
+      VITE_API_BASE_URL: https://api.example.com
+```
 
 ---
 
 ## Launch
 
 ```bash
-cd /opt/angio
+cd ~/angio
 docker compose up -d --build
 ```
 
-Caddy auto-provisions the TLS cert on first request (takes a few seconds). Verify:
+Caddy auto-provisions TLS certs on first request. Verify both services:
 
 ```bash
 curl https://api.example.com/api/health
 # → {"status":"ok"}
+
+curl -I https://environ.example.com
+# → HTTP/2 200
 ```
 
 Tail logs:
@@ -105,20 +135,60 @@ Tail logs:
 ```bash
 docker compose logs -f server
 docker compose logs -f caddy
+docker compose logs -f web
 ```
 
 ---
 
-## Update flow
+## CI/CD (auto-deploy)
+
+Every push to `main` triggers `.github/workflows/deploy.yml`:
+
+1. **`test` job** — installs deps, runs server regression tests (`npm test`), and does a full client Vite build to catch compile errors.
+2. **`deploy` job** — only runs if `test` passes and `github.ref == 'refs/heads/main'`. SSHes into the VPS (via `appleboy/ssh-action`) and runs:
+   ```bash
+   git fetch origin main && git checkout main
+   git reset --hard origin/main
+   docker compose up -d --build
+   docker image prune -f
+   ```
+
+**Required GitHub repository secrets** (Settings → Secrets and variables → Actions):
+
+| Secret | Value |
+|--------|-------|
+| `VPS_HOST` | IP or hostname of the VPS (`<VPS_IP>`) |
+| `VPS_USER` | SSH username (e.g. `ubuntu`) |
+| `VPS_SSH_KEY` | Private key of a dedicated deploy keypair (PEM, no passphrase) |
+
+**Deploy key setup (one-time):**
 
 ```bash
-cd /opt/angio
+# On your local machine — generate a dedicated keypair
+ssh-keygen -t ed25519 -C "github-deploy" -f ~/.ssh/angio_deploy -N ""
+
+# Copy the public key to the VPS
+ssh-copy-id -i ~/.ssh/angio_deploy.pub <VPS_USER>@<VPS_IP>
+
+# Add the PRIVATE key (angio_deploy) as the VPS_SSH_KEY repo secret
+```
+
+**Production environment branch policy (recommended):** in GitHub → repo Settings → Environments → `production`, set the deployment branch to `main`. This prevents the `VPS_*` secrets from being used in workflows triggered by any other ref, regardless of workflow file contents.
+
+> Pushing to `main` now auto-deploys. Manual deploys via `docker compose up -d --build` on the VPS still work.
+
+---
+
+## Manual update (without CI/CD)
+
+```bash
+cd ~/angio
 ./deploy.sh
 ```
 
 `deploy.sh` runs `git pull --ff-only && docker compose up -d --build` and prints final container status. Mongo and Caddy data persist on named volumes across rebuilds.
 
-Server-only rebuild (skip pulling a new image for mongo/caddy):
+Server-only rebuild:
 
 ```bash
 docker compose up -d --build server
@@ -130,12 +200,13 @@ docker compose up -d --build server
 
 | Issue | Fix |
 |-------|-----|
-| `docker-compose.yml` not found | You're on `main`. Switch to `feat/mobile-capacitor-deploy`. |
-| TLS cert never issues | DNS A record must be DNS-only (no CDN proxy); ports 80 + 443 must be open in UFW. |
-| CORS errors from the web client | `CLIENT_ORIGIN` in `server/.env` must match the exact origin of the hosted web client (scheme + host, no trailing slash). See GitHub issue #10. |
-| QR scan links go nowhere | `CLIENT_ORIGIN` (and therefore `PUBLIC_URL`) must be set to the hosted web-client URL — QR codes encode `${CLIENT_ORIGIN}/tree/{publicCode}`. Issue #10. |
-| Cookies not sent from browser | Set `COOKIE_SECURE=true` + `COOKIE_SAMESITE=none` for HTTPS cross-site. |
-| Native app can't reach API | Ensure `VITE_API_BASE_URL` in `client/.env.production` is set to `https://api.example.com` before `npm run build && npx cap sync`. |
+| TLS cert never issues | DNS A records must be DNS-only (no CDN proxy); ports 80 + 443 must be open in UFW. |
+| CORS errors from web client | `CLIENT_ORIGIN` in `server/.env` must be `https://environ.example.com` — exact origin, no trailing slash. |
+| QR scan links go nowhere | `CLIENT_ORIGIN` must be set to the hosted web-client URL — QR codes encode `${CLIENT_ORIGIN}/tree/{publicCode}`. |
+| Cookies not sent from browser | Set `COOKIE_SECURE=true` + `COOKIE_SAMESITE=none` for HTTPS cross-subdomain. |
+| Native app can't reach API | Ensure `VITE_API_BASE_URL` build arg in `docker-compose.yml` is set to `https://api.example.com`. |
+| CI deploy fails auth | The public half of `VPS_SSH_KEY` must be in `~/.ssh/authorized_keys` on the VPS for the deploy user. |
+| Old code after CI deploy | Verify `git log --oneline -3` on the VPS matches the expected commits. |
 
 ---
 
@@ -143,8 +214,10 @@ docker compose up -d --build server
 
 | File | Purpose |
 |------|---------|
-| `docker-compose.yml` | Service definitions (caddy, server, mongo), named volumes, internal network |
+| `docker-compose.yml` | Service definitions (caddy, server, mongo, web), named volumes, internal network |
 | `server/Dockerfile` | Node 20 Alpine image; only prod deps (`npm ci --omit=dev`) |
-| `deploy/Caddyfile` | Caddy config — update the domain here before deploying |
-| `deploy.sh` | One-command update script (`git pull` + `docker compose up -d --build`) |
+| `client/Dockerfile` | Multi-stage: Node 22 Vite build → Caddy static serve with SPA fallback |
+| `deploy/Caddyfile` | Edge Caddy config — two virtual hosts (`api` + `environ`); update domain before deploying |
+| `deploy.sh` | One-command manual update (`git pull` + `docker compose up -d --build`) |
+| `.github/workflows/deploy.yml` | CI/CD pipeline — tests + SSH deploy on push to main |
 | `server/.env.production.example` | All server env vars with inline docs |

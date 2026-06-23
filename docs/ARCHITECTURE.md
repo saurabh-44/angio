@@ -5,36 +5,40 @@
 The same React app (`client/`) ships three ways:
 
 1. **Native iOS/Android app** — bundled inside the Capacitor shell via `npm run build && npx cap sync`, then opened in Xcode / Android Studio.
-2. **Web browser** — served as a static site from any host (e.g. Vercel, Netlify, or a CDN).
+2. **Web browser** — served as a static site from the `web` Docker container (Caddy, SPA fallback) at `environ.example.com`.
 3. **API** — both of the above call the same Express server.
 
 ```
 ┌─────────────────────────┐    ┌─────────────────────────┐
 │   iOS / Android app     │    │   Web browser           │
-│   (Capacitor shell)     │    │   (hosted static site)  │
-│   capacitor://localhost │    │   https://app.example   │
+│   (Capacitor shell)     │    │   environ.example.com   │
+│   capacitor://localhost │    │   (Docker: web:80)      │
 │   Bearer token auth     │    │   httpOnly cookie auth  │
 └────────────┬────────────┘    └────────────┬────────────┘
              │                              │
-             │ HTTPS to api.example.com     │
+             │ HTTPS                        │ HTTPS
+             │ api.example.com              │ environ.example.com
              └──────────────┬───────────────┘
                             ▼
-             ┌──────────────────────────────┐
-             │   Caddy 2  :443 auto-TLS     │
-             │   reverse_proxy → server:4000│
-             └──────────────┬───────────────┘
-                            ▼
-             ┌──────────────────────────────┐
-             │   Node 20 + Express (Docker) │
-             │   /api/*   :4000             │
-             │   Zod · JWT · Mongoose       │
-             └──────┬───────────────┬───────┘
-                    │               │
-          ┌─────────▼────┐  ┌───────▼──────────┐
-          │   MongoDB 7  │  │   Cloudinary CDN  │
-          │   internal   │  │   (photos, direct │
-          │   not exposed│  │    from client)   │
-          └──────────────┘  └───────────────────┘
+             ┌──────────────────────────────────────────┐
+             │   Caddy 2  :443 auto-TLS  (edge)         │
+             │   api.example.com   → server:4000        │
+             │   environ.example.com → web:80           │
+             └──────────────┬───────────────────────────┘
+                            │
+           ┌────────────────┴──────────────────┐
+           ▼                                   ▼
+┌──────────────────────┐          ┌────────────────────────┐
+│  Node 20 + Express   │          │  web (Caddy static)    │
+│  /api/*  :4000       │          │  React SPA :80         │
+│  Zod · JWT · Mongoose│          │  SPA fallback on 404   │
+└──────┬───────────────┘          └────────────────────────┘
+       │
+  ┌────┴────────┐  ┌──────────────────┐
+  │  MongoDB 7  │  │  Cloudinary CDN  │
+  │  internal   │  │  (photos, direct │
+  │  not exposed│  │   from client)   │
+  └─────────────┘  └──────────────────┘
 ```
 
 ---
@@ -51,7 +55,7 @@ Auth adapts to the delivery channel at runtime based on the `isNative` flag from
 | Refresh token | Cookie (same `requireAuth` flow) | Sent as Bearer / request body |
 | Server reads | `req.cookies[ACCESS_COOKIE]` first, then `getBearerToken(req)` | `getBearerToken(req)` — in `server/src/middleware/auth.js` |
 
-CORS: the server allows `CLIENT_ORIGIN` (web client), `capacitor://localhost` (iOS), `http://localhost` + `https://localhost` (Android webview), and requests with no `Origin` header (native HTTP plugin, curl). See `server/src/app.js`.
+CORS: the server allows `CLIENT_ORIGIN` (web client at `environ.example.com`), `capacitor://localhost` (iOS), `http://localhost` + `https://localhost` (Android webview), and requests with no `Origin` header (native HTTP plugin, curl). See `server/src/app.js`.
 
 Token lifecycle (native):
 - `hydrateTokens()` reads both tokens from Preferences into an in-memory cache at app startup.
@@ -71,7 +75,7 @@ Token lifecycle (native):
 ### QR codes
 - Each plant has a `publicCode` (nanoid). The server encodes `${CLIENT_ORIGIN}/tree/{publicCode}` into a QR PNG.
 - Bulk QR sheet: `server/src/services/plants/bulkQrService.js` generates an A4 PDF (3×5 grid) with pdfkit. `margin: 0` is required to avoid phantom extra pages — a known pdfkit quirk.
-- `CLIENT_ORIGIN` must be set to the hosted web-client URL or QR scan links resolve to nothing (issue #10).
+- `CLIENT_ORIGIN` must be set to `https://environ.example.com` (the hosted web client) so that QR scan links open the public tree page in any browser, without requiring the native app.
 
 ### CO₂ estimation
 - `server/src/services/co2/co2Service.js` uses a linear per-year estimate per plant, weighted by species absorption rate when a `speciesRef` is present.
@@ -80,6 +84,7 @@ Token lifecycle (native):
 1. Client calls `POST /api/payments/order` → server creates a Razorpay order and returns `order_id`.
 2. Client opens Razorpay checkout (in-browser SDK).
 3. On success, client calls `POST /api/payments/verify` → server verifies HMAC-SHA256 signature before marking the donation paid.
+4. Razorpay also calls `POST /api/payments/webhook` server-to-server (no auth, HMAC-verified via `RAZORPAY_WEBHOOK_SECRET`) for `payment.captured` and `payment.failed` events.
 
 ### Authenticated file fetch (PDFs, native)
 - On web: `window.open(apiPath)` — same-origin, cookies travel.
@@ -116,5 +121,7 @@ All app screens account for iOS notch / home-bar safe areas via Tailwind `safe-*
 |-------|-----------|
 | **Server** | Node 20, Express 4 (ESM), Mongoose 8, Zod, Pino, Nodemailer/Resend, pdfkit, qrcode, xlsx |
 | **Client** | React 18, Vite, Tailwind 3, shadcn/ui, TanStack Query v5, React Router 6, React Hook Form, Framer Motion |
-| **Mobile** | Capacitor 8 — iOS + Android; same React app bundled into native shell |
-| **Infra** | Docker Compose (mongo + server + caddy), Caddy 2 auto-TLS, Cloudinary CDN, Razorpay |
+| **Map** | Leaflet + OpenStreetMap — no API key required (replaced Google Maps) |
+| **Mobile** | Capacitor 8 — iOS + Android; same React app bundled into native shell. **Requires Node 22** for `npm run build && npx cap sync`. |
+| **Infra** | Docker Compose (mongo + server + caddy + web), Caddy 2 auto-TLS, Cloudinary CDN, Razorpay |
+| **CI/CD** | GitHub Actions (`.github/workflows/deploy.yml`) — test + SSH deploy on push to `main` |
