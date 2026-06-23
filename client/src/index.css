@@ -63,6 +63,9 @@
   * {
     @apply border-border;
   }
+  html {
+    scroll-behavior: smooth;
+  }
   body {
     @apply bg-background text-foreground font-sans;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
@@ -87,6 +90,17 @@
   /* Visible focus ring everywhere, brand-tinted. */
   :focus-visible {
     @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  /* Glass auth fields sit over a photo — keep autofill from painting an
+     opaque box. The long transition defers the browser's autofill bg
+     indefinitely while preserving white text + caret. */
+  .auth-glass-input:-webkit-autofill,
+  .auth-glass-input:-webkit-autofill:hover,
+  .auth-glass-input:-webkit-autofill:focus {
+    -webkit-text-fill-color: #fff;
+    caret-color: #fff;
+    transition: background-color 9999s ease-in-out 0s;
   }
 }
 
