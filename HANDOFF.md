@@ -2,9 +2,9 @@
 
 > Read this top-to-bottom in a fresh Claude session before touching code. The repo's README is the product story; this file is the build-state, conventions, and gotchas log.
 
-**Last updated:** 2026-06-22
-**Branch:** feat/mobile-capacitor-deploy
-**Status:** Dev-complete; native mobile build + Docker deploy added. Web client hosting pending (issue #10).
+**Last updated:** 2026-06-23
+**Branch:** main
+**Status:** Dev-complete; native mobile build, Docker deploy, web client hosting, and CI/CD all in place.
 
 **Docs:** [DEPLOYMENT.md](docs/DEPLOYMENT.md) · [ARCHITECTURE.md](docs/ARCHITECTURE.md) · [ENV.md](docs/ENV.md)
 
@@ -35,7 +35,7 @@ A MERN web app for a small NGO that plants trees on behalf of donors. Four roles
 - Zod for input validation, `asyncHandler` + `HttpError` for error flow
 - Cloudinary signed direct-from-browser uploads
 - Nodemailer SMTP (Gmail) with console-fallback for `.test`/`.example`/`.invalid`/`.local`/`.localhost` TLDs
-- Razorpay test mode (order create + HMAC-SHA256 signature verify)
+- Razorpay (order create + HMAC-SHA256 signature verify + server-to-server webhook at `POST /api/payments/webhook`)
 - `qrcode` + `pdfkit` for QR PNGs and PDFs (certificates + bulk QR sheets)
 - `xlsx` (SheetJS) + `multer` (in-memory, 2 MB cap) for Excel import/export
 - `pino` + `pino-http` for logging
@@ -46,7 +46,7 @@ A MERN web app for a small NGO that plants trees on behalf of donors. Four roles
 - TanStack Query v5 for server state
 - React Hook Form for forms
 - React Router 6 with lazy-loaded routes
-- `@react-google-maps/api` for map views (donor map, admin map)
+- **Leaflet + OpenStreetMap** for map views (replaced Google Maps — no API key needed)
 - `html5-qrcode` (lazy) for in-app QR scanning
 - `recharts` for admin analytics
 - `framer-motion` for landing page animations
@@ -56,10 +56,11 @@ A MERN web app for a small NGO that plants trees on behalf of donors. Four roles
 - `appId: org.environ.app`, `appName: Environ`, `webDir: dist`
 - Native plugins: camera, geolocation, preferences, filesystem, share
 - Native lib modules: `client/src/lib/nativeAuth.js`, `nativePermissions.js`, `nativeFile.js`
+- **Requires Node 22** for `npm run build && npx cap sync` (`nvm use 22`)
 
 **Deploy**
-- Docker Compose: `mongo` (MongoDB 7, named volume, internal-only) + `server` (Node 20 Alpine) + `caddy` (Caddy 2, auto-TLS)
-- One-command update: `./deploy.sh`
+- Docker Compose: `mongo` (MongoDB 7, named volume, internal-only) + `server` (Node 20 Alpine) + `caddy` (edge, auto-TLS) + `web` (Node 22 Vite build → Caddy static, SPA fallback)
+- CI/CD: GitHub Actions auto-deploys on push to `main` (test → SSH deploy)
 - See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 
 **Dev orchestration:** root `package.json` runs `concurrently` to start server + client. Vite proxies `/api/*` → `http://localhost:4000`, so the browser sees same-origin and cookies travel cleanly.
@@ -85,6 +86,7 @@ Angio/
 │       ├── mail/                  ← templates + transport
 │       └── utils/                 ← logger, httpError, asyncHandler
 ├── client/
+│   ├── Dockerfile                 ← multi-stage: Node 22 Vite build → Caddy static serve
 │   └── src/
 │       ├── app/                   ← router.jsx, navConfig.js
 │       ├── components/            ← AppLayout, Sidebar, TopBar, UserMenu, PageHeader, AuthShell, ConfirmDialog, EmptyState, ExportButton, GpsCapture, HealthBadge, MapView, OtpInput, Pagination, PhotoCapture, PlantCard, PlantDetailSheet, PlantStatusBadge, RoleBadge, StatTile
@@ -101,6 +103,9 @@ Angio/
 │       │   └── Scan.jsx           ← in-app camera scanner
 │       ├── queries/               ← TanStack Query hooks (one file per resource)
 │       └── lib/                   ← api.js (fetch wrapper + ApiError), auth.jsx (context), format.js, utils.js, queryClient.js, razorpay.js, passwordStrength.js
+├── deploy/
+│   └── Caddyfile                  ← edge Caddy: api.example.com + environ.example.com virtual hosts
+├── .github/workflows/deploy.yml   ← CI/CD: test + SSH deploy on push to main
 └── README.md
 ```
 
@@ -120,7 +125,7 @@ All marked complete unless noted. **Status: ready for manual QA.**
 | **Maintenance logs** (weekly, with height/DBH/health monitoring extensions) | `routes/maintenance.js`, `models/MaintenanceLog.js` | `pages/admin/MaintenancePage.jsx`, `pages/volunteer/RecordMaintenance.jsx` |
 | **Assignments** (volunteer ↔ site) | `routes/assignments.js`, `models/Assignment.js` | `pages/admin/AssignmentsPage.jsx` (also serves site_owner) |
 | **Cloudinary uploads** (signed, direct-from-browser) | `routes/uploads.js` | `components/PhotoCapture.jsx` |
-| **Payments** (Razorpay, donor sponsor flow) | `routes/payments.js`, `services/payments/paymentsService.js` | `pages/donor/SponsorTree.jsx` |
+| **Payments** (Razorpay, donor sponsor flow + webhook) | `routes/payments.js`, `services/payments/paymentsService.js` | `pages/donor/SponsorTree.jsx` |
 | **QR public verification** | `routes/publicTrees.js`, `pages/PublicTree.jsx` | — |
 | **In-app QR scanner** | — | `pages/Scan.jsx` (html5-qrcode lazy) |
 | **CO₂ estimation** (per-plant, per-donor, system; uses speciesRef rate when present) | `services/co2/co2Service.js`, `routes/co2.js` | `queries/co2.js`, consumed in DonorHome + AdminHome |
@@ -128,8 +133,8 @@ All marked complete unless noted. **Status: ready for manual QA.**
 | **Bulk QR PDF** (3×5 grid A4) | inside `services/sites/` | DropdownMenuItem on site row |
 | **Admin analytics** (charts) | `routes/analytics.js` | `pages/admin/AdminHome.jsx` (recharts) |
 | **Excel import / export** | `routes/excel.js`, `services/excel/` | `pages/admin/ImportPage.jsx`, `components/ExportButton.jsx` |
-| **Species master data** (NEW) | `routes/species.js`, `models/Species.js`, `services/species/speciesService.js` | `pages/admin/SpeciesPage.jsx`, `queries/species.js`; picker in `RecordPlanting.jsx` |
-| **Project master data** (NEW) | `routes/projects.js`, `models/Project.js`, `services/projects/projectService.js` | `pages/admin/ProjectsPage.jsx`, `queries/projects.js`; picker in `DonationsPage.jsx` AddAllocationForm |
+| **Species master data** | `routes/species.js`, `models/Species.js`, `services/species/speciesService.js` | `pages/admin/SpeciesPage.jsx`, `queries/species.js`; picker in `RecordPlanting.jsx` |
+| **Project master data** | `routes/projects.js`, `models/Project.js`, `services/projects/projectService.js` | `pages/admin/ProjectsPage.jsx`, `queries/projects.js`; picker in `DonationsPage.jsx` AddAllocationForm |
 
 **Plant** now carries optional `speciesRef` (ref to Species). **Allocation** now carries optional `project` (ref to Project). Both are back-compat — null on existing records.
 
@@ -172,6 +177,8 @@ All marked complete unless noted. **Status: ready for manual QA.**
 - **pdfkit `margin: 0` required for QR sheets** — pdfkit's default margin produces a phantom second (or third) page in the bulk QR PDF. Always pass `{ margins: { top: 0, left: 0, bottom: 0, right: 0 } }`.
 - **`npx cap sync` after every web build** — forgetting this means the native shell runs stale JS. There is no automatic watch.
 - **iOS `Info.plist` needs two keys** — `NSCameraUsageDescription` and `NSLocationWhenInUseUsageDescription` must both be present or the app is rejected by the App Store and crashes on permission request in TestFlight.
+- **Capacitor builds require Node 22** — Capacitor CLI v8 requires Node 22. Run `nvm use 22` before `npm run build && npx cap sync`. The server runs Node 20 in Docker; don't conflate them.
+- **Map is Leaflet/OSM, not Google Maps** — `VITE_GOOGLE_MAPS_API_KEY` is unused. No key needed. The old `@react-google-maps/api` package and `MapView` component using it are replaced.
 
 ---
 
@@ -180,7 +187,7 @@ All marked complete unless noted. **Status: ready for manual QA.**
 `server/.env` (gitignored). `server/.env.example` has the shape. Required for full functionality:
 
 ```
-MONGODB_URI=                          # mongodb://localhost:27017/angio
+MONGODB_URI=                          # mongodb://localhost:27017/angio (dev only; injected in Docker)
 JWT_ACCESS_SECRET=                    # min 32 chars
 JWT_REFRESH_SECRET=                   # min 32 chars
 PRIMARY_NGO_ADMIN_EMAIL=              # seed admin's email
@@ -192,12 +199,18 @@ MAIL_FROM_EMAIL=
 CLOUDINARY_CLOUD_NAME=
 CLOUDINARY_API_KEY=
 CLOUDINARY_API_SECRET=
-RAZORPAY_KEY_ID=                      # test keys are fine
+RAZORPAY_KEY_ID=                      # test keys for dev, live keys for prod
 RAZORPAY_KEY_SECRET=
+RAZORPAY_WEBHOOK_SECRET=              # openssl rand -hex 32; same value in Razorpay dashboard
 TREE_UNIT_PRICE_INR=200               # default price per tree
+# Prod extras:
+CLIENT_ORIGIN=https://environ.example.com
+PUBLIC_URL=https://api.example.com
+COOKIE_SECURE=true
+COOKIE_SAMESITE=none
 ```
 
-`client/.env` (also gitignored): typically only `VITE_GOOGLE_MAPS_API_KEY`. `VITE_API_URL` is **not** needed thanks to the Vite proxy.
+`client/.env.production` (also gitignored): only `VITE_API_BASE_URL`. In Docker, this is injected via build arg — a local file is only needed for manual native builds. `VITE_GOOGLE_MAPS_API_KEY` is no longer used (Leaflet/OSM).
 
 **Never commit `.env`.** Treat any creds visible in chat as compromised — rotate before going to prod.
 
@@ -232,6 +245,7 @@ npm run build        # production build (use to smoke-check imports compile)
 ### Build and open in Xcode / Android Studio
 
 ```bash
+nvm use 22           # Capacitor CLI v8 requires Node 22
 cd client
 npm run build        # Vite production build → dist/
 npx cap sync         # copy dist/ into ios/ and android/, sync plugins
@@ -251,7 +265,7 @@ On a native build the API is a different origin from the `capacitor://localhost`
 ### What to set before shipping a native build
 
 - `client/.env.production` → `VITE_API_BASE_URL=https://api.example.com` (the deployed API, not localhost).
-- Rebuild + sync: `npm run build && npx cap sync`.
+- Rebuild + sync: `nvm use 22 && npm run build && npx cap sync`.
 
 → See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the full VPS + Docker runbook.
 
@@ -267,12 +281,15 @@ On a native build the API is a different origin from the `capacitor://localhost`
 | 4 | **Done** | Native PDF open via share sheet (iOS) — `nativeFile.js` |
 | 5 | **Done** | Native permission priming on first authed screen — `nativePermissions.js` |
 | 6 | Open | Sentry error tracking |
-| 7 | Open | CI/CD pipeline on `main` |
+| 7 | **Done** | CI/CD pipeline on `main` — GitHub Actions auto-deploy on push to `main` |
 | 8 | **Done** | Docker + Caddy production deploy |
-| 10 | Open | Host the web client and set `CLIENT_ORIGIN` to its URL so QR scan links resolve |
+| 9 | **Done** | Razorpay server-to-server webhook (`POST /api/payments/webhook`, `RAZORPAY_WEBHOOK_SECRET`) |
+| 10 | **Done** | Host the web client (`web` Docker service at `environ.example.com`) — QR scan links now resolve |
+| 11 | **Done** | Map swapped to Leaflet + OpenStreetMap (no API key required) |
+| 12 | Open | Address open security-review findings (3 unresolved) |
 
 All modules from the original SRS are implemented:
-- 4 role dashboards, donation+allocation flow, plant capture with GPS + photo, weekly maintenance, monitoring extensions (height/DBH/health), QR + scanner + public tree page, payments, certificates (plantation + CO₂), admin analytics charts, Excel import/export, Species + Project master data, responsiveness, native mobile build.
+- 4 role dashboards, donation+allocation flow, plant capture with GPS + photo, weekly maintenance, monitoring extensions (height/DBH/health), QR + scanner + public tree page, payments + webhook, certificates (plantation + CO₂), admin analytics charts, Excel import/export, Species + Project master data, responsiveness, native mobile build.
 
 ---
 
