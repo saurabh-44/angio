@@ -7,7 +7,7 @@ api.jainildesai.com {
 }
 
 # Web portal — the React SPA. Auto-TLS like the api subdomain; needs an
-# `app` A record pointing at this VPS before the first request.
-app.jainildesai.com {
+# `environ` A record pointing at this VPS before the first request.
+environ.jainildesai.com {
 	reverse_proxy web:80
 }

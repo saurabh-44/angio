@@ -38,7 +38,7 @@ services:
       - internal
 
   # Static web client (the React SPA) served on the internal network.
-  # The edge Caddy reverse-proxies app.<domain> -> web:80.
+  # The edge Caddy reverse-proxies environ.<domain> -> web:80.
   web:
     build:
       context: ./client
