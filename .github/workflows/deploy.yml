@@ -33,6 +33,13 @@ jobs:
   deploy:
     needs: test
     runs-on: ubuntu-latest
+    # Belt: only ever deploy from main, even when manually dispatched.
+    if: github.ref == 'refs/heads/main'
+    # Braces: scope the VPS_* secrets to this environment. Add a
+    # deployment branch policy (main only) on the `production` environment
+    # in repo Settings → Environments — GitHub then refuses to release the
+    # secrets to a run on any other ref, regardless of workflow contents.
+    environment: production
     steps:
       - name: Deploy to VPS over SSH
         uses: appleboy/ssh-action@v1.2.0
