@@ -128,3 +128,10 @@
     @apply rounded-2xl bg-card text-card-foreground shadow-soft border border-border/60;
   }
 }
+
+/* Leaflet: strip the default white box/border around our SVG divIcon pins
+   so only the teardrop shows. */
+.angio-pin {
+  background: transparent;
+  border: none;
+}
