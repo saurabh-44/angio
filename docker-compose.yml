@@ -37,6 +37,20 @@ services:
     networks:
       - internal
 
+  # Static web client (the React SPA) served on the internal network.
+  # The edge Caddy reverse-proxies environ.<domain> -> web:80.
+  web:
+    build:
+      context: ./client
+      args:
+        # The browser calls the API cross-subdomain (CORS + cookies).
+        VITE_API_BASE_URL: https://api.jainildesai.com
+    restart: unless-stopped
+    depends_on:
+      - server
+    networks:
+      - internal
+
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
@@ -49,6 +63,7 @@ services:
       - caddy-config:/config
     depends_on:
       - server
+      - web
     networks:
       - internal
 
