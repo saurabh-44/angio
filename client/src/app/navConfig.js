@@ -14,6 +14,7 @@ import {
   FileSpreadsheet,
   TreePine,
   FolderKanban,
+  UserRound,
 } from 'lucide-react';
 
 // Single source of truth for sidebar menus. Keys map to roles, values
@@ -46,9 +47,9 @@ export const NAV_BY_ROLE = {
     { to: '/sponsor', label: 'Overview', icon: LayoutDashboard, end: true },
     { to: '/sponsor/sponsor', label: 'Sponsor trees', icon: Sparkles },
     { to: '/sponsor/orders', label: 'My Orders', icon: HandCoins },
+    // Trees hub — each tree's map, QR, and weekly maintenance live in its detail.
     { to: '/sponsor/trees', label: 'My Trees', icon: Leaf },
-    { to: '/sponsor/map', label: 'Map view', icon: Map },
-    { to: '/sponsor/maintenance', label: 'Maintenance', icon: Droplets },
+    { to: '/sponsor/profile', label: 'Profile', icon: UserRound },
   ],
   volunteer: [
     { to: '/volunteer', label: 'Overview', icon: LayoutDashboard, end: true },

@@ -15,7 +15,11 @@ export default function PublicOnlyRoute({ children }) {
   }
   if (isAuthenticated) {
     if (mustChangePassword) return <Navigate to="/change-password" replace />;
-    return <Navigate to={ROLE_HOME[role] ?? '/'} replace />;
+    const home = ROLE_HOME[role];
+    // Only redirect when we know the dashboard for this role. An unrecognized
+    // role must NOT fall through to "/" — that ping-pongs with PublicRoot
+    // ("/" → "/login" → "/" …) and locks the app in a redirect loop.
+    if (home) return <Navigate to={home} replace />;
   }
   return children;
 }

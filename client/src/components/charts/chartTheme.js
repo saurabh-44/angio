@@ -4,9 +4,9 @@
 // hard-coded chart colours don't drift from the design system.
 
 export const CHART = {
-  primary: '#059669', // leaf-600
-  primaryStrong: '#047857', // leaf-700
-  primarySoft: '#A7F3D0', // leaf-200
+  primary: '#0B5000', // brand deep green
+  primaryStrong: '#063600', // darker green
+  primarySoft: '#C7E3C0', // soft green tint
   accent: '#F59E0B', // amber-500
   accentSoft: '#FCD34D', // amber-300
   warn: '#FBBF24', // amber-400
@@ -14,7 +14,7 @@ export const CHART = {
   muted: '#94A3B8', // slate-400
   surface: '#FFFFFF',
   border: '#E2E8F0', // slate-200
-  text: '#0F172A', // slate-900
+  text: '#001F00', // dark green
   mutedText: '#64748B', // slate-500
   grid: '#F1F5F9', // slate-100
 };

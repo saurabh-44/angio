@@ -46,6 +46,7 @@ const SponsorMaintenance = lazy(() => import('@/pages/sponsor/SponsorMaintenance
 const SponsorDonations = lazy(() => import('@/pages/sponsor/SponsorDonations.jsx'));
 const SponsorOrders = lazy(() => import('@/pages/sponsor/SponsorOrders.jsx'));
 const SponsorTree = lazy(() => import('@/pages/sponsor/SponsorTree.jsx'));
+const SponsorProfile = lazy(() => import('@/pages/sponsor/SponsorProfile.jsx'));
 
 // Volunteer chunks
 const VolunteerHome = lazy(() => import('@/pages/volunteer/VolunteerHome.jsx'));
@@ -155,6 +156,7 @@ export default function AppRouter() {
           <Route path="map" element={<SponsorMap />} />
           <Route path="maintenance" element={<SponsorMaintenance />} />
           <Route path="donations" element={<SponsorDonations />} />
+          <Route path="profile" element={<SponsorProfile />} />
         </Route>
 
         {/* Volunteer tree */}

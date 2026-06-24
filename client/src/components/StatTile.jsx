@@ -5,8 +5,8 @@ import { cn } from '@/lib/utils';
 export function StatTile({ icon: Icon, label, value, sub, tone = 'leaf', hero = false, className }) {
   const tones = {
     leaf: {
-      chip: 'bg-leaf-100 text-leaf-700',
-      tint: 'surface-biophilic',
+      chip: 'bg-[#0B5000]/10 text-[#0B5000]',
+      tint: 'bg-[#F6FAF6]',
     },
     amber: {
       chip: 'bg-amber-100 text-amber-600',

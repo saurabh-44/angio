@@ -10,6 +10,7 @@ import {
   loginVerifyOtpSchema,
   registerSchema,
   resetPasswordSchema,
+  updateProfileSchema,
 } from '../validation/authSchemas.js';
 import {
   changePassword,
@@ -21,6 +22,7 @@ import {
   refresh,
   register,
   resetPassword,
+  updateMe,
 } from '../controllers/authController.js';
 
 export const authRouter = Router();
@@ -60,6 +62,7 @@ authRouter.post(
 authRouter.post('/refresh', authLimiter, asyncHandler(refresh));
 authRouter.post('/logout', requireAuth, asyncHandler(logout));
 authRouter.get('/me', requireAuth, asyncHandler(me));
+authRouter.patch('/me', requireAuth, validate(updateProfileSchema, 'body'), asyncHandler(updateMe));
 authRouter.post(
   '/change-password',
   authLimiter,

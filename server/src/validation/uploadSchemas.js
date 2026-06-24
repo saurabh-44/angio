@@ -6,7 +6,7 @@ const objectId = z.string().refine((v) => Types.ObjectId.isValid(v), {
 });
 
 export const uploadSignatureSchema = z.object({
-  purpose: z.enum(['plant', 'maintenance']),
+  purpose: z.enum(['plant', 'maintenance', 'avatar']),
   siteId: objectId.optional(),
   plantId: objectId.optional(),
 });

@@ -11,6 +11,13 @@ import { HttpError } from '../utils/httpError.js';
 export async function postUploadSignature(req, res) {
   const input = uploadSignatureSchema.parse(req.body);
 
+  // Any authenticated user can upload their own avatar.
+  if (input.purpose === 'avatar') {
+    const folder = `${env.CLOUDINARY_UPLOAD_FOLDER}/avatars/${req.auth.userId}`;
+    const publicId = `avatar-${randomUUID()}`;
+    return res.json(buildUploadSignature({ publicId, folder }));
+  }
+
   if (!['volunteer', 'site_owner', 'ngo_admin'].includes(req.auth.role)) {
     throw HttpError.forbidden('You do not have permission to upload photos');
   }

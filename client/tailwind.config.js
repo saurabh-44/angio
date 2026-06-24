@@ -76,8 +76,10 @@ export default {
         sm: 'calc(var(--radius) - 16px)',
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
-        heading: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', 'sans-serif'],
+        // New design system (Figma): Zalando Sans for body, Zalando Sans
+        // Expanded for headings. Old fonts kept as graceful fallbacks.
+        sans: ['"Zalando Sans"', 'Inter', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+        heading: ['"Zalando Sans Expanded"', '"Plus Jakarta Sans"', 'Inter', 'system-ui', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       boxShadow: {

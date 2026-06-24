@@ -134,6 +134,11 @@ export async function getMe(userId) {
       id: String(user._id),
       email: user.email,
       name: user.name,
+      firstName: user.firstName ?? null,
+      lastName: user.lastName ?? null,
+      dob: user.dob ? new Date(user.dob).toISOString() : null,
+      gender: user.gender ?? null,
+      avatarUrl: user.avatarUrl ?? null,
       phone: user.phone ?? null,
       address: user.address ?? null,
       role: user.role,
@@ -143,6 +148,18 @@ export async function getMe(userId) {
       createdAt: user.createdAt?.toISOString?.() ?? new Date().toISOString(),
     },
   };
+}
+
+// Self-service profile update — only the safe fields a user owns. Uses
+// document .save() so the syncName pre-validate hook keeps `name` in sync.
+export async function updateMyProfile(userId, input) {
+  const user = await User.findById(userId);
+  if (!user || !user.isActive) throw HttpError.unauthorized('Account not found');
+  for (const f of ['firstName', 'lastName', 'dob', 'gender', 'avatarUrl']) {
+    if (input[f] !== undefined) user[f] = input[f] === null ? undefined : input[f];
+  }
+  await user.save();
+  return getMe(userId);
 }
 
 // Forgot-password: always returns "ok" to the caller so the API can't be
