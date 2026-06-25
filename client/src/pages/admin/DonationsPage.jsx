@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { Banknote, HandCoins, Leaf, Loader2, MapPin, Plus, Sparkles, Trash2 } from 'lucide-react';
 import ExportButton from '@/components/ExportButton.jsx';
@@ -40,7 +41,6 @@ import {
 } from '@/queries/donations.js';
 import { useSites } from '@/queries/sites.js';
 import { useUsers } from '@/queries/users.js';
-import { useProjects } from '@/queries/projects.js';
 import { ApiError } from '@/lib/api.js';
 import { formatAmount, formatDate } from '@/lib/format.js';
 import { cn } from '@/lib/utils';
@@ -93,7 +93,8 @@ function MethodPill({ method }) {
 }
 
 export default function DonationsPage() {
-  const [donorFilter, setDonorFilter] = useState('');
+  const [searchParams] = useSearchParams();
+  const [donorFilter, setDonorFilter] = useState(searchParams.get('donor') ?? '');
   const [page, setPage] = useState(1);
   const [createOpen, setCreateOpen] = useState(false);
   const [openDonation, setOpenDonation] = useState(null);
@@ -587,7 +588,6 @@ function AddAllocationForm({ donation, remaining }) {
     formState: { errors },
   } = useForm();
   const [site, setSite] = useState('');
-  const [project, setProject] = useState('');
 
   async function onSubmit(values) {
     if (!site) {
@@ -602,7 +602,6 @@ function AddAllocationForm({ donation, remaining }) {
       await create.mutateAsync({
         donation: donation.id ?? donation._id,
         site,
-        project: project || undefined,
         targetPlants: values.targetPlants,
         allocatedAmount: values.allocatedAmount,
         note: values.note?.trim() || undefined,
@@ -610,7 +609,6 @@ function AddAllocationForm({ donation, remaining }) {
       success('Allocation added');
       reset({});
       setSite('');
-      setProject('');
     } catch (err) {
       toastError("Couldn't add allocation", err instanceof ApiError ? err.message : 'Try again.');
     }
@@ -623,7 +621,6 @@ function AddAllocationForm({ donation, remaining }) {
     >
       <div className="text-sm font-medium text-[#001F00]">Add allocation</div>
       <SiteSelect value={site} onChange={setSite} disabled={create.isPending} />
-      <ProjectSelect value={project} onChange={setProject} disabled={create.isPending} />
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label htmlFor="targetPlants" className="text-xs text-[#001F00]">Target trees</Label>
@@ -679,32 +676,6 @@ function SiteSelect({ value, onChange, disabled }) {
             </SelectItem>
           ))
         )}
-      </SelectContent>
-    </Select>
-  );
-}
-
-const NO_PROJECT = '__none__';
-
-function ProjectSelect({ value, onChange, disabled }) {
-  const { data, isLoading } = useProjects({ status: 'active', limit: 200 });
-  const projects = data?.items ?? [];
-  return (
-    <Select
-      value={value || NO_PROJECT}
-      onValueChange={(v) => onChange(v === NO_PROJECT ? '' : v)}
-      disabled={disabled || isLoading}
-    >
-      <SelectTrigger>
-        <SelectValue placeholder={isLoading ? 'Loading…' : 'No project'} />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value={NO_PROJECT}>No project</SelectItem>
-        {projects.map((p) => (
-          <SelectItem key={p.id ?? p._id} value={p.id ?? p._id}>
-            {p.name}
-          </SelectItem>
-        ))}
       </SelectContent>
     </Select>
   );

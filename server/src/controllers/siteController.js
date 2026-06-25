@@ -8,6 +8,7 @@ import {
   deleteSite,
   getSite,
   getSiteOverview,
+  getMySitesSummary,
   listAvailableSites,
   listSites,
   updateSite,
@@ -39,6 +40,11 @@ export async function getSiteById(req, res) {
 
 export async function getSiteOverviewHandler(req, res) {
   const result = await getSiteOverview({ id: req.params.id, actor: req.auth });
+  res.json(result);
+}
+
+export async function getMySitesSummaryHandler(req, res) {
+  const result = await getMySitesSummary({ actor: req.auth });
   res.json(result);
 }
 

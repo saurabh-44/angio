@@ -16,6 +16,12 @@ export default defineConfig({
       '@': path.resolve(__dirname, 'src'),
     },
   },
+  // Pre-bundle the map deps at startup so first-time import from a lazy
+  // route chunk doesn't trigger a mid-session re-optimize (504 Outdated
+  // Optimize Dep) that breaks the dynamic import.
+  optimizeDeps: {
+    include: ['leaflet', 'react-leaflet'],
+  },
   server: {
     port: 5173,
     strictPort: false,

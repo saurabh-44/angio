@@ -9,10 +9,8 @@ import {
   Sparkles,
   Stethoscope,
 } from 'lucide-react';
-import PageHeader from '@/components/PageHeader.jsx';
 import PhotoCapture from '@/components/PhotoCapture.jsx';
 import EmptyState from '@/components/EmptyState.jsx';
-import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
 import { Skeleton } from '@/components/ui/skeleton.jsx';
@@ -29,6 +27,23 @@ import { useAssignments } from '@/queries/assignments.js';
 import { usePlants } from '@/queries/plants.js';
 import { useCreateMaintenance } from '@/queries/maintenance.js';
 import { ApiError } from '@/lib/api.js';
+import { cn } from '@/lib/utils';
+import { BODY_FONT, HEADING_FONT } from '@/components/GlassAuthScreen.jsx';
+
+function Header() {
+  return (
+    <div>
+      <div className="text-xs font-medium uppercase tracking-widest text-[#0B5000]">Field work</div>
+      <h1 className="mt-1 text-3xl font-semibold text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>
+        Record watering
+      </h1>
+      <p className="mt-1 max-w-2xl text-base text-[#1E1E1E]/50">
+        Snap a photo of the tree. Add measurements if you have a tape — it helps sponsors see the
+        tree grow.
+      </p>
+    </div>
+  );
+}
 
 export default function RecordMaintenance() {
   const location = useLocation();
@@ -51,9 +66,8 @@ export default function RecordMaintenance() {
   const [note, setNote] = useState('');
   const [photo, setPhoto] = useState(null);
 
-  // Monitoring extensions — all optional. We keep them under an
-  // expandable section so the form doesn't intimidate volunteers who
-  // are only doing a quick weekly watering check.
+  // Monitoring extensions — all optional, behind an expandable section so the
+  // form stays quick for a basic watering check.
   const [showMeasurements, setShowMeasurements] = useState(false);
   const [heightCm, setHeightCm] = useState('');
   const [dbhCm, setDbhCm] = useState('');
@@ -78,8 +92,6 @@ export default function RecordMaintenance() {
       photo,
       note: note.trim() || undefined,
     };
-    // Only attach the optional fields if the volunteer actually filled
-    // them in — preserves an earlier measurement on re-upsert.
     const heightNum = heightCm === '' ? null : Number(heightCm);
     if (heightNum != null && Number.isFinite(heightNum) && heightNum >= 0) body.heightCm = heightNum;
     const dbhNum = dbhCm === '' ? null : Number(dbhCm);
@@ -92,46 +104,41 @@ export default function RecordMaintenance() {
       success('Watering logged', 'Sponsors will see this in their feed.');
       navigate('/volunteer');
     } catch (err) {
-      toastError(
-        "Couldn't save the log",
-        err instanceof ApiError ? err.message : 'Try again.',
-      );
+      toastError("Couldn't save the log", err instanceof ApiError ? err.message : 'Try again.');
     }
   }
 
   if (loadingAssignments) {
     return (
-      <>
-        <PageHeader eyebrow="Field work" title="Record watering" />
-        <Skeleton className="h-64 w-full" />
-      </>
+      <div style={{ fontFamily: BODY_FONT }}>
+        <Header />
+        <Skeleton className="mt-6 h-64 w-full rounded-[10px]" />
+      </div>
     );
   }
 
   if (sites.length === 0) {
     return (
-      <>
-        <PageHeader eyebrow="Field work" title="Record watering" />
-        <EmptyState
-          icon={Droplets}
-          title="No sites assigned yet"
-          description="Your NGO or site owner needs to add you to a site first."
-        />
-      </>
+      <div style={{ fontFamily: BODY_FONT }}>
+        <Header />
+        <div className="mt-10">
+          <EmptyState
+            icon={Droplets}
+            title="No sites assigned yet"
+            description="Your NGO or site owner needs to add you to a site first."
+          />
+        </div>
+      </div>
     );
   }
 
   const needsDiseaseNotes = healthStatus === 'diseased' || healthStatus === 'dying';
 
   return (
-    <>
-      <PageHeader
-        eyebrow="Field work"
-        title="Record watering"
-        description="One photo per tree per week. Add measurements if you have a tape — it helps sponsors see the tree grow."
-      />
+    <div style={{ fontFamily: BODY_FONT }}>
+      <Header />
 
-      <form onSubmit={submit} className="space-y-6 max-w-2xl">
+      <form onSubmit={submit} className="mt-6 max-w-2xl space-y-5">
         <Section step="1" title="Which site?">
           <Select value={siteId} onValueChange={(v) => { setSiteId(v); setPlantId(''); }}>
             <SelectTrigger><SelectValue placeholder="Pick a site" /></SelectTrigger>
@@ -148,7 +155,7 @@ export default function RecordMaintenance() {
             {loadingPlants ? (
               <Skeleton className="h-11 w-full" />
             ) : plants.length === 0 ? (
-              <p className="text-sm text-muted-foreground rounded-xl border border-border/60 bg-secondary/40 px-4 py-3">
+              <p className="rounded-[10px] border border-[#E2E8F0] bg-[#F6FAF6] px-4 py-3 text-sm text-[#1E1E1E]/60">
                 No alive plants on this site yet.
               </p>
             ) : (
@@ -157,7 +164,8 @@ export default function RecordMaintenance() {
                 <SelectContent>
                   {plants.map((p) => (
                     <SelectItem key={p.id ?? p._id} value={p.id ?? p._id}>
-                      {p.species ?? 'Tree'} · {p.geo ? `${p.geo.lat.toFixed(4)}, ${p.geo.lng.toFixed(4)}` : ''}
+                      {p.species ?? 'Tree'} ·{' '}
+                      {p.geo ? `${p.geo.lat.toFixed(4)}, ${p.geo.lng.toFixed(4)}` : ''}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -190,34 +198,37 @@ export default function RecordMaintenance() {
         )}
 
         {plantId && (
-          <section className="bento-card overflow-hidden">
+          <section className="overflow-hidden rounded-[10px] border border-[#E2E8F0] bg-white">
             <button
               type="button"
               onClick={() => setShowMeasurements((s) => !s)}
-              className="w-full flex items-center justify-between gap-3 px-5 py-4 text-left cursor-pointer hover:bg-secondary/40 transition-colors"
+              className="flex w-full cursor-pointer items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-[#F6FAF6]"
               aria-expanded={showMeasurements}
             >
               <div className="flex items-center gap-3">
-                <span className="grid h-7 w-7 place-items-center rounded-full bg-primary/10 text-primary">
+                <span className="grid h-7 w-7 place-items-center rounded-full bg-[#0B5000]/10 text-[#0B5000]">
                   <Ruler className="h-3.5 w-3.5" aria-hidden />
                 </span>
                 <div>
-                  <h2 className="font-heading text-sm font-semibold text-foreground">
+                  <h2 className="text-sm font-semibold text-[#001F00]">
                     Add measurements (optional)
                   </h2>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="mt-0.5 text-xs text-[#1E1E1E]/50">
                     Height, trunk diameter, health, or disease notes
                   </p>
                 </div>
               </div>
               <ChevronDown
-                className={`h-4 w-4 text-muted-foreground transition-transform ${showMeasurements ? 'rotate-180' : ''}`}
+                className={cn(
+                  'h-4 w-4 text-[#1E1E1E]/50 transition-transform',
+                  showMeasurements && 'rotate-180',
+                )}
                 aria-hidden
               />
             </button>
 
             {showMeasurements && (
-              <div className="px-5 pb-5 space-y-4 border-t border-border/60 pt-4">
+              <div className="space-y-4 border-t border-[#E2E8F0] px-5 pb-5 pt-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label htmlFor="heightCm">Height (cm)</Label>
@@ -232,7 +243,7 @@ export default function RecordMaintenance() {
                       value={heightCm}
                       onChange={(e) => setHeightCm(e.target.value)}
                     />
-                    <p className="text-[11px] text-muted-foreground">From ground to top.</p>
+                    <p className="text-[11px] text-[#1E1E1E]/50">From ground to top.</p>
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="dbhCm">DBH (cm)</Label>
@@ -247,7 +258,7 @@ export default function RecordMaintenance() {
                       value={dbhCm}
                       onChange={(e) => setDbhCm(e.target.value)}
                     />
-                    <p className="text-[11px] text-muted-foreground">Trunk at chest-height.</p>
+                    <p className="text-[11px] text-[#1E1E1E]/50">Trunk at chest-height.</p>
                   </div>
                 </div>
 
@@ -285,34 +296,38 @@ export default function RecordMaintenance() {
         )}
 
         <div className="sticky bottom-4 sm:static">
-          <div className="bento-card p-4 flex items-center gap-3">
+          <div className="flex items-center gap-3 rounded-[10px] border border-[#E2E8F0] bg-white p-4 shadow-[0_0_20px_rgba(0,0,0,0.06)]">
             {ready ? (
-              <CheckCircle2 className="h-5 w-5 text-primary shrink-0" aria-hidden />
+              <CheckCircle2 className="h-5 w-5 shrink-0 text-[#346EC4]" aria-hidden />
             ) : (
-              <Sparkles className="h-5 w-5 text-muted-foreground shrink-0" aria-hidden />
+              <Sparkles className="h-5 w-5 shrink-0 text-[#1E1E1E]/40" aria-hidden />
             )}
-            <p className="flex-1 text-sm text-muted-foreground">
+            <p className="flex-1 text-sm text-[#1E1E1E]/60">
               {ready ? 'All set — submit when ready.' : 'Pick a tree and upload a photo.'}
             </p>
-            <Button type="submit" size="lg" disabled={!ready || create.isPending}>
+            <button
+              type="submit"
+              disabled={!ready || create.isPending}
+              className="inline-flex items-center gap-2 rounded-[10px] bg-[#346EC4] px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-[#2c5da6] disabled:opacity-50"
+            >
               {create.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
               <Droplets className="h-4 w-4" /> Submit
-            </Button>
+            </button>
           </div>
         </div>
       </form>
-    </>
+    </div>
   );
 }
 
 function Section({ step, title, children }) {
   return (
-    <section className="bento-card p-5 space-y-3">
+    <section className="space-y-3 rounded-[10px] border border-[#E2E8F0] bg-white p-5">
       <div className="flex items-center gap-3">
-        <span className="grid h-7 w-7 place-items-center rounded-full bg-primary text-primary-foreground font-mono text-xs font-semibold">
+        <span className="grid h-7 w-7 place-items-center rounded-full bg-[#0B5000] text-xs font-semibold text-white">
           {step}
         </span>
-        <h2 className="font-heading text-base font-semibold text-foreground">{title}</h2>
+        <h2 className="text-base font-semibold text-[#001F00]">{title}</h2>
       </div>
       {children}
     </section>

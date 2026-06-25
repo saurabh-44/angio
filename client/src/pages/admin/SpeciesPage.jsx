@@ -1,34 +1,16 @@
 import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import {
-  Leaf,
-  Loader2,
-  MoreHorizontal,
-  Plus,
-  Search,
-  Trash2,
-} from 'lucide-react';
-import PageHeader from '@/components/PageHeader.jsx';
+import { ChevronRight, Leaf, Loader2, Plus, Search, Trash2 } from 'lucide-react';
 import EmptyState from '@/components/EmptyState.jsx';
 import Pagination from '@/components/Pagination.jsx';
 import ConfirmDialog from '@/components/ConfirmDialog.jsx';
 import { Button } from '@/components/ui/button.jsx';
-import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
 import { Skeleton } from '@/components/ui/skeleton.jsx';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table.jsx';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog.jsx';
@@ -40,13 +22,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet.jsx';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu.jsx';
 import { useToast } from '@/components/ui/toast.jsx';
 import {
   useCreateSpecies,
@@ -56,8 +31,14 @@ import {
 } from '@/queries/species.js';
 import { ApiError } from '@/lib/api.js';
 import { formatDate } from '@/lib/format.js';
+import { cn } from '@/lib/utils';
+import { BODY_FONT, HEADING_FONT } from '@/components/GlassAuthScreen.jsx';
 
 const LIMIT = 20;
+
+// Field styling matching the new modal pattern (rounded-10, dark outline).
+const FIELD =
+  'w-full rounded-[10px] border border-[#1E1E1E] px-5 py-3.5 text-base text-[#1E1E1E] outline-none transition-colors placeholder:text-[#1E1E1E]/55 focus:border-[#0B5000] disabled:opacity-60';
 
 export default function SpeciesPage() {
   const [q, setQ] = useState('');
@@ -76,43 +57,57 @@ export default function SpeciesPage() {
   const total = data?.total ?? 0;
 
   return (
-    <>
-      <PageHeader
-        eyebrow="Reference data"
-        title="Species"
-        description="Tree species your volunteers can pick from. Each species can carry its own CO₂ absorption rate for more accurate estimates."
-        actions={
-          <Button onClick={() => setCreateOpen(true)}>
-            <Plus className="h-4 w-4" /> Add species
-          </Button>
-        }
-      />
+    <div style={{ fontFamily: BODY_FONT }}>
+      <h1 className="text-3xl font-semibold text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>
+        Species
+      </h1>
+      <p className="mt-1 max-w-2xl text-base text-[#1E1E1E]/50">
+        Tree species your volunteers can pick from. Each species can carry its own CO₂ absorption
+        rate for more accurate estimates.
+      </p>
 
-      <div className="mb-4">
-        <div className="relative max-w-md">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden />
-          <Input
+      {/* Search + Add species */}
+      <div className="mt-8 flex flex-wrap items-center gap-3">
+        <div className="relative w-full max-w-md">
+          <Search
+            className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#B4B4B4]"
+            aria-hidden
+          />
+          <input
             value={q}
             onChange={(e) => {
               setQ(e.target.value);
               setPage(1);
             }}
-            placeholder="Search by name"
-            className="pl-10"
+            placeholder="Search by name…"
+            className="w-full rounded-[10px] border border-[#B4B4B4] py-3.5 pl-12 pr-4 text-base text-[#1E1E1E] outline-none transition-colors placeholder:text-[#B4B4B4] focus:border-[#0B5000]"
           />
         </div>
+        <button
+          type="button"
+          onClick={() => setCreateOpen(true)}
+          className="ml-auto inline-flex items-center gap-2 rounded-[10px] bg-[#001F00] px-5 py-3.5 text-sm font-medium text-white transition-colors hover:bg-[#013300] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B5000] focus-visible:ring-offset-2"
+        >
+          <Plus className="h-5 w-5" aria-hidden /> Add species
+        </button>
       </div>
 
-      <div className="bento-card overflow-hidden">
-        {isLoading ? (
-          <TableSkeleton />
-        ) : isError ? (
+      {isLoading ? (
+        <div className="mt-7 space-y-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
+        </div>
+      ) : isError ? (
+        <div className="mt-10">
           <EmptyState
             title="Couldn't load species"
             description="Check your connection and try again."
             action={<Button onClick={() => refetch()}>Retry</Button>}
           />
-        ) : items.length === 0 ? (
+        </div>
+      ) : items.length === 0 ? (
+        <div className="mt-10">
           <EmptyState
             icon={Leaf}
             title={q ? 'No matches' : 'No species yet'}
@@ -122,91 +117,87 @@ export default function SpeciesPage() {
                 : 'Add the species your NGO plants so volunteers can pick from a dropdown.'
             }
             action={
-              <Button onClick={() => setCreateOpen(true)}>
-                <Plus className="h-4 w-4" /> Add species
-              </Button>
+              <button
+                type="button"
+                onClick={() => setCreateOpen(true)}
+                className="inline-flex items-center gap-2 rounded-[10px] bg-[#001F00] px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-[#013300]"
+              >
+                <Plus className="h-4 w-4" aria-hidden /> Add species
+              </button>
             }
           />
-        ) : (
-          <>
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-secondary/40">
-                  <TableHead>Name</TableHead>
-                  <TableHead>Scientific name</TableHead>
-                  <TableHead>CO₂ / year</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Added</TableHead>
-                  <TableHead className="w-12 text-right" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+        </div>
+      ) : (
+        <>
+          <div className="mt-7 overflow-x-auto">
+            <table className="w-full min-w-[760px] border-collapse">
+              <thead>
+                <tr>
+                  {['Name', 'Scientific name', 'CO₂ / year', 'Status', 'Added'].map((h) => (
+                    <th key={h} className="pb-4 text-left text-base font-medium text-[#001F00] first:pl-1">
+                      {h}
+                    </th>
+                  ))}
+                  <th className="pb-4 text-right text-base font-medium text-[#001F00]">View More</th>
+                </tr>
+              </thead>
+              <tbody>
                 {items.map((s) => (
-                  <TableRow
+                  <tr
                     key={s.id ?? s._id}
-                    className="cursor-pointer"
                     onClick={() => setEditing(s)}
+                    className="cursor-pointer border-t border-[#E2E8F0] transition-colors hover:bg-[#F6FAF6]"
                   >
-                    <TableCell>
-                      <div className="font-medium text-foreground">{s.name}</div>
+                    <td className="py-4 pr-4 first:pl-1">
+                      <div className="font-medium text-[#001F00]">{s.name}</div>
                       {s.description && (
-                        <div className="text-xs text-muted-foreground mt-0.5 line-clamp-1 max-w-md">
+                        <div className="mt-0.5 line-clamp-1 max-w-md text-xs text-[#1E1E1E]/50">
                           {s.description}
                         </div>
                       )}
-                    </TableCell>
-                    <TableCell className="text-sm italic text-muted-foreground">
+                    </td>
+                    <td className="py-4 pr-4 text-sm italic text-[#1E1E1E]/50">
                       {s.scientificName || '—'}
-                    </TableCell>
-                    <TableCell className="font-mono tabular-nums text-sm">
+                    </td>
+                    <td className="py-4 pr-4 font-mono text-sm tabular-nums text-[#1E1E1E]">
                       {s.co2PerYearKg != null ? `${s.co2PerYearKg} kg` : '—'}
-                    </TableCell>
-                    <TableCell>
+                    </td>
+                    <td className="py-4 pr-4">
                       <span
-                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                        className={cn(
+                          'inline-flex rounded-full px-3 py-1 text-xs font-medium',
                           s.isActive
-                            ? 'bg-emerald-50 text-emerald-700'
-                            : 'bg-muted text-muted-foreground'
-                        }`}
+                            ? 'bg-[#0B5000]/10 text-[#0B5000]'
+                            : 'bg-[#E2E8F0] text-[#1E1E1E]/60',
+                        )}
                       >
                         {s.isActive ? 'Active' : 'Archived'}
                       </span>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {formatDate(s.createdAt)}
-                    </TableCell>
-                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger className="inline-flex h-9 w-9 items-center justify-center rounded-lg hover:bg-secondary cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setEditing(s)}>Edit</DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={() => setConfirmingDelete(s)}
-                            className="text-destructive focus:text-destructive"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" /> Remove
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
+                    </td>
+                    <td className="py-4 pr-4 text-sm text-[#1E1E1E]/60">{formatDate(s.createdAt)}</td>
+                    <td className="py-4 text-right">
+                      <ChevronRight className="ml-auto h-5 w-5 text-[#1E1E1E]/60" aria-hidden />
+                    </td>
+                  </tr>
                 ))}
-              </TableBody>
-            </Table>
-            <div className="border-t border-border/60 px-4">
-              <Pagination page={page} limit={LIMIT} total={total} onChange={setPage} />
-            </div>
-          </>
-        )}
-      </div>
+              </tbody>
+            </table>
+          </div>
+          <Pagination page={page} limit={LIMIT} total={total} onChange={setPage} />
+        </>
+      )}
 
       <SpeciesFormDialog open={createOpen} onOpenChange={setCreateOpen} />
-      <SpeciesFormSheet species={editing} onClose={() => setEditing(null)} />
+      <SpeciesFormSheet
+        species={editing}
+        onClose={() => setEditing(null)}
+        onRequestDelete={(s) => {
+          setEditing(null);
+          setConfirmingDelete(s);
+        }}
+      />
       <DeleteSpeciesConfirm species={confirmingDelete} onClose={() => setConfirmingDelete(null)} />
-    </>
+    </div>
   );
 }
 
@@ -214,9 +205,10 @@ function SpeciesFormFields({ register, errors, isActive, setIsActive, disabled }
   return (
     <>
       <div className="space-y-2">
-        <Label htmlFor="species-name">Common name</Label>
-        <Input
+        <Label htmlFor="species-name" className="text-[#001F00]">Common name</Label>
+        <input
           id="species-name"
+          className={FIELD}
           placeholder="e.g. Neem, Banyan, Mango"
           disabled={disabled}
           {...register('name', { required: 'Required', maxLength: 120 })}
@@ -225,9 +217,10 @@ function SpeciesFormFields({ register, errors, isActive, setIsActive, disabled }
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="species-sci">Scientific name</Label>
-        <Input
+        <Label htmlFor="species-sci" className="text-[#001F00]">Scientific name</Label>
+        <input
           id="species-sci"
+          className={FIELD}
           placeholder="Optional — e.g. Azadirachta indica"
           disabled={disabled}
           {...register('scientificName', { maxLength: 180 })}
@@ -235,39 +228,42 @@ function SpeciesFormFields({ register, errors, isActive, setIsActive, disabled }
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="species-co2">CO₂ absorption (kg / year)</Label>
-        <Input
+        <Label htmlFor="species-co2" className="text-[#001F00]">CO₂ absorption (kg / year)</Label>
+        <input
           id="species-co2"
           type="number"
           step="0.1"
           min="0"
+          className={FIELD}
           placeholder="e.g. 22"
           disabled={disabled}
           {...register('co2PerYearKg', { valueAsNumber: true, min: 0 })}
         />
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-[#1E1E1E]/50">
           Leave blank to use the default rate of 22 kg/year.
         </p>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label htmlFor="species-height">Max height (cm)</Label>
-          <Input
+          <Label htmlFor="species-height" className="text-[#001F00]">Max height (cm)</Label>
+          <input
             id="species-height"
             type="number"
             min="0"
+            className={FIELD}
             placeholder="Optional"
             disabled={disabled}
             {...register('maxHeightCm', { valueAsNumber: true, min: 0 })}
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="species-dbh">Max trunk Ø (cm)</Label>
-          <Input
+          <Label htmlFor="species-dbh" className="text-[#001F00]">Max trunk Ø (cm)</Label>
+          <input
             id="species-dbh"
             type="number"
             min="0"
+            className={FIELD}
             placeholder="Optional"
             disabled={disabled}
             {...register('maxDbhCm', { valueAsNumber: true, min: 0 })}
@@ -276,21 +272,21 @@ function SpeciesFormFields({ register, errors, isActive, setIsActive, disabled }
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="species-desc">Description</Label>
+        <Label htmlFor="species-desc" className="text-[#001F00]">Description</Label>
         <textarea
           id="species-desc"
           rows={3}
           placeholder="Optional notes about the species"
           disabled={disabled}
-          className="flex w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full resize-y rounded-[10px] border border-[#1E1E1E] px-5 py-3.5 text-base text-[#1E1E1E] outline-none transition-colors placeholder:text-[#1E1E1E]/55 focus:border-[#0B5000] disabled:opacity-60"
           {...register('description', { maxLength: 2000 })}
         />
       </div>
 
-      <div className="flex items-center justify-between rounded-xl border border-border/60 p-3">
+      <div className="flex items-center justify-between rounded-[10px] border border-[#E2E8F0] p-4">
         <div>
-          <Label className="text-sm">Active</Label>
-          <p className="text-xs text-muted-foreground">
+          <Label className="text-sm text-[#001F00]">Active</Label>
+          <p className="text-xs text-[#1E1E1E]/50">
             Inactive species are hidden from the volunteer dropdown.
           </p>
         </div>
@@ -355,10 +351,12 @@ function SpeciesFormDialog({ open, onOpenChange }) {
 
   return (
     <Dialog open={open} onOpenChange={(o) => (o ? onOpenChange(true) : close())}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>New species</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="rounded-[10px] sm:max-w-lg" style={{ fontFamily: BODY_FONT }}>
+        <DialogHeader className="gap-1.5">
+          <DialogTitle className="text-2xl font-medium text-[#001F00]" style={{ fontFamily: BODY_FONT }}>
+            New species
+          </DialogTitle>
+          <DialogDescription className="text-base text-[#1E1E1E]/50">
             A new entry shows up immediately in the volunteer's species picker.
           </DialogDescription>
         </DialogHeader>
@@ -370,22 +368,21 @@ function SpeciesFormDialog({ open, onOpenChange }) {
             setIsActive={setIsActive}
             disabled={create.isPending}
           />
-          <DialogFooter>
-            <Button type="button" variant="ghost" onClick={close} disabled={create.isPending}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={create.isPending}>
-              {create.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-              Add species
-            </Button>
-          </DialogFooter>
+          <button
+            type="submit"
+            disabled={create.isPending}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] bg-[#346EC4] px-5 py-3.5 text-base font-semibold text-white transition-colors hover:bg-[#2c5da6] disabled:opacity-70"
+          >
+            {create.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+            Add species
+          </button>
         </form>
       </DialogContent>
     </Dialog>
   );
 }
 
-function SpeciesFormSheet({ species, onClose }) {
+function SpeciesFormSheet({ species, onClose, onRequestDelete }) {
   const update = useUpdateSpecies();
   const { success, error: toastError } = useToast();
   const open = !!species;
@@ -454,15 +451,17 @@ function SpeciesFormSheet({ species, onClose }) {
 
   return (
     <Sheet open={open} onOpenChange={(o) => !o && close()}>
-      <SheetContent side="right" className="sm:max-w-lg flex flex-col">
+      <SheetContent side="right" className="flex flex-col sm:max-w-lg" style={{ fontFamily: BODY_FONT }}>
         <SheetHeader>
-          <SheetTitle>Edit species</SheetTitle>
-          <SheetDescription>{species.name}</SheetDescription>
+          <SheetTitle className="text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>
+            Edit species
+          </SheetTitle>
+          <SheetDescription className="text-[#1E1E1E]/50">{species.name}</SheetDescription>
         </SheetHeader>
 
         <form
           onSubmit={handleSubmit(onSubmit)}
-          className="flex-1 space-y-4 mt-6 overflow-y-auto pr-1"
+          className="-mx-2 mt-6 flex-1 space-y-4 overflow-y-auto px-2"
         >
           <SpeciesFormFields
             register={register}
@@ -471,6 +470,17 @@ function SpeciesFormSheet({ species, onClose }) {
             setIsActive={setIsActive}
             disabled={update.isPending}
           />
+          {onRequestDelete && (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full justify-start text-destructive hover:text-destructive"
+              onClick={() => onRequestDelete(species)}
+              disabled={update.isPending}
+            >
+              <Trash2 className="h-4 w-4" /> Remove species
+            </Button>
+          )}
           <SheetFooter className="pt-2">
             <Button type="button" variant="ghost" onClick={close} disabled={update.isPending}>
               Cancel
@@ -517,12 +527,3 @@ function DeleteSpeciesConfirm({ species, onClose }) {
   );
 }
 
-function TableSkeleton() {
-  return (
-    <div className="p-4 space-y-3">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <Skeleton key={i} className="h-12 w-full" />
-      ))}
-    </div>
-  );
-}

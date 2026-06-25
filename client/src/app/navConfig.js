@@ -4,16 +4,13 @@ import {
   MapPin,
   HandCoins,
   Leaf,
-  Droplets,
   Clipboard,
-  Map,
   Sprout,
   Camera,
   Sparkles,
   ScanLine,
   FileSpreadsheet,
   TreePine,
-  FolderKanban,
   UserRound,
 } from 'lucide-react';
 
@@ -30,17 +27,15 @@ export const NAV_BY_ROLE = {
     { to: '/admin/plants', label: 'Plants', icon: Leaf },
     { to: '/admin/assignments', label: 'Assignments', icon: Clipboard },
     { to: '/admin/species', label: 'Species', icon: TreePine },
-    { to: '/admin/projects', label: 'Projects', icon: FolderKanban },
-    { to: '/admin/import', label: 'Import', icon: FileSpreadsheet },
-    { to: '/scan', label: 'Scan QR', icon: ScanLine },
+    // Hidden per client request — page + backend kept intact; uncomment to restore:
+    // { to: '/admin/import', label: 'Import', icon: FileSpreadsheet },
   ],
   site_owner: [
     { to: '/site', label: 'Overview', icon: LayoutDashboard, end: true },
     { to: '/site/sites', label: 'My Sites', icon: MapPin },
     { to: '/site/volunteers', label: 'Volunteers', icon: Users },
+    // Plants hub — each tree's location/map and weekly maintenance live in its detail.
     { to: '/site/plants', label: 'Plants', icon: Leaf },
-    { to: '/site/maintenance', label: 'Maintenance', icon: Droplets },
-    { to: '/scan', label: 'Scan QR', icon: ScanLine },
   ],
   sponsor: [
     { to: '/sponsor', label: 'Overview', icon: LayoutDashboard, end: true },

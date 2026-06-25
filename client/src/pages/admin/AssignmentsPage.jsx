@@ -8,28 +8,17 @@ import {
   Trash2,
   UserPlus,
 } from 'lucide-react';
-import PageHeader from '@/components/PageHeader.jsx';
 import EmptyState from '@/components/EmptyState.jsx';
 import Pagination from '@/components/Pagination.jsx';
 import ConfirmDialog from '@/components/ConfirmDialog.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
-import { Badge } from '@/components/ui/badge.jsx';
 import { Skeleton } from '@/components/ui/skeleton.jsx';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table.jsx';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog.jsx';
@@ -51,12 +40,18 @@ import { useSites } from '@/queries/sites.js';
 import { useAuth } from '@/lib/auth.jsx';
 import { ApiError } from '@/lib/api.js';
 import { formatDate } from '@/lib/format.js';
+import { cn } from '@/lib/utils';
+import { BODY_FONT, HEADING_FONT } from '@/components/GlassAuthScreen.jsx';
 
 const LIMIT = 20;
 const KIND_OPTIONS = [
   { value: 'planting', label: 'Planting' },
   { value: 'maintenance', label: 'Maintenance' },
 ];
+const KIND_PILL = {
+  planting: 'bg-[#0B5000]/10 text-[#0B5000]',
+  maintenance: 'bg-[#346EC4]/10 text-[#346EC4]',
+};
 
 export default function AssignmentsPage() {
   const { role } = useAuth();
@@ -70,42 +65,50 @@ export default function AssignmentsPage() {
   const total = data?.total ?? 0;
 
   return (
-    <>
-      <PageHeader
-        eyebrow={isOwner ? 'Your field crew' : 'Field roster'}
-        title={isOwner ? 'Volunteers on my sites' : 'Assignments'}
-        description={
-          isOwner
-            ? 'The volunteers planting and watering at the sites you manage. Add a new volunteer to your pool or assign someone you already have to a site.'
-            : 'Match volunteers to sites for planting and weekly maintenance.'
-        }
-        actions={
-          <>
-            {isOwner && (
-              <Button variant="outline" onClick={() => setNewVolunteerOpen(true)}>
-                <UserPlus className="h-4 w-4" /> Add volunteer
-              </Button>
-            )}
-            <Button onClick={() => setCreateOpen(true)}>
-              <Plus className="h-4 w-4" /> {isOwner ? 'Assign to site' : 'Assign volunteer'}
-            </Button>
-          </>
-        }
-      />
+    <div style={{ fontFamily: BODY_FONT }}>
+      <h1 className="text-3xl font-semibold text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>
+        {isOwner ? 'Volunteers on my sites' : 'Assignments'}
+      </h1>
+      <p className="mt-1 max-w-2xl text-base text-[#1E1E1E]/50">
+        {isOwner
+          ? 'The volunteers planting and watering at the sites you manage. Add a new volunteer to your pool or assign someone you already have to a site.'
+          : 'Match volunteers to sites for planting and weekly maintenance.'}
+      </p>
 
-      <div className="bento-card overflow-hidden">
-        {isLoading ? (
-          <div className="p-4 space-y-3">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-12 w-full" />
-            ))}
-          </div>
-        ) : isError ? (
+      <div className="mt-8 flex flex-wrap items-center justify-end gap-3">
+        {isOwner && (
+          <button
+            type="button"
+            onClick={() => setNewVolunteerOpen(true)}
+            className="inline-flex items-center gap-2 rounded-[10px] border border-[#001F00] px-5 py-3 text-sm font-medium text-[#001F00] transition-colors hover:bg-[#001F00] hover:text-white"
+          >
+            <UserPlus className="h-5 w-5" aria-hidden /> Add volunteer
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => setCreateOpen(true)}
+          className="inline-flex items-center gap-2 rounded-[10px] bg-[#001F00] px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-[#013300] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B5000] focus-visible:ring-offset-2"
+        >
+          <Plus className="h-5 w-5" aria-hidden /> {isOwner ? 'Assign to site' : 'Assign volunteer'}
+        </button>
+      </div>
+
+      {isLoading ? (
+        <div className="mt-7 space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-14 w-full" />
+          ))}
+        </div>
+      ) : isError ? (
+        <div className="mt-10">
           <EmptyState
             title="Couldn't load assignments"
             action={<Button onClick={() => refetch()}>Retry</Button>}
           />
-        ) : items.length === 0 ? (
+        </div>
+      ) : items.length === 0 ? (
+        <div className="mt-10">
           <EmptyState
             icon={Clipboard}
             title="No assignments yet"
@@ -116,70 +119,76 @@ export default function AssignmentsPage() {
               </Button>
             }
           />
-        ) : (
-          <>
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-secondary/40">
-                  <TableHead>Volunteer</TableHead>
-                  <TableHead>Site</TableHead>
-                  <TableHead>Kind</TableHead>
-                  <TableHead>Active</TableHead>
-                  <TableHead className="w-12 text-right" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+        </div>
+      ) : (
+        <>
+          <div className="mt-7 overflow-x-auto">
+            <table className="w-full min-w-[760px] border-collapse">
+              <thead>
+                <tr>
+                  {['Volunteer', 'Site', 'Kind', 'Active'].map((h) => (
+                    <th key={h} className="pb-4 text-left text-base font-medium text-[#001F00] first:pl-1">
+                      {h}
+                    </th>
+                  ))}
+                  <th className="pb-4" />
+                </tr>
+              </thead>
+              <tbody>
                 {items.map((a) => (
-                  <TableRow key={a.id ?? a._id}>
-                    <TableCell>
-                      <div className="font-medium text-foreground">{a.volunteer?.name ?? '—'}</div>
-                      <div className="text-xs text-muted-foreground">{a.volunteer?.email}</div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium text-foreground">{a.site?.name ?? '—'}</div>
+                  <tr key={a.id ?? a._id} className="border-t border-[#E2E8F0]">
+                    <td className="py-4 pr-4 first:pl-1">
+                      <div className="font-medium text-[#001F00]">{a.volunteer?.name ?? '—'}</div>
+                      <div className="text-xs text-[#1E1E1E]/50">{a.volunteer?.email}</div>
+                    </td>
+                    <td className="py-4 pr-4">
+                      <div className="font-medium text-[#001F00]">{a.site?.name ?? '—'}</div>
                       {a.site?.address && (
-                        <div className="text-xs text-muted-foreground line-clamp-1 max-w-xs">
+                        <div className="line-clamp-1 max-w-xs text-xs text-[#1E1E1E]/50">
                           {a.site.address}
                         </div>
                       )}
-                    </TableCell>
-                    <TableCell><Badge variant="default" className="capitalize">{a.kind}</Badge></TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      <div className="inline-flex items-center gap-1">
+                    </td>
+                    <td className="py-4 pr-4">
+                      <span
+                        className={cn(
+                          'inline-flex rounded-full px-3 py-1 text-xs font-medium capitalize',
+                          KIND_PILL[a.kind] ?? 'bg-[#E2E8F0] text-[#1E1E1E]',
+                        )}
+                      >
+                        {a.kind}
+                      </span>
+                    </td>
+                    <td className="py-4 pr-4 text-sm text-[#1E1E1E]/60">
+                      <span className="inline-flex items-center gap-1.5">
                         <CalendarClock className="h-3.5 w-3.5" aria-hidden />
                         {formatDate(a.startsAt)}
                         {a.endsAt && <> – {formatDate(a.endsAt)}</>}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        size="icon"
-                        variant="ghost"
+                      </span>
+                    </td>
+                    <td className="py-4 text-right">
+                      <button
+                        type="button"
                         onClick={() => setConfirming(a)}
                         aria-label="Remove assignment"
-                        className="text-muted-foreground hover:text-destructive"
+                        className="inline-grid h-9 w-9 place-items-center rounded-lg text-[#1E1E1E]/50 transition-colors hover:bg-red-50 hover:text-destructive"
                       >
                         <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
+                      </button>
+                    </td>
+                  </tr>
                 ))}
-              </TableBody>
-            </Table>
-            <div className="border-t border-border/60 px-4">
-              <Pagination page={page} limit={LIMIT} total={total} onChange={setPage} />
-            </div>
-          </>
-        )}
-      </div>
+              </tbody>
+            </table>
+          </div>
+          <Pagination page={page} limit={LIMIT} total={total} onChange={setPage} />
+        </>
+      )}
 
       <CreateAssignmentDialog open={createOpen} onOpenChange={setCreateOpen} />
       <CreateVolunteerDialog open={newVolunteerOpen} onOpenChange={setNewVolunteerOpen} />
-      <DeleteAssignmentConfirm
-        assignment={confirming}
-        onClose={() => setConfirming(null)}
-      />
-    </>
+      <DeleteAssignmentConfirm assignment={confirming} onClose={() => setConfirming(null)} />
+    </div>
   );
 }
 
@@ -226,10 +235,12 @@ function CreateVolunteerDialog({ open, onOpenChange }) {
 
   return (
     <Dialog open={open} onOpenChange={(o) => (o ? onOpenChange(true) : close())}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Add a new volunteer</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="rounded-[10px] sm:max-w-lg" style={{ fontFamily: BODY_FONT }}>
+        <DialogHeader className="gap-1.5">
+          <DialogTitle className="text-2xl font-medium text-[#001F00]" style={{ fontFamily: BODY_FONT }}>
+            Add a new volunteer
+          </DialogTitle>
+          <DialogDescription className="text-base text-[#1E1E1E]/50">
             They'll receive an email with a temp password. After they sign in once you can assign
             them to any of your sites.
           </DialogDescription>
@@ -281,15 +292,14 @@ function CreateVolunteerDialog({ open, onOpenChange }) {
             <Label htmlFor="v-phone">Phone (optional)</Label>
             <Input id="v-phone" disabled={create.isPending} {...register('phone')} />
           </div>
-          <DialogFooter>
-            <Button type="button" variant="ghost" onClick={close} disabled={create.isPending}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={create.isPending}>
-              {create.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-              <UserPlus className="h-4 w-4" /> Add volunteer
-            </Button>
-          </DialogFooter>
+          <button
+            type="submit"
+            disabled={create.isPending}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] bg-[#346EC4] px-5 py-3.5 text-base font-semibold text-white transition-colors hover:bg-[#2c5da6] disabled:opacity-70"
+          >
+            {create.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+            <UserPlus className="h-4 w-4" /> Add volunteer
+          </button>
         </form>
       </DialogContent>
     </Dialog>
@@ -352,10 +362,12 @@ function CreateAssignmentDialog({ open, onOpenChange }) {
 
   return (
     <Dialog open={open} onOpenChange={(o) => (o ? onOpenChange(true) : close())}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Assign a volunteer</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="rounded-[10px] sm:max-w-lg" style={{ fontFamily: BODY_FONT }}>
+        <DialogHeader className="gap-1.5">
+          <DialogTitle className="text-2xl font-medium text-[#001F00]" style={{ fontFamily: BODY_FONT }}>
+            Assign a volunteer
+          </DialogTitle>
+          <DialogDescription className="text-base text-[#1E1E1E]/50">
             Decide who plants or waters where. Volunteers see only the sites they're assigned to.
           </DialogDescription>
         </DialogHeader>
@@ -458,13 +470,14 @@ function CreateAssignmentDialog({ open, onOpenChange }) {
             <Input id="note" {...register('note')} />
           </div>
 
-          <DialogFooter>
-            <Button type="button" variant="ghost" onClick={close} disabled={create.isPending}>Cancel</Button>
-            <Button type="submit" disabled={create.isPending}>
-              {create.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-              Assign
-            </Button>
-          </DialogFooter>
+          <button
+            type="submit"
+            disabled={create.isPending}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] bg-[#346EC4] px-5 py-3.5 text-base font-semibold text-white transition-colors hover:bg-[#2c5da6] disabled:opacity-70"
+          >
+            {create.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+            Assign
+          </button>
         </form>
       </DialogContent>
     </Dialog>

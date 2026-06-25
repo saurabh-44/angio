@@ -30,11 +30,11 @@ const SitesPage = lazy(() => import('@/pages/admin/SitesPage.jsx'));
 const SiteDetailPage = lazy(() => import('@/pages/admin/SiteDetailPage.jsx'));
 const DonationsPage = lazy(() => import('@/pages/admin/DonationsPage.jsx'));
 const PlantsPage = lazy(() => import('@/pages/admin/PlantsPage.jsx'));
+const PlantDetailPage = lazy(() => import('@/pages/admin/PlantDetailPage.jsx'));
 const MaintenancePage = lazy(() => import('@/pages/admin/MaintenancePage.jsx'));
 const AssignmentsPage = lazy(() => import('@/pages/admin/AssignmentsPage.jsx'));
 const ImportPage = lazy(() => import('@/pages/admin/ImportPage.jsx'));
 const SpeciesPage = lazy(() => import('@/pages/admin/SpeciesPage.jsx'));
-const ProjectsPage = lazy(() => import('@/pages/admin/ProjectsPage.jsx'));
 
 // Site Owner home (other site routes reuse the admin pages)
 const SiteHome = lazy(() => import('@/pages/site/SiteHome.jsx'));
@@ -118,12 +118,13 @@ export default function AppRouter() {
           <Route path="sites/:id" element={<SiteDetailPage />} />
           <Route path="donations" element={<DonationsPage />} />
           <Route path="plants" element={<PlantsPage />} />
+          <Route path="plants/:id" element={<PlantDetailPage />} />
           <Route path="maintenance" element={<MaintenancePage />} />
           <Route path="assignments" element={<AssignmentsPage />} />
           <Route path="species" element={<SpeciesPage />} />
-          <Route path="projects" element={<ProjectsPage />} />
           <Route path="map" element={<SponsorMap />} />
-          <Route path="import" element={<ImportPage />} />
+          {/* Import hidden per client request — uncomment to re-enable */}
+          {/* <Route path="import" element={<ImportPage />} /> */}
         </Route>
 
         {/* Site Owner tree — admin pages used as-is, scoped by backend. */}
@@ -137,8 +138,10 @@ export default function AppRouter() {
         >
           <Route index element={<SiteHome />} />
           <Route path="sites" element={<SitesPage />} />
+          <Route path="sites/:id" element={<SiteDetailPage />} />
           <Route path="volunteers" element={<AssignmentsPage />} />
           <Route path="plants" element={<PlantsPage />} />
+          <Route path="plants/:id" element={<PlantDetailPage />} />
           <Route path="maintenance" element={<MaintenancePage />} />
         </Route>
 
