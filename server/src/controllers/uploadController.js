@@ -18,6 +18,16 @@ export async function postUploadSignature(req, res) {
     return res.json(buildUploadSignature({ publicId, folder }));
   }
 
+  // Site cover photos — only the NGO admin (who owns site creation).
+  if (input.purpose === 'site') {
+    if (req.auth.role !== 'ngo_admin') {
+      throw HttpError.forbidden('Only the NGO admin can upload site photos');
+    }
+    const folder = `${env.CLOUDINARY_UPLOAD_FOLDER}/sites`;
+    const publicId = `site-${randomUUID()}`;
+    return res.json(buildUploadSignature({ publicId, folder }));
+  }
+
   if (!['volunteer', 'site_owner', 'ngo_admin'].includes(req.auth.role)) {
     throw HttpError.forbidden('You do not have permission to upload photos');
   }

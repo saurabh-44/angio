@@ -26,12 +26,11 @@ export const NAV_BY_ROLE = {
     { to: '/admin/users', label: 'Users', icon: Users },
     { to: '/admin/sites', label: 'Sites', icon: MapPin },
     { to: '/admin/donations', label: 'Donations', icon: HandCoins },
+    // Plants hub — each tree's location/map and weekly maintenance live in its detail.
     { to: '/admin/plants', label: 'Plants', icon: Leaf },
-    { to: '/admin/maintenance', label: 'Maintenance', icon: Droplets },
     { to: '/admin/assignments', label: 'Assignments', icon: Clipboard },
     { to: '/admin/species', label: 'Species', icon: TreePine },
     { to: '/admin/projects', label: 'Projects', icon: FolderKanban },
-    { to: '/admin/map', label: 'Map', icon: Map },
     { to: '/admin/import', label: 'Import', icon: FileSpreadsheet },
     { to: '/scan', label: 'Scan QR', icon: ScanLine },
   ],

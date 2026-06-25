@@ -10,6 +10,11 @@ const geo = z.object({
   lng: z.number().min(-180).max(180),
 });
 
+const photo = z.object({
+  url: z.string().url(),
+  publicId: z.string().min(1),
+});
+
 export const createSiteSchema = z.object({
   name: z.string().trim().min(1).max(200),
   address: z.string().trim().max(500).optional(),
@@ -18,10 +23,13 @@ export const createSiteSchema = z.object({
   country: z.string().trim().max(120).optional(),
   pinCode: z.string().trim().max(16).optional(),
   geo,
+  photo: photo.optional(),
   capacity: z.number().int().min(0).default(0),
   pricePerTreeInr: z.number().min(0).optional(),
   notes: z.string().trim().max(2000).optional(),
   owner: objectId,
+  // Volunteers to assign to this site on creation (planting assignments).
+  volunteers: z.array(objectId).max(200).optional(),
 });
 
 export const updateSiteSchema = z.object({
@@ -32,6 +40,7 @@ export const updateSiteSchema = z.object({
   country: z.string().trim().max(120).optional(),
   pinCode: z.string().trim().max(16).optional(),
   geo: geo.optional(),
+  photo: photo.nullable().optional(),
   capacity: z.number().int().min(0).optional(),
   pricePerTreeInr: z.number().min(0).optional(),
   notes: z.string().trim().max(2000).optional(),

@@ -27,6 +27,7 @@ const ChangePassword = lazy(() => import('@/pages/auth/ChangePassword.jsx'));
 const AdminHome = lazy(() => import('@/pages/admin/AdminHome.jsx'));
 const UsersPage = lazy(() => import('@/pages/admin/UsersPage.jsx'));
 const SitesPage = lazy(() => import('@/pages/admin/SitesPage.jsx'));
+const SiteDetailPage = lazy(() => import('@/pages/admin/SiteDetailPage.jsx'));
 const DonationsPage = lazy(() => import('@/pages/admin/DonationsPage.jsx'));
 const PlantsPage = lazy(() => import('@/pages/admin/PlantsPage.jsx'));
 const MaintenancePage = lazy(() => import('@/pages/admin/MaintenancePage.jsx'));
@@ -114,6 +115,7 @@ export default function AppRouter() {
           <Route index element={<AdminHome />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="sites" element={<SitesPage />} />
+          <Route path="sites/:id" element={<SiteDetailPage />} />
           <Route path="donations" element={<DonationsPage />} />
           <Route path="plants" element={<PlantsPage />} />
           <Route path="maintenance" element={<MaintenancePage />} />

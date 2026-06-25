@@ -5,6 +5,7 @@ import {
   deleteSiteHandler,
   getAvailableSites,
   getSiteById,
+  getSiteOverviewHandler,
   getSites,
   patchSite,
   postSite,
@@ -20,6 +21,7 @@ sitesRouter.get('/', asyncHandler(getSites));
 sitesRouter.get('/available', asyncHandler(getAvailableSites));
 sitesRouter.post('/', asyncHandler(postSite));
 sitesRouter.get('/:id', asyncHandler(getSiteById));
+sitesRouter.get('/:id/overview', asyncHandler(getSiteOverviewHandler));
 // Path ends in .pdf so browsers + reverse proxies handle Content-Type
 // transparently. Auth scope is enforced inside the QR service.
 sitesRouter.get('/:id/qr-sheet.pdf', asyncHandler(getSiteQrSheet));
