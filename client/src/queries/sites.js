@@ -40,6 +40,16 @@ export function useSite(id) {
   });
 }
 
+// Rich detail for the site page: site + headline stats + recent trees,
+// contributors, and volunteers.
+export function useSiteOverview(id) {
+  return useQuery({
+    queryKey: ['sites', 'overview', id],
+    queryFn: () => api.get(`/api/sites/${id}/overview`),
+    enabled: !!id,
+  });
+}
+
 export function useCreateSite() {
   const qc = useQueryClient();
   return useMutation({

@@ -10,6 +10,16 @@ const geoSchema = new Schema(
   { _id: false },
 );
 
+// Optional cover photo for the site (Cloudinary). publicId lets us render
+// at any size / delete later.
+const photoSchema = new Schema(
+  {
+    url: { type: String, required: true },
+    publicId: { type: String, required: true },
+  },
+  { _id: false },
+);
+
 const siteSchema = new Schema(
   {
     name: { type: String, required: true, trim: true, maxlength: 200 },
@@ -21,6 +31,7 @@ const siteSchema = new Schema(
     country: { type: String, trim: true, maxlength: 120 },
     pinCode: { type: String, trim: true, maxlength: 16 },
     geo: { type: geoSchema, required: true },
+    photo: { type: photoSchema },
     capacity: { type: Number, min: 0, default: 0 },
     // Price per tree a sponsor pays to fund a planting at this site, in
     // INR. Admin-set; falls back to the global TREE_UNIT_PRICE_INR when

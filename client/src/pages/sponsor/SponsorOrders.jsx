@@ -1,9 +1,18 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Camera, Cloud, Droplets, HandCoins, Leaf, MapPin, TreePine } from 'lucide-react';
-import PageHeader from '@/components/PageHeader.jsx';
+import {
+  ArrowRight,
+  Camera,
+  ChevronRight,
+  Cloud,
+  Droplets,
+  HandCoins,
+  MapPin,
+  Plus,
+  SlidersHorizontal,
+  TreePine,
+} from 'lucide-react';
 import EmptyState from '@/components/EmptyState.jsx';
-import { Badge } from '@/components/ui/badge.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Skeleton } from '@/components/ui/skeleton.jsx';
 import {
@@ -15,87 +24,152 @@ import {
 } from '@/components/ui/sheet.jsx';
 import { useSponsorOrders } from '@/queries/payments.js';
 import { formatAmount, formatDate } from '@/lib/format.js';
+import { cn } from '@/lib/utils';
+import { BODY_FONT, HEADING_FONT } from '@/components/GlassAuthScreen.jsx';
 
-// Maps the server's derived order status onto a label + badge variant.
+// Maps the server's derived order status onto a label + pill colour (new theme).
 const STATUS_META = {
-  pending: { label: 'Payment pending', variant: 'muted' },
-  processing: { label: 'Processing', variant: 'outline' },
-  yet_to_plant: { label: 'Yet to plant', variant: 'outline' },
-  in_progress: { label: 'Planting in progress', variant: 'accent' },
-  planted: { label: 'Planted', variant: 'success' },
-  failed: { label: 'Failed', variant: 'destructive' },
-  refunded: { label: 'Refunded', variant: 'muted' },
+  pending: { label: 'Payment pending', cls: 'bg-amber-100 text-amber-700' },
+  processing: { label: 'Processing', cls: 'bg-[#E2E8F0] text-[#1E1E1E]' },
+  yet_to_plant: { label: 'Yet to plant', cls: 'bg-[#0B5000]/10 text-[#0B5000]' },
+  in_progress: { label: 'Planting in progress', cls: 'bg-amber-100 text-amber-700' },
+  planted: { label: 'Planted', cls: 'bg-[#0B5000] text-white' },
+  failed: { label: 'Failed', cls: 'bg-red-100 text-red-700' },
+  refunded: { label: 'Refunded', cls: 'bg-[#E2E8F0] text-[#1E1E1E]' },
 };
 
 function StatusBadge({ status }) {
-  const meta = STATUS_META[status] ?? { label: status, variant: 'muted' };
-  return <Badge variant={meta.variant}>{meta.label}</Badge>;
+  const meta = STATUS_META[status];
+  // Never render a blank pill — humanise any unknown value, default to "Unknown".
+  const label =
+    meta?.label ??
+    (status
+      ? String(status).replace(/_/g, ' ').replace(/\b\w/g, (ch) => ch.toUpperCase())
+      : 'Unknown');
+  const cls = meta?.cls ?? 'bg-[#E2E8F0] text-[#1E1E1E]';
+  return (
+    <span className={cn('inline-flex rounded-full px-3 py-1 text-xs font-medium', cls)}>
+      {label}
+    </span>
+  );
 }
+
+const shortId = (id) => (id ? `#${String(id).slice(-6)}` : '—');
+const typeLabel = (o) => (o.treeCount === 1 ? 'Single Tree' : 'Multiple Trees');
+
+// Grid template shared by the table header + rows.
+const COLS = 'grid grid-cols-[1.4fr_1fr_1.2fr_1.2fr_0.5fr] items-center gap-4';
 
 export default function SponsorOrders() {
   const { data, isLoading } = useSponsorOrders();
   const orders = data?.items ?? [];
+  const total = data?.total ?? orders.length;
   const [open, setOpen] = useState(null);
+  const [q, setQ] = useState('');
+
+  const filtered = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    if (!s) return orders;
+    return orders.filter((o) =>
+      [shortId(o.id), formatDate(o.date), o.site?.name, typeLabel(o)]
+        .filter(Boolean)
+        .some((v) => String(v).toLowerCase().includes(s)),
+    );
+  }, [orders, q]);
 
   return (
-    <>
-      <PageHeader
-        eyebrow="Your sponsorships"
-        title="Orders"
-        description="Every order you've placed, with planting status and estimated CO₂ absorbed. Tap one for the full report."
-      />
+    <div style={{ fontFamily: BODY_FONT }}>
+      <h1 className="text-3xl font-semibold text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>
+        Past Contributions <span className="font-normal">•&nbsp;{total}</span>
+      </h1>
+
+      {/* Search + filter + new */}
+      <div className="mt-8 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-1 items-center gap-4">
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="OrderID, Date, Site..."
+            aria-label="Search contributions"
+            className="w-full max-w-[381px] rounded-[10px] border border-[#B4B4B4] px-5 py-4 text-base text-[#1E1E1E] outline-none placeholder:text-[#B4B4B4] focus:border-[#001F00]"
+          />
+          <button
+            type="button"
+            aria-label="Filter"
+            className="grid h-[58px] w-[64px] shrink-0 place-items-center rounded-[10px] border border-[#B4B4B4] text-[#B4B4B4] transition-colors hover:text-[#001F00]"
+          >
+            <SlidersHorizontal className="h-5 w-5" aria-hidden />
+          </button>
+        </div>
+        <Link
+          to="/sponsor/sponsor"
+          className="inline-flex items-center gap-2 rounded-[10px] bg-[#001F00] px-6 py-4 text-base font-medium text-[#F8FDFF] transition-colors hover:bg-[#0B5000]"
+        >
+          <Plus className="h-5 w-5" aria-hidden /> New Contribution
+        </Link>
+      </div>
 
       {isLoading ? (
-        <div className="space-y-3">
-          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
+        <div className="mt-8 space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-14 w-full" />
+          ))}
         </div>
       ) : orders.length === 0 ? (
-        <EmptyState
-          icon={HandCoins}
-          title="No orders yet"
-          description="Sponsor your first trees and they'll show up here with live planting status."
-          action={
-            <Button asChild>
-              <Link to="/sponsor/sponsor"><TreePine className="h-4 w-4" /> Sponsor trees</Link>
-            </Button>
-          }
-        />
+        <div className="mt-10">
+          <EmptyState
+            icon={HandCoins}
+            title="No contributions yet"
+            description="Sponsor your first trees and they'll show up here with live planting status."
+            action={
+              <Button asChild>
+                <Link to="/sponsor/sponsor">
+                  <TreePine className="h-4 w-4" /> Sponsor trees
+                </Link>
+              </Button>
+            }
+          />
+        </div>
       ) : (
-        <div className="space-y-3">
-          {orders.map((o) => (
-            <button
-              key={o.id}
-              type="button"
-              onClick={() => setOpen(o)}
-              className="w-full text-left bento-card p-4 sm:p-5 flex flex-wrap items-center gap-4 hover:bg-secondary/30 transition-colors cursor-pointer"
-            >
-              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-leaf-100 text-leaf-700">
-                <Leaf className="h-5 w-5" aria-hidden />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="font-heading text-sm font-semibold text-foreground">
-                  {o.treeCount} {o.treeCount === 1 ? 'tree' : 'trees'}
-                  {o.site?.name && <span className="text-muted-foreground font-normal"> · {o.site.name}</span>}
-                </div>
-                <div className="text-xs text-muted-foreground mt-0.5">
-                  {formatDate(o.date)} · {formatAmount(o.amount)}
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="text-right hidden sm:block">
-                  <div className="text-xs text-muted-foreground">CO₂</div>
-                  <div className="text-sm font-medium text-foreground">{o.co2Kg ?? 0} kg</div>
-                </div>
-                <StatusBadge status={o.status} />
-                <ArrowRight className="h-4 w-4 text-muted-foreground" aria-hidden />
-              </div>
-            </button>
-          ))}
+        <div className="mt-10 overflow-x-auto">
+          <div className="min-w-[700px]">
+            {/* Header */}
+            <div className={`${COLS} px-3 pb-4 text-base text-[#001F00]`}>
+              <span>Date</span>
+              <span>Order ID</span>
+              <span>Type</span>
+              <span>CO₂ Absorbed</span>
+              <span className="text-right">View More</span>
+            </div>
+
+            {filtered.length === 0 ? (
+              <p className="border-t border-[#E2E8F0] px-3 py-10 text-center text-base text-[#1E1E1E]/50">
+                No contributions match “{q}”.
+              </p>
+            ) : (
+              filtered.map((o) => (
+                <button
+                  key={o.id}
+                  type="button"
+                  onClick={() => setOpen(o)}
+                  className={`${COLS} w-full border-t border-[#E2E8F0] px-3 py-5 text-left text-base text-[#001F00] transition-colors hover:bg-[#0B5000]/[0.03]`}
+                >
+                  <span>{formatDate(o.date)}</span>
+                  <span className="truncate">{shortId(o.id)}</span>
+                  <span>{typeLabel(o)}</span>
+                  <span>{Math.round(o.co2Kg ?? 0)}Kg</span>
+                  <span className="flex justify-end text-[#001F00]">
+                    <ChevronRight className="h-5 w-5" aria-hidden />
+                  </span>
+                </button>
+              ))
+            )}
+          </div>
         </div>
       )}
 
       <OrderReportSheet order={open} onClose={() => setOpen(null)} />
-    </>
+    </div>
   );
 }
 
@@ -103,34 +177,40 @@ function OrderReportSheet({ order, onClose }) {
   if (!order) return null;
   return (
     <Sheet open={!!order} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent side="right" className="sm:max-w-md flex flex-col">
+      <SheetContent side="right" className="flex flex-col sm:max-w-md" style={{ fontFamily: BODY_FONT }}>
         <SheetHeader>
-          <SheetTitle className="flex items-center gap-2">
-            <TreePine className="h-5 w-5 text-primary" aria-hidden /> Order report
+          <SheetTitle
+            className="flex items-center gap-2 text-[#001F00]"
+            style={{ fontFamily: HEADING_FONT }}
+          >
+            <TreePine className="h-5 w-5 text-[#0B5000]" aria-hidden /> Order report
           </SheetTitle>
-          <SheetDescription>{order.site?.name ?? 'Awaiting site placement'}</SheetDescription>
+          <SheetDescription className="text-[#1E1E1E]/50">
+            {order.site?.name ?? 'Awaiting site placement'}
+          </SheetDescription>
         </SheetHeader>
 
-        <div className="mt-6 flex-1 overflow-y-auto pr-1 space-y-5">
-          <dl className="rounded-2xl border border-border/60 bg-secondary/30 p-5 space-y-2.5 text-sm">
+        <div className="mt-6 flex-1 space-y-6 overflow-y-auto pr-1">
+          <dl className="space-y-3 rounded-[10px] border border-[#E2E8F0] bg-[#F6FAF6] p-5 text-base">
             <Row label="Date" value={formatDate(order.date)} />
+            <Row label="Order ID" value={shortId(order.id)} />
+            <Row label="Type" value={typeLabel(order)} />
             <Row label="No. of trees" value={`${order.treeCount}`} />
             <Row label="Planted" value={`${order.planted} of ${order.target}`} />
             <Row label="Amount" value={formatAmount(order.amount)} />
-            <div className="flex items-center justify-between gap-3">
-              <dt className="text-muted-foreground">Status</dt>
-              <dd><StatusBadge status={order.status} /></dd>
-            </div>
-            <div className="flex items-center justify-between gap-3 border-t border-border/60 pt-3 mt-1">
-              <dt className="inline-flex items-center gap-1.5 text-muted-foreground">
+            <Row label="Status" value={<StatusBadge status={order.status} />} />
+            <div className="mt-1 flex items-center justify-between gap-3 border-t border-[#E2E8F0] pt-4">
+              <dt className="inline-flex items-center gap-1.5 text-[#1E1E1E]/60">
                 <Cloud className="h-4 w-4" aria-hidden /> CO₂ absorbed
               </dt>
-              <dd className="font-heading text-lg font-bold text-foreground">{order.co2Kg ?? 0} kg</dd>
+              <dd className="text-xl font-semibold text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>
+                {Math.round(order.co2Kg ?? 0)} kg
+              </dd>
             </div>
           </dl>
 
-          <div className="space-y-2">
-            <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium">
+          <div className="space-y-2.5">
+            <p className="text-xs font-medium uppercase tracking-widest text-[#1E1E1E]/50">
               Track your trees
             </p>
             <TrackLink to="/sponsor/trees" icon={Camera} label="Planting photos" />
@@ -145,20 +225,23 @@ function OrderReportSheet({ order, onClose }) {
 
 function TrackLink({ to, icon: Icon, label }) {
   return (
-    <Button asChild variant="outline" className="w-full justify-between">
-      <Link to={to}>
-        <span className="inline-flex items-center gap-2"><Icon className="h-4 w-4" /> {label}</span>
-        <ArrowRight className="h-4 w-4" />
-      </Link>
-    </Button>
+    <Link
+      to={to}
+      className="flex items-center justify-between rounded-[10px] border border-[#E2E8F0] px-5 py-3.5 text-base text-[#001F00] transition-colors hover:border-[#001F00] hover:bg-[#0B5000]/[0.03]"
+    >
+      <span className="inline-flex items-center gap-2.5">
+        <Icon className="h-5 w-5" aria-hidden /> {label}
+      </span>
+      <ArrowRight className="h-4 w-4" aria-hidden />
+    </Link>
   );
 }
 
 function Row({ label, value }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="font-medium text-foreground text-right">{value}</dd>
+      <dt className="text-[#1E1E1E]/60">{label}</dt>
+      <dd className="text-right font-medium text-[#001F00]">{value}</dd>
     </div>
   );
 }

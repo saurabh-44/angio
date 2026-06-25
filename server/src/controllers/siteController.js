@@ -7,6 +7,7 @@ import {
   createSite,
   deleteSite,
   getSite,
+  getSiteOverview,
   listAvailableSites,
   listSites,
   updateSite,
@@ -34,6 +35,11 @@ export async function getSites(req, res) {
 export async function getSiteById(req, res) {
   const site = await getSite({ id: req.params.id, actor: req.auth });
   res.json({ site });
+}
+
+export async function getSiteOverviewHandler(req, res) {
+  const result = await getSiteOverview({ id: req.params.id, actor: req.auth });
+  res.json(result);
 }
 
 export async function patchSite(req, res) {

@@ -6,19 +6,19 @@
   :root {
     /* Surfaces */
     --background: 210 17% 98%;
-    --foreground: 222 47% 11%;
+    --foreground: 120 100% 6%; /* #001F00 — dark green text */
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 120 100% 6%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 120 100% 6%;
 
-    /* Brand — leaf (emerald) */
-    --primary: 161 94% 30%;
+    /* Brand — deep green (#0B5000) */
+    --primary: 112 100% 16%;
     --primary-foreground: 0 0% 100%;
 
-    /* Quiet hero/positive panels (emerald-50) */
-    --secondary: 152 81% 96%;
-    --secondary-foreground: 161 94% 18%;
+    /* Quiet hero/positive panels (#F6FAF6 — soft green) */
+    --secondary: 120 33% 97%;
+    --secondary-foreground: 120 100% 6%;
 
     /* CTA / highlight — amber */
     --accent: 38 92% 50%;
@@ -31,9 +31,9 @@
     --destructive: 0 73% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 214 32% 91%;
+    --border: 214 32% 91%; /* #E2E8F0 */
     --input: 214 32% 91%;
-    --ring: 161 94% 30%;
+    --ring: 112 100% 16%; /* #0B5000 */
 
     --radius: 1.25rem; /* 20px — biophilic */
   }

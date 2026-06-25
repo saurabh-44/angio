@@ -38,6 +38,7 @@ export async function createUser({
   gender,
   role,
   preferredSites,
+  password,
   actor,
 }) {
   if (actor.role === 'ngo_admin') {
@@ -67,8 +68,11 @@ export async function createUser({
   const fullName =
     (name && name.trim()) || [firstName, lastName].filter(Boolean).join(' ').trim();
 
-  const tempPassword = generateTempPassword();
-  const passwordHash = await bcrypt.hash(tempPassword, BCRYPT_ROUNDS);
+  // When the admin sets a password we use it (and skip the temp-password
+  // email + forced change); otherwise we generate and email a temp one.
+  const adminSetPassword = !!password;
+  const tempPassword = adminSetPassword ? null : generateTempPassword();
+  const passwordHash = await bcrypt.hash(adminSetPassword ? password : tempPassword, BCRYPT_ROUNDS);
 
   const user = await User.create({
     name: fullName,
@@ -81,22 +85,38 @@ export async function createUser({
     role,
     preferredSites: preferredSites?.length ? preferredSites : undefined,
     passwordHash,
-    forcePasswordChange: true,
+    forcePasswordChange: !adminSetPassword,
     isActive: true,
     createdBy: actor.userId,
   });
 
-  void sendMail({
-    to: email,
-    subject: 'Your Environ account is ready',
-    html: accountCreatedTemplate({
-      name: fullName,
-      role,
-      email,
-      tempPassword,
-      signInUrl: env.CLIENT_ORIGIN,
-    }),
-  });
+  // A volunteer's assigned site(s) become real planting assignments so they
+  // show up in that site's volunteer list immediately.
+  if (role === 'volunteer' && preferredSites?.length) {
+    await Assignment.insertMany(
+      preferredSites.map((site) => ({
+        volunteer: user._id,
+        site,
+        kind: 'planting',
+        assignedBy: actor.userId,
+        startsAt: new Date(),
+      })),
+    );
+  }
+
+  if (!adminSetPassword) {
+    void sendMail({
+      to: email,
+      subject: 'Your Environ account is ready',
+      html: accountCreatedTemplate({
+        name: fullName,
+        role,
+        email,
+        tempPassword,
+        signInUrl: env.CLIENT_ORIGIN,
+      }),
+    });
+  }
 
   return user.toObject();
 }

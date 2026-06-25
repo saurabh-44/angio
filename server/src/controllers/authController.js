@@ -14,6 +14,7 @@ import {
   startSignup,
   startLogin,
   startPasswordReset,
+  updateMyProfile,
 } from '../services/auth/authService.js';
 import { changePassword as changePasswordService } from '../services/users/passwordService.js';
 import {
@@ -145,6 +146,14 @@ export async function me(req, res) {
   if (!req.auth) throw HttpError.unauthorized();
   if (!Types.ObjectId.isValid(req.auth.userId)) throw HttpError.unauthorized();
   const result = await getMe(req.auth.userId);
+  res.json(result);
+}
+
+// Self-service profile edit (safe fields only; validated by the route).
+export async function updateMe(req, res) {
+  if (!req.auth) throw HttpError.unauthorized();
+  if (!Types.ObjectId.isValid(req.auth.userId)) throw HttpError.unauthorized();
+  const result = await updateMyProfile(req.auth.userId, req.body);
   res.json(result);
 }
 

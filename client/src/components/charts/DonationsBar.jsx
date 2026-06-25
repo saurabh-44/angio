@@ -10,8 +10,8 @@ import {
 import { AXIS_STYLE, CHART, TOOLTIP_LABEL_STYLE, TOOLTIP_STYLE } from './chartTheme.js';
 import { formatAmount } from '@/lib/format.js';
 
-// Monthly donation revenue. Rounded bars + amber fill so it doesn't
-// fight the green planted-trend chart sitting next to it.
+// Monthly donation revenue. Rounded amber bars — the one warm accent we
+// keep, so the money chart reads distinct from the green planted-trend.
 export default function DonationsBar({ data }) {
   return (
     <ResponsiveContainer width="100%" height="100%">

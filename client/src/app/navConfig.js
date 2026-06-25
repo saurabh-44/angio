@@ -14,6 +14,7 @@ import {
   FileSpreadsheet,
   TreePine,
   FolderKanban,
+  UserRound,
 } from 'lucide-react';
 
 // Single source of truth for sidebar menus. Keys map to roles, values
@@ -25,12 +26,11 @@ export const NAV_BY_ROLE = {
     { to: '/admin/users', label: 'Users', icon: Users },
     { to: '/admin/sites', label: 'Sites', icon: MapPin },
     { to: '/admin/donations', label: 'Donations', icon: HandCoins },
+    // Plants hub — each tree's location/map and weekly maintenance live in its detail.
     { to: '/admin/plants', label: 'Plants', icon: Leaf },
-    { to: '/admin/maintenance', label: 'Maintenance', icon: Droplets },
     { to: '/admin/assignments', label: 'Assignments', icon: Clipboard },
     { to: '/admin/species', label: 'Species', icon: TreePine },
     { to: '/admin/projects', label: 'Projects', icon: FolderKanban },
-    { to: '/admin/map', label: 'Map', icon: Map },
     { to: '/admin/import', label: 'Import', icon: FileSpreadsheet },
     { to: '/scan', label: 'Scan QR', icon: ScanLine },
   ],
@@ -46,9 +46,9 @@ export const NAV_BY_ROLE = {
     { to: '/sponsor', label: 'Overview', icon: LayoutDashboard, end: true },
     { to: '/sponsor/sponsor', label: 'Sponsor trees', icon: Sparkles },
     { to: '/sponsor/orders', label: 'My Orders', icon: HandCoins },
+    // Trees hub — each tree's map, QR, and weekly maintenance live in its detail.
     { to: '/sponsor/trees', label: 'My Trees', icon: Leaf },
-    { to: '/sponsor/map', label: 'Map view', icon: Map },
-    { to: '/sponsor/maintenance', label: 'Maintenance', icon: Droplets },
+    { to: '/sponsor/profile', label: 'Profile', icon: UserRound },
   ],
   volunteer: [
     { to: '/volunteer', label: 'Overview', icon: LayoutDashboard, end: true },

@@ -19,7 +19,10 @@ export default function PublicRoot({ landing }) {
 
   if (isAuthenticated) {
     if (mustChangePassword) return <Navigate to="/change-password" replace />;
-    return <Navigate to={ROLE_HOME[role] ?? '/login'} replace />;
+    const home = ROLE_HOME[role];
+    if (home) return <Navigate to={home} replace />;
+    // Unknown role → show the landing instead of bouncing to /login (which
+    // would loop with PublicOnlyRoute).
   }
 
   return landing;

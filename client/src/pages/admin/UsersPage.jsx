@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import {
+  ChevronRight,
+  Filter,
   KeyRound,
   Loader2,
   Mail,
-  MoreHorizontal,
   Phone,
   Plus,
   Search,
@@ -12,29 +13,17 @@ import {
   UserPlus,
   UserX,
 } from 'lucide-react';
-import PageHeader from '@/components/PageHeader.jsx';
 import EmptyState from '@/components/EmptyState.jsx';
 import Pagination from '@/components/Pagination.jsx';
 import ConfirmDialog from '@/components/ConfirmDialog.jsx';
-import RoleBadge from '@/components/RoleBadge.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
-import { Badge } from '@/components/ui/badge.jsx';
 import { Skeleton } from '@/components/ui/skeleton.jsx';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table.jsx';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog.jsx';
@@ -57,6 +46,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu.jsx';
@@ -73,8 +63,17 @@ import { useSites } from '@/queries/sites.js';
 import { ApiError } from '@/lib/api.js';
 import { formatDate } from '@/lib/format.js';
 import { cn } from '@/lib/utils';
+import { BODY_FONT, HEADING_FONT } from '@/components/GlassAuthScreen.jsx';
 
 const ROLE_OPTIONS = ['sponsor', 'site_owner', 'volunteer', 'ngo_admin'];
+
+// Solid role pills, matching the Figma (sponsor blue, site-owner green).
+const ROLE_PILL = {
+  ngo_admin: { label: 'NGO Admin', cls: 'bg-[#001F00] text-white' },
+  site_owner: { label: 'Site Incharge', cls: 'bg-[#0B5000] text-white' },
+  sponsor: { label: 'Sponsor', cls: 'bg-[#346EC4] text-white' },
+  volunteer: { label: 'Volunteer', cls: 'bg-[#D97706] text-white' },
+};
 const GENDER_OPTIONS = [
   { value: 'male', label: 'Male' },
   { value: 'female', label: 'Female' },
@@ -103,56 +102,54 @@ export default function UsersPage() {
   const total = data?.total ?? 0;
 
   return (
-    <>
-      <PageHeader
-        eyebrow="People"
-        title="Users"
-        description="Sponsors, site owners, and volunteers in the system. NGO admins can be added here too."
-        actions={
-          <Button onClick={() => setCreateOpen(true)} className="cursor-pointer">
-            <UserPlus className="h-4 w-4" /> Add user
-          </Button>
-        }
-      />
+    <div style={{ fontFamily: BODY_FONT }}>
+      <h1 className="text-3xl font-semibold text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>
+        Users
+      </h1>
 
-      <div className="flex flex-col sm:flex-row gap-3 mb-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden />
-          <Input
+      {/* Search + role filter + New User */}
+      <div className="mt-8 flex flex-wrap items-center gap-3">
+        <div className="relative w-full max-w-md">
+          <Search
+            className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#B4B4B4]"
+            aria-hidden
+          />
+          <input
             value={q}
             onChange={(e) => {
               setQ(e.target.value);
               setPage(1);
             }}
-            placeholder="Search by name or email"
-            className="pl-10"
+            placeholder="Search by name or email…"
+            className="w-full rounded-[10px] border border-[#B4B4B4] py-3.5 pl-12 pr-4 text-base text-[#1E1E1E] outline-none transition-colors placeholder:text-[#B4B4B4] focus:border-[#0B5000]"
           />
         </div>
-        <Select
-          value={role || 'all'}
-          onValueChange={(v) => {
-            setRole(v === 'all' ? '' : v);
+
+        <UserRoleFilter
+          value={role}
+          onChange={(v) => {
+            setRole(v);
             setPage(1);
           }}
+        />
+
+        <button
+          type="button"
+          onClick={() => setCreateOpen(true)}
+          className="ml-auto inline-flex items-center gap-2 rounded-[10px] bg-[#001F00] px-5 py-3.5 text-sm font-medium text-white transition-colors hover:bg-[#013300] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B5000] focus-visible:ring-offset-2"
         >
-          <SelectTrigger className="sm:w-56">
-            <SelectValue placeholder="All roles" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All roles</SelectItem>
-            {ROLE_OPTIONS.map((r) => (
-              <SelectItem key={r} value={r}>{ROLE_LABEL[r]}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <UserPlus className="h-5 w-5" aria-hidden /> New User
+        </button>
       </div>
 
-      <div className="bento-card overflow-hidden">
-        {isLoading ? (
-          <TableSkeleton />
-        ) : isError ? (
+      {isLoading ? (
+        <TableSkeleton />
+      ) : isError ? (
+        <div className="mt-10">
           <ErrorRow onRetry={() => refetch()} />
-        ) : items.length === 0 ? (
+        </div>
+      ) : items.length === 0 ? (
+        <div className="mt-10">
           <EmptyState
             icon={UserPlus}
             title={q || role ? 'No matches' : 'No users yet'}
@@ -167,124 +164,126 @@ export default function UsersPage() {
               </Button>
             }
           />
-        ) : (
-          <>
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-secondary/40">
-                  <TableHead>Name</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead className="w-12 text-right" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+        </div>
+      ) : (
+        <>
+          <div className="mt-7 overflow-x-auto">
+            <table className="w-full min-w-[760px] border-collapse">
+              <thead>
+                <tr>
+                  {['User', 'Role', 'Email ID', 'Enrolled Date'].map((h) => (
+                    <th key={h} className="pb-4 text-left text-base font-medium text-[#001F00] first:pl-1">
+                      {h}
+                    </th>
+                  ))}
+                  <th className="pb-4 text-right text-base font-medium text-[#001F00]">View More</th>
+                </tr>
+              </thead>
+              <tbody>
                 {items.map((u) => (
-                  <TableRow
+                  <tr
                     key={u.id ?? u._id}
-                    className="cursor-pointer"
                     onClick={() => setEditing(u)}
+                    className="cursor-pointer border-t border-[#E2E8F0] transition-colors hover:bg-[#F6FAF6]"
                   >
-                    <TableCell>
-                      <div className="font-medium text-foreground">{u.name}</div>
-                      <div className="text-xs text-muted-foreground mt-0.5">
-                        {u.email}
-                        {u.phone && <span className="ml-2">· {u.phone}</span>}
-                      </div>
-                    </TableCell>
-                    <TableCell>
+                    <td className="py-4 pr-4 first:pl-1">
                       <div className="flex items-center gap-2">
-                        <RoleBadge role={u.role} />
-                        {u.isPrimary && <Badge variant="accent">Primary</Badge>}
+                        <span className="font-medium text-[#001F00]">{u.name}</span>
+                        {u.isPrimary && (
+                          <span className="rounded-full bg-[#0B5000]/10 px-2 py-0.5 text-[11px] font-medium text-[#0B5000]">
+                            Primary
+                          </span>
+                        )}
+                        {!u.isActive && (
+                          <span className="rounded-full bg-[#E2E8F0] px-2 py-0.5 text-[11px] font-medium text-[#1E1E1E]/60">
+                            Inactive
+                          </span>
+                        )}
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      {u.isActive ? (
-                        <Badge variant="success">Active</Badge>
-                      ) : (
-                        <Badge variant="muted">Inactive</Badge>
-                      )}
-                      {u.forcePasswordChange && (
-                        <Badge variant="outline" className="ml-2">Pending setup</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
-                      {formatDate(u.createdAt)}
-                    </TableCell>
-                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                      <RowMenu
-                        user={u}
-                        actor={actor}
-                        onEdit={() => setEditing(u)}
-                        onDelete={() => setConfirmingDelete(u)}
-                      />
-                    </TableCell>
-                  </TableRow>
+                    </td>
+                    <td className="py-4 pr-4">
+                      <RolePill role={u.role} />
+                    </td>
+                    <td className="py-4 pr-4 text-sm text-[#1E1E1E]">{u.email}</td>
+                    <td className="py-4 pr-4 text-sm text-[#1E1E1E]">{formatDate(u.createdAt)}</td>
+                    <td className="py-4 text-right">
+                      <ChevronRight className="ml-auto h-5 w-5 text-[#1E1E1E]/60" aria-hidden />
+                    </td>
+                  </tr>
                 ))}
-              </TableBody>
-            </Table>
-            <div className="border-t border-border/60 px-4">
-              <Pagination page={page} limit={LIMIT} total={total} onChange={setPage} />
-            </div>
-          </>
-        )}
-      </div>
+              </tbody>
+            </table>
+          </div>
+          <Pagination page={page} limit={LIMIT} total={total} onChange={setPage} />
+        </>
+      )}
 
       <CreateUserDialog open={createOpen} onOpenChange={setCreateOpen} actor={actor} />
-      <EditUserSheet user={editing} onClose={() => setEditing(null)} actor={actor} />
-      <DeleteUserConfirm
-        user={confirmingDelete}
-        onClose={() => setConfirmingDelete(null)}
+      <EditUserSheet
+        user={editing}
+        onClose={() => setEditing(null)}
+        actor={actor}
+        onRequestDelete={(u) => {
+          setEditing(null);
+          setConfirmingDelete(u);
+        }}
       />
-    </>
+      <DeleteUserConfirm user={confirmingDelete} onClose={() => setConfirmingDelete(null)} />
+    </div>
   );
 }
 
-function RowMenu({ user, actor, onEdit, onDelete }) {
-  const resetPw = useResetUserPassword();
-  const { success, error: toastError } = useToast();
-  const isSelf = (user.id ?? user._id) === actor?.id;
+function RolePill({ role }) {
+  const meta = ROLE_PILL[role] ?? { label: ROLE_LABEL[role] ?? role, cls: 'bg-[#E2E8F0] text-[#1E1E1E]' };
+  return (
+    <span className={cn('inline-flex rounded-full px-4 py-1.5 text-sm font-medium', meta.cls)}>
+      {meta.label}
+    </span>
+  );
+}
 
-  async function handleResetPassword() {
-    try {
-      await resetPw.mutateAsync(user.id ?? user._id);
-      success('Reset email sent', `A temporary password was emailed to ${user.email}.`);
-    } catch (err) {
-      toastError(
-        "Couldn't reset password",
-        err instanceof ApiError ? err.message : 'Try again.',
-      );
-    }
-  }
-
+// Filter users by role. Trigger styled like the Figma filter button.
+function UserRoleFilter({ value, onChange }) {
+  const active = ROLE_PILL[value];
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="inline-flex h-9 w-9 items-center justify-center rounded-lg hover:bg-secondary cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-        <MoreHorizontal className="h-4 w-4" />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
-        <DropdownMenuItem onClick={onEdit}>Edit</DropdownMenuItem>
-        <DropdownMenuItem onClick={handleResetPassword}>
-          <KeyRound className="mr-2 h-4 w-4" /> Reset password
-        </DropdownMenuItem>
-        {!isSelf && !user.isPrimary && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive">
-              <Trash2 className="mr-2 h-4 w-4" /> Remove
-            </DropdownMenuItem>
-          </>
+      <DropdownMenuTrigger
+        className={cn(
+          'inline-flex items-center gap-2 rounded-[10px] border px-4 py-3.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          value
+            ? 'border-[#0B5000] text-[#0B5000]'
+            : 'border-[#B4B4B4] text-[#1E1E1E] hover:border-[#0B5000]',
         )}
+      >
+        <Filter className="h-5 w-5" aria-hidden />
+        {active && <span>{active.label}</span>}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-52">
+        <DropdownMenuLabel>Filter by role</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => onChange('')}>All roles</DropdownMenuItem>
+        {ROLE_OPTIONS.map((r) => (
+          <DropdownMenuItem key={r} onClick={() => onChange(r)}>
+            {ROLE_PILL[r]?.label ?? ROLE_LABEL[r]}
+          </DropdownMenuItem>
+        ))}
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
 
+// Field styles for the Figma Add-User modal (rounded-10, dark outline).
+const USER_FIELD =
+  'w-full rounded-[10px] border border-[#1E1E1E] px-5 py-3.5 text-base text-[#1E1E1E] outline-none transition-colors placeholder:text-[#1E1E1E]/55 focus:border-[#0B5000] disabled:opacity-60';
+const USER_TRIGGER =
+  'h-auto w-full rounded-[10px] border-[#1E1E1E] px-5 py-3.5 text-base text-[#1E1E1E] data-[placeholder]:text-[#1E1E1E]/55 focus:ring-0 focus:ring-offset-0';
+
+// Figma "Add User" — single-column modal. Wires to the same create-user
+// mutation, now also carrying an optional admin-set password + assigned site.
 function CreateUserDialog({ open, onOpenChange, actor }) {
   const create = useCreateUser();
   const { success, error: toastError } = useToast();
-  const [preferredSites, setPreferredSites] = useState([]);
+  const [assignSite, setAssignSite] = useState('');
   const {
     register,
     handleSubmit,
@@ -292,16 +291,20 @@ function CreateUserDialog({ open, onOpenChange, actor }) {
     reset,
     setValue,
     watch,
-  } = useForm({ defaultValues: { role: 'sponsor', gender: '' } });
+  } = useForm({ defaultValues: { role: '', gender: '' } });
   const role = watch('role');
   const gender = watch('gender');
 
   function resetAll() {
-    reset({ role: 'sponsor', gender: '' });
-    setPreferredSites([]);
+    reset({ role: '', gender: '' });
+    setAssignSite('');
   }
 
   async function onSubmit(values) {
+    if (!values.role) {
+      toastError('Pick a role', 'Choose a role for this user.');
+      return;
+    }
     try {
       const created = await create.mutateAsync({
         firstName: values.firstName.trim(),
@@ -311,17 +314,19 @@ function CreateUserDialog({ open, onOpenChange, actor }) {
         dob: values.dob || undefined,
         gender: values.gender || undefined,
         role: values.role,
-        preferredSites:
-          values.role === 'volunteer' && preferredSites.length ? preferredSites : undefined,
+        password: values.password?.trim() || undefined,
+        preferredSites: assignSite ? [assignSite] : undefined,
       });
-      success('User created', `A temp password was emailed to ${created.user.email}.`);
+      success(
+        'User created',
+        values.password?.trim()
+          ? 'They can sign in with the password you set.'
+          : `A temp password was emailed to ${created.user.email}.`,
+      );
       resetAll();
       onOpenChange(false);
     } catch (err) {
-      toastError(
-        "Couldn't create user",
-        err instanceof ApiError ? err.message : 'Try again.',
-      );
+      toastError("Couldn't create user", err instanceof ApiError ? err.message : 'Try again.');
     }
   }
 
@@ -335,184 +340,163 @@ function CreateUserDialog({ open, onOpenChange, actor }) {
         if (!o) resetAll();
       }}
     >
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Add a new user</DialogTitle>
-          <DialogDescription>
-            They'll receive an email with a temporary password and be asked to set their own on
-            first sign-in.
+      <DialogContent
+        className="w-[calc(100vw-1.5rem)] gap-5 rounded-[10px] sm:max-w-[640px]"
+        style={{ fontFamily: BODY_FONT }}
+      >
+        <DialogHeader className="gap-1.5">
+          <DialogTitle className="text-2xl font-medium text-[#001F00]" style={{ fontFamily: BODY_FONT }}>
+            Add User
+          </DialogTitle>
+          <DialogDescription className="text-base text-[#1E1E1E]/50">
+            Fill in all required details
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label htmlFor="firstName">First name</Label>
-              <Input
-                id="firstName"
+
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
+          <div className="grid grid-cols-2 gap-5">
+            <div>
+              <input
+                placeholder="First Name"
                 autoComplete="off"
                 disabled={create.isPending}
+                className={USER_FIELD}
                 {...register('firstName', { required: 'Required' })}
               />
-              {errors.firstName && (
-                <p className="text-xs text-destructive">{errors.firstName.message}</p>
-              )}
+              {errors.firstName && <p className="mt-1 text-xs text-destructive">{errors.firstName.message}</p>}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="lastName">Last name</Label>
-              <Input
-                id="lastName"
+            <div>
+              <input
+                placeholder="Last Name"
                 autoComplete="off"
                 disabled={create.isPending}
+                className={USER_FIELD}
                 {...register('lastName', { required: 'Required' })}
               />
-              {errors.lastName && (
-                <p className="text-xs text-destructive">{errors.lastName.message}</p>
-              )}
+              {errors.lastName && <p className="mt-1 text-xs text-destructive">{errors.lastName.message}</p>}
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
+          <div className="grid grid-cols-2 gap-5">
+            <input
+              type="date"
+              title="Date of birth"
+              disabled={create.isPending}
+              className={USER_FIELD}
+              {...register('dob')}
+            />
+            <Select value={gender || undefined} onValueChange={(v) => setValue('gender', v)}>
+              <SelectTrigger className={USER_TRIGGER}>
+                <SelectValue placeholder="Gender" />
+              </SelectTrigger>
+              <SelectContent>
+                {GENDER_OPTIONS.map((g) => (
+                  <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <input
               type="email"
+              placeholder="Email ID"
               autoComplete="off"
               disabled={create.isPending}
+              className={USER_FIELD}
               {...register('email', {
                 required: 'Required',
                 pattern: { value: /\S+@\S+\.\S+/, message: 'Enter a valid email' },
               })}
             />
-            {errors.email && (
-              <p className="text-xs text-destructive">{errors.email.message}</p>
-            )}
+            {errors.email && <p className="mt-1 text-xs text-destructive">{errors.email.message}</p>}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label htmlFor="dob">Date of birth</Label>
-              <Input id="dob" type="date" disabled={create.isPending} {...register('dob')} />
-            </div>
-            <div className="space-y-2">
-              <Label>Gender</Label>
-              <Select value={gender || undefined} onValueChange={(v) => setValue('gender', v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select…" />
-                </SelectTrigger>
-                <SelectContent>
-                  {GENDER_OPTIONS.map((g) => (
-                    <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="phone">
-              Phone {role === 'sponsor' ? '' : '(optional)'}
-            </Label>
-            <Input
-              id="phone"
+          <div>
+            <input
+              placeholder={`Phone Number${role === 'sponsor' ? '' : ' (optional)'}`}
               disabled={create.isPending}
+              className={USER_FIELD}
               {...register('phone', {
                 required: role === 'sponsor' ? 'Phone is required for sponsors' : false,
               })}
             />
-            {errors.phone && (
-              <p className="text-xs text-destructive">{errors.phone.message}</p>
-            )}
+            {errors.phone && <p className="mt-1 text-xs text-destructive">{errors.phone.message}</p>}
           </div>
 
-          <div className="space-y-2">
-            <Label>Role</Label>
-            <Select value={role} onValueChange={(v) => setValue('role', v)}>
-              <SelectTrigger>
-                <SelectValue />
+          <div>
+            <input
+              type="password"
+              placeholder="Create Password (optional — else we email one)"
+              autoComplete="new-password"
+              disabled={create.isPending}
+              className={USER_FIELD}
+              {...register('password', {
+                minLength: { value: 8, message: 'At least 8 characters' },
+              })}
+            />
+            {errors.password && <p className="mt-1 text-xs text-destructive">{errors.password.message}</p>}
+          </div>
+
+          <div className="grid grid-cols-2 gap-5">
+            <Select value={role || undefined} onValueChange={(v) => setValue('role', v)}>
+              <SelectTrigger className={USER_TRIGGER}>
+                <SelectValue placeholder="Assign Role" />
               </SelectTrigger>
               <SelectContent>
                 {ROLE_OPTIONS.filter((r) => r !== 'ngo_admin' || canCreateNgoAdmin).map((r) => (
-                  <SelectItem key={r} value={r}>{ROLE_LABEL[r]}</SelectItem>
+                  <SelectItem key={r} value={r}>{ROLE_PILL[r]?.label ?? ROLE_LABEL[r]}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            {!canCreateNgoAdmin && (
-              <p className="text-xs text-muted-foreground">
-                Only the primary NGO admin can add other NGO admins.
-              </p>
-            )}
+            <UserSiteSelect value={assignSite} onChange={setAssignSite} disabled={create.isPending} />
           </div>
 
-          {role === 'volunteer' && (
-            <PreferredSitesPicker
-              value={preferredSites}
-              onChange={setPreferredSites}
-              disabled={create.isPending}
-            />
+          {!canCreateNgoAdmin && (
+            <p className="text-xs text-[#1E1E1E]/50">
+              Only the primary NGO admin can add other NGO admins.
+            </p>
           )}
 
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => onOpenChange(false)}
-              disabled={create.isPending}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={create.isPending}>
-              {create.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-              Add user
-            </Button>
-          </DialogFooter>
+          <button
+            type="submit"
+            disabled={create.isPending}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] bg-[#346EC4] px-5 py-4 text-base font-semibold text-white transition-colors hover:bg-[#2c5da6] disabled:opacity-70"
+          >
+            {create.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+            Add User
+          </button>
         </form>
       </DialogContent>
     </Dialog>
   );
 }
 
-function PreferredSitesPicker({ value, onChange, disabled }) {
+// Single-site picker for "Assign Site".
+function UserSiteSelect({ value, onChange, disabled }) {
   const { data, isLoading } = useSites({ limit: 200 });
   const sites = data?.items ?? [];
-  function toggle(id) {
-    onChange(value.includes(id) ? value.filter((s) => s !== id) : [...value, id]);
-  }
   return (
-    <div className="space-y-2">
-      <Label>
-        Preferred site(s) <span className="font-normal text-muted-foreground">(optional)</span>
-      </Label>
-      <div className="max-h-40 overflow-y-auto rounded-xl border border-border/60 bg-secondary/30 p-2 space-y-1">
-        {isLoading ? (
-          <p className="px-2 py-1.5 text-xs text-muted-foreground">Loading sites…</p>
-        ) : sites.length === 0 ? (
-          <p className="px-2 py-1.5 text-xs text-muted-foreground">No sites yet.</p>
+    <Select value={value || undefined} onValueChange={onChange} disabled={disabled || isLoading}>
+      <SelectTrigger className={USER_TRIGGER}>
+        <SelectValue placeholder={isLoading ? 'Loading…' : 'Assign Site'} />
+      </SelectTrigger>
+      <SelectContent>
+        {sites.length === 0 && !isLoading ? (
+          <div className="px-3 py-6 text-center text-sm text-muted-foreground">No sites yet.</div>
         ) : (
-          sites.map((s) => {
-            const id = s.id ?? s._id;
-            return (
-              <label
-                key={id}
-                className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-secondary"
-              >
-                <input
-                  type="checkbox"
-                  checked={value.includes(id)}
-                  disabled={disabled}
-                  onChange={() => toggle(id)}
-                  className="h-4 w-4 rounded border-border accent-primary"
-                />
-                <span className="truncate">{s.name}</span>
-              </label>
-            );
-          })
+          sites.map((s) => (
+            <SelectItem key={s.id ?? s._id} value={s.id ?? s._id}>
+              {s.name}
+            </SelectItem>
+          ))
         )}
-      </div>
-    </div>
+      </SelectContent>
+    </Select>
   );
 }
 
-function EditUserSheet({ user, onClose, actor }) {
+function EditUserSheet({ user, onClose, actor, onRequestDelete }) {
   const update = useUpdateUser();
   const resetPw = useResetUserPassword();
   const { success, error: toastError } = useToast();
@@ -600,13 +584,15 @@ function EditUserSheet({ user, onClose, actor }) {
         }
       }}
     >
-      <SheetContent side="right" className="sm:max-w-md flex flex-col">
+      <SheetContent side="right" className="flex flex-col sm:max-w-xl" style={{ fontFamily: BODY_FONT }}>
         <SheetHeader>
-          <SheetTitle>Edit user</SheetTitle>
-          <SheetDescription>{user.email}</SheetDescription>
+          <SheetTitle className="text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>
+            Edit user
+          </SheetTitle>
+          <SheetDescription className="text-[#1E1E1E]/50">{user.email}</SheetDescription>
         </SheetHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="flex-1 space-y-5 mt-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="mt-6 -mx-2 flex-1 space-y-5 overflow-y-auto px-2">
           <UserSummary user={user} />
 
           <div className="grid grid-cols-2 gap-3">
@@ -647,8 +633,8 @@ function EditUserSheet({ user, onClose, actor }) {
             <Input id="edit-phone" disabled={update.isPending} {...register('phone')} />
           </div>
 
-          <div className="rounded-2xl border border-border/60 bg-secondary/40 p-4 space-y-3">
-            <div className="text-sm font-medium text-foreground">Account actions</div>
+          <div className="space-y-3 rounded-[10px] border border-[#E2E8F0] bg-[#F6FAF6] p-4">
+            <div className="text-sm font-medium text-[#001F00]">Account actions</div>
             <Button
               type="button"
               variant="outline"
@@ -672,6 +658,17 @@ function EditUserSheet({ user, onClose, actor }) {
                 <UserX className="h-4 w-4" /> {user.isActive ? 'Deactivate' : 'Reactivate'}
               </Button>
             )}
+            {!isSelf && !user.isPrimary && onRequestDelete && (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-start text-destructive hover:text-destructive"
+                onClick={() => onRequestDelete(user)}
+                disabled={update.isPending}
+              >
+                <Trash2 className="h-4 w-4" /> Remove user
+              </Button>
+            )}
           </div>
 
           <SheetFooter className="pt-2">
@@ -691,31 +688,36 @@ function EditUserSheet({ user, onClose, actor }) {
 
 function UserSummary({ user }) {
   return (
-    <div className="bento-card p-4 space-y-2 surface-biophilic">
-      <div className="flex items-center gap-2">
-        <RoleBadge role={user.role} />
-        {user.isPrimary && <Badge variant="accent">Primary</Badge>}
-        {!user.isActive && <Badge variant="muted">Inactive</Badge>}
+    <div className="space-y-2 rounded-[10px] border border-[#E2E8F0] bg-[#F6FAF6] p-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <RolePill role={user.role} />
+        {user.isPrimary && (
+          <span className="rounded-full bg-[#0B5000]/10 px-2.5 py-0.5 text-[11px] font-medium text-[#0B5000]">
+            Primary
+          </span>
+        )}
+        {!user.isActive && (
+          <span className="rounded-full bg-[#E2E8F0] px-2.5 py-0.5 text-[11px] font-medium text-[#1E1E1E]/60">
+            Inactive
+          </span>
+        )}
       </div>
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      <div className="flex items-center gap-2 text-sm text-[#1E1E1E]/70">
         <Mail className="h-3.5 w-3.5" aria-hidden />
         {user.email}
       </div>
       {user.phone && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2 text-sm text-[#1E1E1E]/70">
           <Phone className="h-3.5 w-3.5" aria-hidden />
           {user.phone}
         </div>
       )}
       {user.createdBy && typeof user.createdBy === 'object' && user.createdBy.name && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2 text-sm text-[#1E1E1E]/70">
           <UserPlus className="h-3.5 w-3.5" aria-hidden />
-          Added by{' '}
-          <span className="text-foreground font-medium">{user.createdBy.name}</span>
+          Added by <span className="font-medium text-[#001F00]">{user.createdBy.name}</span>
           {user.createdBy.role && (
-            <span className="text-muted-foreground/70">
-              ({user.createdBy.role.replace('_', ' ')})
-            </span>
+            <span className="text-[#1E1E1E]/50">({user.createdBy.role.replace('_', ' ')})</span>
           )}
         </div>
       )}

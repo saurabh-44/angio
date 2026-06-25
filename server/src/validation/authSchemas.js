@@ -19,6 +19,16 @@ export const registerSchema = z.object({
   gender: z.enum(GENDERS).optional(),
 });
 
+// Self-service profile edit. Only the safe fields a user owns — never role,
+// email, or phone (those are login identifiers / verification anchors).
+export const updateProfileSchema = z.object({
+  firstName: personName.optional(),
+  lastName: personName.optional(),
+  dob: z.coerce.date().nullable().optional(),
+  gender: z.enum(GENDERS).nullable().optional(),
+  avatarUrl: z.string().url().max(500).nullable().optional(),
+});
+
 // Login accepts either an email or a phone number as the identifier.
 export const loginSchema = z.object({
   identifier: z.string().trim().min(1, 'Email or phone is required'),

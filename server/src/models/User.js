@@ -41,6 +41,8 @@ const userSchema = new Schema(
     // Saved billing address — set when a sponsor opts to "save for next
     // time" during the order flow. Optional.
     address: { type: addressSchema },
+    // Profile picture (Cloudinary secure URL). Optional.
+    avatarUrl: { type: String, trim: true },
     phone: { type: String, trim: true, maxlength: 32 },
     role: { type: String, enum: ROLES, required: true, index: true },
 

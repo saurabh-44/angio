@@ -19,6 +19,9 @@ export const createUserSchema = z.object({
   role: z.enum(ROLES),
   // Volunteer's preferred site(s) at registration — optional, admin-set.
   preferredSites: z.array(objectId).max(50).optional(),
+  // Optional admin-set password. When provided we use it and skip the
+  // temp-password email; when omitted we fall back to emailing a temp one.
+  password: z.string().min(8, 'Password must be at least 8 characters').max(128).optional(),
 });
 
 export const updateUserSchema = z.object({
