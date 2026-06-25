@@ -170,7 +170,7 @@ export default function DonationsPage() {
         </div>
       ) : (
         <>
-          <div className="mt-7 overflow-x-auto">
+          <div className="mt-7 hidden overflow-x-auto lg:block">
             <table className="w-full min-w-[880px] border-collapse">
               <thead>
                 <tr>
@@ -209,6 +209,40 @@ export default function DonationsPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile cards (below lg) */}
+          <div className="mt-7 space-y-3 lg:hidden">
+            {items.map((d) => (
+              <button
+                key={d.id ?? d._id}
+                type="button"
+                onClick={() => setOpenDonation(d)}
+                className="w-full rounded-[10px] border border-[#E2E8F0] p-4 text-left transition-colors hover:border-[#001F00]/40"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="font-medium text-[#001F00]">{d.donor?.name ?? '—'}</div>
+                    <div className="mt-0.5 truncate text-xs text-[#1E1E1E]/50">
+                      {d.donor?.email ?? ''}
+                    </div>
+                  </div>
+                  <div className="text-base font-semibold text-[#001F00]">
+                    {formatAmount(d.amount)}
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <MethodPill method={d.method} />
+                  <StatusPill status={d.status} />
+                </div>
+                <div className="mt-3 flex items-center justify-between gap-3">
+                  <span className="text-xs text-[#1E1E1E]/50">
+                    Paid {formatDate(d.paidAt)} · Recorded {formatDate(d.createdAt)}
+                  </span>
+                  <span className="shrink-0 text-sm font-medium text-[#0B5000]">Manage →</span>
+                </div>
+              </button>
+            ))}
           </div>
           <Pagination page={page} limit={LIMIT} total={total} onChange={setPage} />
         </>

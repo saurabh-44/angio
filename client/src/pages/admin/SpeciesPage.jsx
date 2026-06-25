@@ -129,7 +129,7 @@ export default function SpeciesPage() {
         </div>
       ) : (
         <>
-          <div className="mt-7 overflow-x-auto">
+          <div className="mt-7 hidden overflow-x-auto lg:block">
             <table className="w-full min-w-[760px] border-collapse">
               <thead>
                 <tr>
@@ -182,6 +182,42 @@ export default function SpeciesPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile cards (below lg) */}
+          <div className="mt-7 space-y-3 lg:hidden">
+            {items.map((s) => (
+              <button
+                key={s.id ?? s._id}
+                type="button"
+                onClick={() => setEditing(s)}
+                className="flex w-full items-center justify-between gap-3 rounded-[10px] border border-[#E2E8F0] p-4 text-left transition-colors hover:border-[#001F00]/40"
+              >
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium text-[#001F00]">{s.name}</span>
+                    <span
+                      className={cn(
+                        'inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-medium',
+                        s.isActive ? 'bg-[#0B5000]/10 text-[#0B5000]' : 'bg-[#E2E8F0] text-[#1E1E1E]/60',
+                      )}
+                    >
+                      {s.isActive ? 'Active' : 'Archived'}
+                    </span>
+                  </div>
+                  {s.scientificName && (
+                    <div className="mt-0.5 truncate text-xs italic text-[#1E1E1E]/50">
+                      {s.scientificName}
+                    </div>
+                  )}
+                  <div className="mt-1 text-xs text-[#1E1E1E]/60">
+                    {s.co2PerYearKg != null ? `${s.co2PerYearKg} kg CO₂/yr` : 'Default rate'} · Added{' '}
+                    {formatDate(s.createdAt)}
+                  </div>
+                </div>
+                <ChevronRight className="h-5 w-5 shrink-0 text-[#1E1E1E]/40" aria-hidden />
+              </button>
+            ))}
           </div>
           <Pagination page={page} limit={LIMIT} total={total} onChange={setPage} />
         </>

@@ -2,10 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { Loader2, MailCheck } from 'lucide-react';
-import AuthShell, { AuthFooterLink } from '@/components/AuthShell.jsx';
-import { Button } from '@/components/ui/button.jsx';
-import { Input } from '@/components/ui/input.jsx';
-import { Label } from '@/components/ui/label.jsx';
+import { Field, GlassAuthScreen } from '@/components/GlassAuthScreen.jsx';
 import { api, ApiError } from '@/lib/api.js';
 import { useToast } from '@/components/ui/toast.jsx';
 
@@ -35,38 +32,39 @@ export default function ForgotPassword() {
   if (sentEmail) return null;
 
   return (
-    <AuthShell
+    <GlassAuthScreen
       title="Reset password"
       subtitle="Enter the email on your Environ account. We'll send you a 6-digit code."
-      footer={
-        <AuthFooterLink to="/login" prefix="Remember it?" label="Back to sign in" />
-      }
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            autoComplete="email"
-            placeholder="you@example.org"
-            disabled={isSubmitting}
-            aria-invalid={errors.email ? 'true' : 'false'}
-            {...register('email', {
-              required: 'Email is required',
-              pattern: { value: /\S+@\S+\.\S+/, message: 'Enter a valid email' },
-            })}
-          />
-          {errors.email && (
-            <p className="text-xs text-destructive">{errors.email.message}</p>
-          )}
-        </div>
+      <form onSubmit={handleSubmit(onSubmit)} className="mt-14 sm:mt-20" noValidate>
+        <Field
+          type="email"
+          autoComplete="email"
+          placeholder="Email ID"
+          disabled={isSubmitting}
+          error={errors.email}
+          {...register('email', {
+            required: 'Email is required',
+            pattern: { value: /\S+@\S+\.\S+/, message: 'Enter a valid email' },
+          })}
+        />
 
-        <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="mt-10 inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/40 bg-white/25 py-4 text-base font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/35 disabled:opacity-60"
+        >
           {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <MailCheck className="h-4 w-4" />}
           Send reset code
-        </Button>
+        </button>
+
+        <p className="mt-6 text-center text-sm">
+          Remember it?{' '}
+          <Link to="/login" className="font-semibold text-white underline underline-offset-4">
+            Back to sign in
+          </Link>
+        </p>
       </form>
-    </AuthShell>
+    </GlassAuthScreen>
   );
 }
