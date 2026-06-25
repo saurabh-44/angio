@@ -189,9 +189,7 @@ export default function SitesPage() {
               <SiteCard
                 key={s.id ?? s._id}
                 site={s}
-                onOpen={() =>
-                  canCreate ? navigate(`/admin/sites/${s.id ?? s._id}`) : setEditing(s)
-                }
+                onOpen={() => navigate(`${s.id ?? s._id}`)}
                 onEdit={() => setEditing(s)}
                 onPrintQr={() => printQrSheet(s)}
                 onDelete={canDelete ? () => setConfirmingDelete(s) : null}

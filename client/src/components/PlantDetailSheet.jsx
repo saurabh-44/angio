@@ -1,4 +1,15 @@
-import { Camera, Download, Eye, ExternalLink, Leaf, MapPin, QrCode, Ruler, Sprout, Stethoscope } from 'lucide-react';
+import {
+  Camera,
+  Download,
+  ExternalLink,
+  Eye,
+  Leaf,
+  MapPin,
+  QrCode,
+  Ruler,
+  Sprout,
+  Stethoscope,
+} from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -6,15 +17,57 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet.jsx';
-import { Badge } from '@/components/ui/badge.jsx';
-import { Button } from '@/components/ui/button.jsx';
-import PlantStatusBadge from './PlantStatusBadge.jsx';
-import HealthBadge from './HealthBadge.jsx';
+import PlantLocationMap from './PlantLocationMap.jsx';
 import { useMaintenance } from '@/queries/maintenance.js';
 import { formatDate, formatDbh, formatGeo, formatHeight, formatRelative } from '@/lib/format.js';
+import { cn } from '@/lib/utils';
+import { BODY_FONT, HEADING_FONT } from '@/components/GlassAuthScreen.jsx';
 
-// Shared detail panel for a plant. Used by admin, site_owner, donor,
-// and volunteer views — the data they see is filtered server-side.
+const PLANT_STATUS = {
+  alive: 'bg-[#0B5000]/10 text-[#0B5000]',
+  dead: 'bg-red-100 text-red-700',
+  removed: 'bg-[#E2E8F0] text-[#1E1E1E]',
+};
+const HEALTH = {
+  healthy: 'bg-[#0B5000]/10 text-[#0B5000]',
+  at_risk: 'bg-amber-100 text-amber-700',
+  diseased: 'bg-red-100 text-red-700',
+  dead: 'bg-red-100 text-red-700',
+};
+
+function humanize(s) {
+  return s ? String(s).replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : '';
+}
+
+function Pill({ value, palette }) {
+  if (!value) return null;
+  return (
+    <span
+      className={cn(
+        'inline-flex rounded-full px-3 py-1 text-xs font-medium',
+        palette[value] ?? 'bg-[#E2E8F0] text-[#1E1E1E]',
+      )}
+    >
+      {humanize(value)}
+    </span>
+  );
+}
+
+function DetailCard({ icon: Icon, label, children }) {
+  return (
+    <div className="rounded-[10px] border border-[#E2E8F0] p-3.5">
+      <div className="flex items-center gap-1.5 text-xs text-[#1E1E1E]/50">
+        <Icon className="h-3.5 w-3.5" aria-hidden />
+        {label}
+      </div>
+      <div className="mt-1 text-sm text-[#001F00]">{children}</div>
+    </div>
+  );
+}
+
+// Shared plant detail — used by admin + site_owner Plants and the map popup.
+// The tree's location map, QR, and weekly maintenance are all folded in here
+// (the Map + Maintenance panels were consolidated into this drawer).
 export default function PlantDetailSheet({ plant, onClose }) {
   const open = !!plant;
   const id = plant?.id ?? plant?._id;
@@ -25,73 +78,86 @@ export default function PlantDetailSheet({ plant, onClose }) {
 
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent side="right" className="sm:max-w-xl flex flex-col">
+      <SheetContent side="right" className="flex flex-col sm:max-w-xl" style={{ fontFamily: BODY_FONT }}>
         <SheetHeader>
-          <SheetTitle>{plant.name ?? plant.species ?? 'Tree'}</SheetTitle>
-          <SheetDescription>
+          <SheetTitle className="text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>
+            {plant.name ?? plant.species ?? 'Tree'}
+          </SheetTitle>
+          <SheetDescription className="text-[#1E1E1E]/50">
             Planted {formatDate(plant.plantedAt)}
             {plant.plantedBy?.name && <> by {plant.plantedBy.name}</>}
           </SheetDescription>
         </SheetHeader>
 
-        <div className="mt-6 flex-1 overflow-y-auto pr-1 space-y-5">
+        <div className="-mx-2 mt-6 flex-1 space-y-6 overflow-y-auto px-2">
           {plant.plantingPhoto?.url && (
-            <div className="rounded-2xl overflow-hidden border border-border/60">
+            <div className="overflow-hidden rounded-[10px] border border-[#E2E8F0]">
               <img
                 src={plant.plantingPhoto.url}
-                alt={`Planting photo of ${plant.species ?? 'tree'}`}
-                className="w-full aspect-video object-cover"
+                alt="Planting"
+                className="aspect-video w-full object-cover"
               />
             </div>
           )}
 
-          <div className="flex flex-wrap gap-2">
-            <PlantStatusBadge status={plant.status} />
-            <Badge variant="muted">{plant.site?.name ?? 'Site'}</Badge>
+          <div className="flex flex-wrap items-center gap-2">
+            <Pill value={plant.status} palette={PLANT_STATUS} />
+            {plant.site?.name && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E2E8F0] px-3 py-1 text-xs text-[#1E1E1E]">
+                <MapPin className="h-3 w-3" aria-hidden /> {plant.site.name}
+              </span>
+            )}
             {plant.allocation?.targetPlants && (
-              <Badge variant="outline">Allocation: {plant.allocation.targetPlants} target</Badge>
+              <span className="inline-flex rounded-full bg-[#0B5000]/10 px-3 py-1 text-xs font-medium text-[#0B5000]">
+                Allocation: {plant.allocation.targetPlants} target
+              </span>
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <DetailRow icon={MapPin} label="GPS">
-              <span className="font-mono text-xs">{formatGeo(plant.geo)}</span>
-              {plant.geo && (
+          {/* Location map */}
+          {plant.geo?.lat != null && (
+            <div className="space-y-2">
+              <PlantLocationMap geo={plant.geo} status={plant.status} />
+              <div className="flex items-center justify-between gap-2 text-xs">
+                <span className="font-mono text-[#1E1E1E]/60">{formatGeo(plant.geo)}</span>
                 <a
                   href={`https://maps.google.com/?q=${plant.geo.lat},${plant.geo.lng}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="ml-2 inline-flex items-center gap-0.5 text-xs text-primary hover:underline"
+                  className="inline-flex items-center gap-0.5 font-medium text-[#0B5000] hover:underline"
                 >
-                  Open <ExternalLink className="h-3 w-3" />
+                  Open in Maps <ExternalLink className="h-3 w-3" />
                 </a>
-              )}
-            </DetailRow>
-            <DetailRow icon={Leaf} label="Species">
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
+            <DetailCard icon={Leaf} label="Species">
               {plant.species ?? 'Unspecified'}
-            </DetailRow>
-            <DetailRow icon={Sprout} label="Age">
-              {ageFromPlantedAt(plant.plantedAt) ?? '—'}
-            </DetailRow>
+            </DetailCard>
+            <DetailCard icon={Sprout} label="Age">
+              {ageFromPlantedAt(plant.plantedAt)}
+            </DetailCard>
             {plant.heightCm != null && (
-              <DetailRow icon={Ruler} label="Height">
+              <DetailCard icon={Ruler} label="Height">
                 {formatHeight(plant.heightCm)}
-              </DetailRow>
+              </DetailCard>
             )}
             {plant.growthStage && (
-              <DetailRow icon={Leaf} label="Growth stage">
+              <DetailCard icon={Leaf} label="Growth stage">
                 <span className="capitalize">{plant.growthStage}</span>
-              </DetailRow>
+              </DetailCard>
             )}
             {plant.dryBiomassKg != null && (
-              <DetailRow icon={Leaf} label="Dry biomass">
+              <DetailCard icon={Leaf} label="Dry biomass">
                 {plant.dryBiomassKg} kg
-              </DetailRow>
+              </DetailCard>
             )}
           </div>
 
           {plant.notes && (
-            <div className="rounded-2xl border border-border/60 bg-secondary/40 p-4 text-sm">
+            <div className="rounded-[10px] border border-[#E2E8F0] bg-[#F6FAF6] p-4 text-sm text-[#001F00]">
               {plant.notes}
             </div>
           )}
@@ -105,61 +171,61 @@ export default function PlantDetailSheet({ plant, onClose }) {
 
           <LatestMeasurements logs={logs} />
 
+          {/* Maintenance */}
           <section>
-            <h3 className="font-heading text-sm font-semibold text-foreground mb-2">
+            <h3 className="text-sm font-medium uppercase tracking-widest text-[#1E1E1E]/50">
               Maintenance history
             </h3>
             {isLoading ? (
-              <div className="text-sm text-muted-foreground">Loading logs…</div>
+              <p className="mt-3 text-sm text-[#1E1E1E]/50">Loading logs…</p>
             ) : logs.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-border/80 p-6 text-center text-sm text-muted-foreground">
+              <p className="mt-3 rounded-[10px] border border-dashed border-[#E2E8F0] p-6 text-center text-sm text-[#1E1E1E]/50">
                 No watering logs yet for this tree.
-              </div>
+              </p>
             ) : (
-              <ul className="space-y-3">
+              <ul className="mt-3 space-y-3">
                 {logs.map((log) => (
                   <li
                     key={log.id ?? log._id}
-                    className="bento-card overflow-hidden flex sm:flex-row flex-col"
+                    className="flex flex-col overflow-hidden rounded-[10px] border border-[#E2E8F0] sm:flex-row"
                   >
                     {log.photo?.url && (
                       <img
                         src={log.photo.url}
-                        alt="Maintenance photo"
-                        className="sm:w-40 w-full aspect-video sm:aspect-square object-cover"
+                        alt="Maintenance"
+                        className="aspect-video w-full object-cover sm:aspect-square sm:w-40"
                       />
                     )}
-                    <div className="p-4 flex-1 space-y-1.5">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <Camera className="h-4 w-4 text-primary" aria-hidden />
-                        <span className="font-medium text-sm text-foreground">
+                    <div className="flex-1 space-y-1.5 p-4">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Camera className="h-4 w-4 text-[#0B5000]" aria-hidden />
+                        <span className="text-sm font-medium text-[#001F00]">
                           Week of {formatDate(log.weekOf)}
                         </span>
-                        <HealthBadge status={log.healthStatus} />
+                        <Pill value={log.healthStatus} palette={HEALTH} />
                       </div>
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-xs text-[#1E1E1E]/50">
                         Logged {formatRelative(log.createdAt)}
                         {log.volunteer?.name && <> by {log.volunteer.name}</>}
                       </div>
                       {(log.heightCm != null || log.dbhCm != null) && (
-                        <div className="flex flex-wrap gap-2 text-xs pt-0.5">
+                        <div className="flex flex-wrap gap-2 pt-0.5 text-xs">
                           {log.heightCm != null && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-leaf-50 border border-leaf-100 px-2 py-0.5 text-leaf-700 font-medium">
-                              <Ruler className="h-3 w-3" aria-hidden />
-                              {formatHeight(log.heightCm)}
+                            <span className="inline-flex items-center gap-1 rounded-full bg-[#0B5000]/10 px-2 py-0.5 font-medium text-[#0B5000]">
+                              <Ruler className="h-3 w-3" aria-hidden /> {formatHeight(log.heightCm)}
                             </span>
                           )}
                           {log.dbhCm != null && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-secondary border border-border/60 px-2 py-0.5 text-secondary-foreground font-medium">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-[#E2E8F0] px-2 py-0.5 font-medium text-[#1E1E1E]">
                               ⌀ {formatDbh(log.dbhCm)}
                             </span>
                           )}
                         </div>
                       )}
-                      {log.note && <p className="text-sm text-foreground mt-1">{log.note}</p>}
+                      {log.note && <p className="mt-1 text-sm text-[#001F00]">{log.note}</p>}
                       {log.diseaseNotes && (
-                        <p className="text-xs text-destructive mt-1 inline-flex items-start gap-1">
-                          <Stethoscope className="h-3 w-3 mt-0.5 shrink-0" aria-hidden />
+                        <p className="mt-1 inline-flex items-start gap-1 text-xs text-destructive">
+                          <Stethoscope className="mt-0.5 h-3 w-3 shrink-0" aria-hidden />
                           {log.diseaseNotes}
                         </p>
                       )}
@@ -175,9 +241,7 @@ export default function PlantDetailSheet({ plant, onClose }) {
   );
 }
 
-// Pulls the most recent recorded measurement out of the maintenance
-// history. We scan log-by-log because the volunteer may have skipped a
-// reading on the last visit while recording one the week before.
+// Pulls the most recent recorded measurement out of the maintenance history.
 function LatestMeasurements({ logs }) {
   if (!logs || logs.length === 0) return null;
   const latest = {
@@ -187,8 +251,8 @@ function LatestMeasurements({ logs }) {
   };
   if (!latest.height && !latest.dbh && !latest.health) return null;
   return (
-    <section className="bento-card surface-biophilic p-4 sm:p-5">
-      <div className="inline-flex items-center gap-1.5 text-xs uppercase tracking-widest text-primary font-medium mb-3">
+    <section className="rounded-[10px] border border-[#E2E8F0] bg-[#F6FAF6] p-4 sm:p-5">
+      <div className="mb-3 inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-widest text-[#0B5000]">
         <Ruler className="h-3 w-3" aria-hidden /> Latest measurements
       </div>
       <div className="grid grid-cols-3 gap-3">
@@ -205,7 +269,7 @@ function LatestMeasurements({ logs }) {
         <MetricCell
           label="Health"
           value={latest.health?.healthStatus ? null : '—'}
-          badge={<HealthBadge status={latest.health?.healthStatus} />}
+          badge={<Pill value={latest.health?.healthStatus} palette={HEALTH} />}
           when={latest.health?.weekOf}
         />
       </div>
@@ -215,26 +279,17 @@ function LatestMeasurements({ logs }) {
 
 function MetricCell({ label, value, badge, when }) {
   return (
-    <div className="rounded-xl bg-card/60 backdrop-blur p-3 border border-border/60">
-      <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</div>
-      <div className="mt-1.5 font-heading text-base font-bold text-foreground">
-        {value ?? badge}
-      </div>
-      {when && (
-        <div className="mt-1 text-[10px] text-muted-foreground/80">
-          as of {formatDate(when)}
-        </div>
-      )}
+    <div className="rounded-[10px] border border-[#E2E8F0] bg-white p-3">
+      <div className="text-[10px] uppercase tracking-widest text-[#1E1E1E]/50">{label}</div>
+      <div className="mt-1.5 text-base font-bold text-[#001F00]">{value ?? badge}</div>
+      {when && <div className="mt-1 text-[10px] text-[#1E1E1E]/45">as of {formatDate(when)}</div>}
     </div>
   );
 }
 
-// "Age of the plant" — derived client-side from plantedAt (the server's
-// list/detail reads are .lean(), which skip the model's ageDays virtual).
 function ageFromPlantedAt(plantedAt) {
-  if (!plantedAt) return null;
-  const ms = Date.now() - new Date(plantedAt).getTime();
-  const days = Math.floor(ms / 86400000);
+  if (!plantedAt) return '—';
+  const days = Math.floor((Date.now() - new Date(plantedAt).getTime()) / 86400000);
   if (days <= 0) return 'Today';
   if (days < 30) return `${days} day${days === 1 ? '' : 's'}`;
   const months = Math.floor(days / 30);
@@ -242,69 +297,54 @@ function ageFromPlantedAt(plantedAt) {
   return `${(days / 365.25).toFixed(1)} years`;
 }
 
-function DetailRow({ icon: Icon, label, children }) {
-  return (
-    <div className="rounded-2xl border border-border/60 p-3">
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <Icon className="h-3.5 w-3.5" aria-hidden />
-        {label}
-      </div>
-      <div className="mt-1 text-sm text-foreground">{children}</div>
-    </div>
-  );
-}
-
-// The tree's QR sticker. The PNG is rendered inline (cookies travel
-// with the <img> tag because /api/* is same-origin via the Vite proxy)
-// and the buttons let users save it for printing or open the public
-// verification page in a new tab.
+// The tree's QR sticker — render the PNG inline + download / preview links.
 function QrSection({ plantId, publicCode, scanCount, lastScannedAt }) {
   if (!plantId) return null;
-  const pngUrl = `/api/plants/${plantId}/qr.png?size=400`;
-  const downloadUrl = `/api/plants/${plantId}/qr.png?size=1024`;
-  const publicUrl = publicCode ? `/tree/${publicCode}` : null;
-  const hasScans = (scanCount ?? 0) > 0;
   return (
-    <section className="bento-card p-4 sm:p-5">
+    <section className="rounded-[10px] border border-[#E2E8F0] p-5">
       <div className="flex items-start gap-4">
-        <div className="rounded-xl bg-white p-2 shrink-0 shadow-soft border border-border/60">
+        <div className="shrink-0 rounded-[10px] border border-[#E2E8F0] bg-white p-2">
           <img
-            src={pngUrl}
-            alt="QR code for this tree"
+            src={`/api/plants/${plantId}/qr.png?size=400`}
+            alt="Tree QR code"
             width={120}
             height={120}
-            className="block h-30 w-30 sm:h-32 sm:w-32"
+            className="block h-28 w-28"
             loading="lazy"
           />
         </div>
-        <div className="flex-1 min-w-0 space-y-2">
-          <div className="inline-flex items-center gap-1.5 text-xs uppercase tracking-widest text-primary font-medium">
+        <div className="min-w-0 flex-1 space-y-2">
+          <div className="inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-widest text-[#0B5000]">
             <QrCode className="h-3 w-3" aria-hidden /> Tree QR
           </div>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            Print this and stick it on the tree. Anyone who scans it sees the planting photo,
-            GPS, and weekly maintenance — no app or login required.
+          <p className="text-sm leading-relaxed text-[#1E1E1E]/60">
+            Print it and stick it on the tree. Anyone who scans sees the planting photo, GPS, and
+            weekly care — no app or login.
           </p>
-          {hasScans && (
-            <div className="inline-flex items-center gap-1.5 text-xs text-leaf-700 bg-leaf-50 border border-leaf-100 rounded-full px-2.5 py-1">
-              <Eye className="h-3 w-3" aria-hidden />
-              Viewed <span className="font-semibold">{scanCount}</span>{' '}
+          {(scanCount ?? 0) > 0 && (
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-[#0B5000]/10 px-2.5 py-1 text-xs text-[#0B5000]">
+              <Eye className="h-3 w-3" aria-hidden /> Viewed {scanCount}{' '}
               {scanCount === 1 ? 'time' : 'times'}
               {lastScannedAt && <> · last {formatRelative(lastScannedAt)}</>}
             </div>
           )}
           <div className="flex flex-wrap gap-2 pt-1">
-            <Button asChild variant="outline" size="sm">
-              <a href={downloadUrl} download={`tree-${publicCode ?? plantId}.png`}>
-                <Download className="h-4 w-4" /> Download
+            <a
+              href={`/api/plants/${plantId}/qr.png?size=1024`}
+              download={`tree-${publicCode ?? plantId}.png`}
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#001F00] px-4 py-2 text-sm text-[#001F00] transition-colors hover:bg-[#001F00] hover:text-white"
+            >
+              <Download className="h-4 w-4" /> Download
+            </a>
+            {publicCode && (
+              <a
+                href={`/tree/${publicCode}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm text-[#0B5000] hover:underline"
+              >
+                <ExternalLink className="h-4 w-4" /> Preview page
               </a>
-            </Button>
-            {publicUrl && (
-              <Button asChild variant="ghost" size="sm">
-                <a href={publicUrl} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="h-4 w-4" /> Preview page
-                </a>
-              </Button>
             )}
           </div>
         </div>

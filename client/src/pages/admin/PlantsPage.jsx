@@ -1,9 +1,9 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Download, Filter, Leaf } from 'lucide-react';
 import EmptyState from '@/components/EmptyState.jsx';
 import Pagination from '@/components/Pagination.jsx';
 import PlantCard from '@/components/PlantCard.jsx';
-import PlantDetailSheet from '@/components/PlantDetailSheet.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Skeleton } from '@/components/ui/skeleton.jsx';
 import {
@@ -35,10 +35,10 @@ const TRIGGER =
 // maintenance folded into each tree's detail drawer (Map + Maintenance panels
 // consolidated here, mirroring the sponsor "My Trees" hub).
 export default function PlantsPage() {
+  const navigate = useNavigate();
   const [site, setSite] = useState('');
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
-  const [openPlant, setOpenPlant] = useState(null);
 
   const { data, isLoading, isError, refetch } = usePlants({
     site: site || undefined,
@@ -145,14 +145,16 @@ export default function PlantsPage() {
         <>
           <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {items.map((p) => (
-              <PlantCard key={p.id ?? p._id} plant={p} onClick={() => setOpenPlant(p)} />
+              <PlantCard
+                key={p.id ?? p._id}
+                plant={p}
+                onClick={() => navigate(`${p.id ?? p._id}`)}
+              />
             ))}
           </div>
           <Pagination page={page} limit={LIMIT} total={total} onChange={setPage} />
         </>
       )}
-
-      <PlantDetailSheet plant={openPlant} onClose={() => setOpenPlant(null)} />
     </div>
   );
 }

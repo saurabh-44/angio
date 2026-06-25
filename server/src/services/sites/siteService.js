@@ -152,6 +152,32 @@ export async function getSite({ id, actor }) {
   return site;
 }
 
+// Headline numbers across the actor's sites (admin: all; site_owner: own).
+// `treesToPlant` = trees sponsors have funded but volunteers haven't planted
+// yet (sum of allocation targets minus what's already in the ground).
+export async function getMySitesSummary({ actor }) {
+  const filter = siteReadFilter(actor);
+  const sites = await Site.find(filter).select('_id').lean();
+  const siteIds = sites.map((s) => s._id);
+  if (siteIds.length === 0) return { siteCount: 0, treesToPlant: 0 };
+
+  const allocations = await Allocation.find({ site: { $in: siteIds } })
+    .select('targetPlants')
+    .lean();
+  const plantedAgg = await Plant.aggregate([
+    { $match: { site: { $in: siteIds }, allocation: { $ne: null } } },
+    { $group: { _id: '$allocation', planted: { $sum: 1 } } },
+  ]);
+  const plantedByAlloc = new Map(plantedAgg.map((p) => [String(p._id), p.planted]));
+
+  let treesToPlant = 0;
+  for (const a of allocations) {
+    const planted = plantedByAlloc.get(String(a._id)) ?? 0;
+    treesToPlant += Math.max(0, a.targetPlants - planted);
+  }
+  return { siteCount: siteIds.length, treesToPlant };
+}
+
 // Rich detail for one site: the site itself + headline stats (CO₂, trees,
 // survival, volunteers, pending orders) and the three related lists the
 // detail page shows — recent trees, contributors (sponsors), and volunteers.
@@ -237,6 +263,7 @@ export async function getSiteOverview({ id, actor }) {
     if (status !== 'completed') pendingOrders += 1;
     return {
       id: String(a._id),
+      donorId: a.donor?._id ? String(a.donor._id) : null,
       name: a.donor?.name ?? '—',
       email: a.donor?.email ?? '',
       date: a.createdAt,

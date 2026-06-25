@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import {
   ChevronRight,
@@ -84,8 +85,9 @@ const LIMIT = 20;
 
 export default function UsersPage() {
   const { user: actor } = useAuth();
+  const [searchParams] = useSearchParams();
   const [role, setRole] = useState('');
-  const [q, setQ] = useState('');
+  const [q, setQ] = useState(searchParams.get('q') ?? '');
   const [page, setPage] = useState(1);
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState(null);

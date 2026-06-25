@@ -50,6 +50,15 @@ export function useSiteOverview(id) {
   });
 }
 
+// Headline numbers across the caller's sites (e.g. trees still to plant).
+export function useMySitesSummary() {
+  return useQuery({
+    queryKey: ['sites', 'my-summary'],
+    queryFn: () => api.get('/api/sites/my-summary'),
+    staleTime: 30_000,
+  });
+}
+
 export function useCreateSite() {
   const qc = useQueryClient();
   return useMutation({

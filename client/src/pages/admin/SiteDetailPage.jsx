@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Download, Filter, Search } from 'lucide-reac
 import { Skeleton } from '@/components/ui/skeleton.jsx';
 import EmptyState from '@/components/EmptyState.jsx';
 import { useToast } from '@/components/ui/toast.jsx';
+import { useAuth } from '@/lib/auth.jsx';
 import { useSiteOverview } from '@/queries/sites.js';
 import { openAuthedPdf } from '@/lib/nativeFile.js';
 import { formatDate } from '@/lib/format.js';
@@ -24,8 +25,13 @@ const STATUS_LABEL = {
 export default function SiteDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { role } = useAuth();
   const { error: toastError } = useToast();
   const { data, isLoading, isError, refetch } = useSiteOverview(id);
+
+  // Same page serves NGO admin (/admin/...) and site owner (/site/...).
+  const isAdmin = role === 'ngo_admin';
+  const base = isAdmin ? '/admin' : '/site';
 
   const site = data?.site;
   const stats = data?.stats;
@@ -66,7 +72,7 @@ export default function SiteDetailPage() {
       <div className="flex items-center gap-4">
         <button
           type="button"
-          onClick={() => navigate('/admin/sites')}
+          onClick={() => navigate(`${base}/sites`)}
           className="grid h-[52px] w-[52px] shrink-0 place-items-center rounded-[10px] border border-[#B4B4B4] text-[#1E1E1E] transition-colors hover:border-[#0B5000] hover:text-[#0B5000]"
           aria-label="Back to sites"
         >
@@ -138,11 +144,12 @@ export default function SiteDetailPage() {
       <RecordsTable
         title="Tree Record"
         searchPlaceholder="Tree ID, Date etc.."
-        viewAllTo="/admin/plants"
+        viewAllTo={`${base}/plants`}
         loading={isLoading}
         rows={data?.trees ?? []}
         searchText={(r) => `${r.code} ${r.plantedBy} ${r.name}`}
         emptyText="No trees planted on this site yet."
+        onRowClick={{ enabled: (r) => !!r.id, go: (r) => navigate(`${base}/plants/${r.id}`) }}
         columns={[
           { label: 'Tree ID', render: (r) => `#${r.code}` },
           { label: 'Planted On', render: (r) => formatDate(r.plantedAt) },
@@ -156,11 +163,15 @@ export default function SiteDetailPage() {
       <RecordsTable
         title="Contributors"
         searchPlaceholder="Name, Email, Date etc.."
-        viewAllTo="/admin/donations"
+        viewAllTo={isAdmin ? '/admin/donations' : undefined}
         loading={isLoading}
         rows={data?.contributors ?? []}
         searchText={(r) => `${r.name} ${r.email}`}
         emptyText="No contributions to this site yet."
+        onRowClick={{
+          enabled: (r) => isAdmin && !!r.donorId,
+          go: (r) => navigate(`/admin/donations?donor=${r.donorId}`),
+        }}
         columns={[
           { label: 'Name', render: (r) => r.name },
           { label: 'Date', render: (r) => formatDate(r.date) },
@@ -186,11 +197,15 @@ export default function SiteDetailPage() {
       <RecordsTable
         title="Volunteers"
         searchPlaceholder="Name, Email, Date etc.."
-        viewAllTo="/admin/assignments"
+        viewAllTo={isAdmin ? '/admin/assignments' : '/site/volunteers'}
         loading={isLoading}
         rows={data?.volunteers ?? []}
         searchText={(r) => `${r.name} ${r.email}`}
         emptyText="No volunteers assigned to this site yet."
+        onRowClick={{
+          enabled: (r) => isAdmin && !!r.email,
+          go: (r) => navigate(`/admin/users?q=${encodeURIComponent(r.email)}`),
+        }}
         columns={[
           { label: 'Name', render: (r) => r.name },
           { label: 'Date', render: (r) => formatDate(r.assignedAt) },
@@ -245,7 +260,7 @@ function StatCard({ label, value, recordedOn, loading }) {
 }
 
 // White card holding a searchable table with a "View All" link.
-function RecordsTable({ title, searchPlaceholder, viewAllTo, columns, rows, searchText, emptyText, loading }) {
+function RecordsTable({ title, searchPlaceholder, viewAllTo, columns, rows, searchText, emptyText, loading, onRowClick }) {
   const [q, setQ] = useState('');
   const filtered = q
     ? rows.filter((r) => searchText(r).toLowerCase().includes(q.toLowerCase()))
@@ -307,18 +322,34 @@ function RecordsTable({ title, searchPlaceholder, viewAllTo, columns, rows, sear
               </tr>
             </thead>
             <tbody>
-              {filtered.map((row, i) => (
-                <tr key={row.id ?? i} className="border-t border-[#E2E8F0]">
-                  {columns.map((c) => (
-                    <td key={c.label} className="py-4 pr-4 text-sm text-[#1E1E1E] first:pl-1">
-                      {c.render(row)}
+              {filtered.map((row, i) => {
+                const clickable = onRowClick && onRowClick.enabled(row);
+                return (
+                  <tr
+                    key={row.id ?? i}
+                    onClick={clickable ? () => onRowClick.go(row) : undefined}
+                    className={cn(
+                      'border-t border-[#E2E8F0]',
+                      clickable && 'cursor-pointer transition-colors hover:bg-[#F6FAF6]',
+                    )}
+                  >
+                    {columns.map((c) => (
+                      <td key={c.label} className="py-4 pr-4 text-sm text-[#1E1E1E] first:pl-1">
+                        {c.render(row)}
+                      </td>
+                    ))}
+                    <td className="py-4 text-right">
+                      <ChevronRight
+                        className={cn(
+                          'ml-auto h-5 w-5',
+                          clickable ? 'text-[#0B5000]' : 'text-[#1E1E1E]/30',
+                        )}
+                        aria-hidden
+                      />
                     </td>
-                  ))}
-                  <td className="py-4 text-right">
-                    <ChevronRight className="ml-auto h-5 w-5 text-[#1E1E1E]/60" aria-hidden />
-                  </td>
-                </tr>
-              ))}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}

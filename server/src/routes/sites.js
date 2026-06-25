@@ -4,6 +4,7 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import {
   deleteSiteHandler,
   getAvailableSites,
+  getMySitesSummaryHandler,
   getSiteById,
   getSiteOverviewHandler,
   getSites,
@@ -17,8 +18,9 @@ export const sitesRouter = Router();
 sitesRouter.use(requireAuth, blockIfForcedPasswordChange);
 
 sitesRouter.get('/', asyncHandler(getSites));
-// Must come before '/:id' so "available" isn't parsed as a site id.
+// Must come before '/:id' so these aren't parsed as a site id.
 sitesRouter.get('/available', asyncHandler(getAvailableSites));
+sitesRouter.get('/my-summary', asyncHandler(getMySitesSummaryHandler));
 sitesRouter.post('/', asyncHandler(postSite));
 sitesRouter.get('/:id', asyncHandler(getSiteById));
 sitesRouter.get('/:id/overview', asyncHandler(getSiteOverviewHandler));
