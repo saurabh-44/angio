@@ -169,7 +169,8 @@ export default function UsersPage() {
         </div>
       ) : (
         <>
-          <div className="mt-7 overflow-x-auto">
+          {/* Desktop table (lg and up) */}
+          <div className="mt-7 hidden overflow-x-auto lg:block">
             <table className="w-full min-w-[760px] border-collapse">
               <thead>
                 <tr>
@@ -215,6 +216,42 @@ export default function UsersPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile cards (below lg) */}
+          <div className="mt-7 space-y-3 lg:hidden">
+            {items.map((u) => (
+              <button
+                key={u.id ?? u._id}
+                type="button"
+                onClick={() => setEditing(u)}
+                className="flex w-full items-center justify-between gap-3 rounded-[10px] border border-[#E2E8F0] p-4 text-left transition-colors hover:border-[#001F00]/40"
+              >
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium text-[#001F00]">{u.name}</span>
+                    {u.isPrimary && (
+                      <span className="rounded-full bg-[#0B5000]/10 px-2 py-0.5 text-[11px] font-medium text-[#0B5000]">
+                        Primary
+                      </span>
+                    )}
+                    {!u.isActive && (
+                      <span className="rounded-full bg-[#E2E8F0] px-2 py-0.5 text-[11px] font-medium text-[#1E1E1E]/60">
+                        Inactive
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                    <RolePill role={u.role} />
+                    <span className="truncate text-xs text-[#1E1E1E]/60">{u.email}</span>
+                  </div>
+                  <div className="mt-1 text-xs text-[#1E1E1E]/50">
+                    Enrolled {formatDate(u.createdAt)}
+                  </div>
+                </div>
+                <ChevronRight className="h-5 w-5 shrink-0 text-[#1E1E1E]/40" aria-hidden />
+              </button>
+            ))}
           </div>
           <Pagination page={page} limit={LIMIT} total={total} onChange={setPage} />
         </>

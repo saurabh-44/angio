@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 // - Backspace on empty cell jumps to previous cell.
 // - Paste of full 6-digit value distributes across cells.
 // - Reports as a single string to `onChange` (length 0–6).
-export function OtpInput({ value = '', onChange, length = 6, disabled, autoFocus = true }) {
+export function OtpInput({ value = '', onChange, length = 6, disabled, autoFocus = true, glass = false }) {
   const refs = useRef([]);
 
   useEffect(() => {
@@ -77,9 +77,10 @@ export function OtpInput({ value = '', onChange, length = 6, disabled, autoFocus
           onChange={(e) => handleChange(idx, e)}
           onKeyDown={(e) => handleKeyDown(idx, e)}
           className={cn(
-            'h-14 w-12 sm:h-16 sm:w-14 rounded-xl border border-input bg-background text-center font-mono text-2xl font-semibold text-foreground',
-            'transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-            'disabled:opacity-50',
+            'h-14 w-12 rounded-xl text-center font-mono text-2xl font-semibold transition-colors disabled:opacity-50 sm:h-16 sm:w-14',
+            glass
+              ? 'auth-glass-input border border-white/40 bg-white/10 text-white caret-white focus:border-white focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 [color-scheme:dark]'
+              : 'border border-input bg-background text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
           )}
         />
       ))}

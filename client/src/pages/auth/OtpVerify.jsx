@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { Loader2, MailCheck } from 'lucide-react';
-import AuthShell from '@/components/AuthShell.jsx';
-import { Button } from '@/components/ui/button.jsx';
+import { GlassAuthScreen } from '@/components/GlassAuthScreen.jsx';
 import { OtpInput } from '@/components/OtpInput.jsx';
 import { ROLE_HOME, useAuth } from '@/lib/auth.jsx';
 import { useToast } from '@/components/ui/toast.jsx';
@@ -30,9 +29,7 @@ export default function OtpVerify() {
       // (tree count stashed before signup). The wizard reads + clears it.
       const pendingOrder = sessionStorage.getItem('pendingSponsorTrees');
       const dest =
-        pendingOrder && me?.role === 'sponsor'
-          ? '/sponsor/sponsor'
-          : ROLE_HOME[me?.role] ?? '/';
+        pendingOrder && me?.role === 'sponsor' ? '/sponsor/sponsor' : ROLE_HOME[me?.role] ?? '/';
       navigate(dest, { replace: true });
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : 'Could not verify code.';
@@ -44,45 +41,50 @@ export default function OtpVerify() {
   }
 
   return (
-    <AuthShell
+    <GlassAuthScreen
       title="Check your email"
       subtitle={
         <>
-          We sent a 6-digit code to <span className="font-medium text-foreground">{pendingOtpEmail}</span>.
-          Enter it below — codes expire in 5 minutes.
+          We sent a 6-digit code to{' '}
+          <span className="font-semibold text-white">{pendingOtpEmail}</span>. Codes expire in 5
+          minutes.
         </>
       }
-      footer={
-        <Link to="/login" className="text-primary hover:underline font-medium">
-          Use a different email
-        </Link>
-      }
     >
-      <form onSubmit={submit} className="space-y-6">
-        <div className="flex items-center justify-center gap-2 rounded-2xl bg-secondary/70 py-3 px-4 text-sm text-secondary-foreground">
-          <MailCheck className="h-4 w-4" aria-hidden />
-          Code sent
+      <form onSubmit={submit} className="mt-12 space-y-7 sm:mt-16">
+        <div className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-4 py-2 text-sm text-white/90">
+          <MailCheck className="h-4 w-4" aria-hidden /> Code sent
         </div>
 
-        <OtpInput value={otp} onChange={setOtp} disabled={busy} />
+        <OtpInput value={otp} onChange={setOtp} disabled={busy} glass />
 
-        <Button type="submit" size="lg" className="w-full" disabled={otp.length !== 6 || busy}>
+        <button
+          type="submit"
+          disabled={otp.length !== 6 || busy}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/40 bg-white/25 py-4 text-base font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/35 disabled:opacity-60"
+        >
           {busy && <Loader2 className="h-4 w-4 animate-spin" />}
           Verify and continue
-        </Button>
+        </button>
 
-        <p className="text-center text-xs text-muted-foreground">
+        <p className="text-center text-xs text-white/70">
           Didn't get a code? Check spam, or{' '}
           <button
             type="button"
             onClick={() => info('Resend not wired yet', 'Use the original code if it is still valid.')}
-            className="text-primary hover:underline font-medium cursor-pointer"
+            className="cursor-pointer font-medium text-white underline underline-offset-4"
           >
             request a new one
           </button>
           .
         </p>
+
+        <p className="text-center text-sm">
+          <Link to="/login" className="font-medium text-white/90 underline underline-offset-4 hover:text-white">
+            Use a different email
+          </Link>
+        </p>
       </form>
-    </AuthShell>
+    </GlassAuthScreen>
   );
 }

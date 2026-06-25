@@ -122,7 +122,7 @@ export default function AssignmentsPage() {
         </div>
       ) : (
         <>
-          <div className="mt-7 overflow-x-auto">
+          <div className="mt-7 hidden overflow-x-auto lg:block">
             <table className="w-full min-w-[760px] border-collapse">
               <thead>
                 <tr>
@@ -180,6 +180,49 @@ export default function AssignmentsPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile cards (below lg) */}
+          <div className="mt-7 space-y-3 lg:hidden">
+            {items.map((a) => (
+              <div key={a.id ?? a._id} className="rounded-[10px] border border-[#E2E8F0] p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="font-medium text-[#001F00]">{a.volunteer?.name ?? '—'}</div>
+                    <div className="truncate text-xs text-[#1E1E1E]/50">{a.volunteer?.email}</div>
+                  </div>
+                  <span
+                    className={cn(
+                      'inline-flex shrink-0 rounded-full px-3 py-1 text-xs font-medium capitalize',
+                      KIND_PILL[a.kind] ?? 'bg-[#E2E8F0] text-[#1E1E1E]',
+                    )}
+                  >
+                    {a.kind}
+                  </span>
+                </div>
+                <div className="mt-2 text-sm text-[#001F00]">
+                  {a.site?.name ?? '—'}
+                  {a.site?.address && (
+                    <span className="block text-xs text-[#1E1E1E]/50">{a.site.address}</span>
+                  )}
+                </div>
+                <div className="mt-3 flex items-center justify-between gap-3">
+                  <span className="inline-flex items-center gap-1.5 text-xs text-[#1E1E1E]/60">
+                    <CalendarClock className="h-3.5 w-3.5" aria-hidden />
+                    {formatDate(a.startsAt)}
+                    {a.endsAt && <> – {formatDate(a.endsAt)}</>}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setConfirming(a)}
+                    aria-label="Remove assignment"
+                    className="inline-grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[#1E1E1E]/50 transition-colors hover:bg-red-50 hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
           <Pagination page={page} limit={LIMIT} total={total} onChange={setPage} />
         </>

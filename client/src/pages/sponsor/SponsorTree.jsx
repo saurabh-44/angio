@@ -769,10 +769,10 @@ function Row({ label, value }) {
 
 function RazorpayDisabledNotice() {
   return (
-    <div className="bento-card border-amber-200 bg-amber-50 p-6 mb-5 flex items-start gap-3">
+    <div className="mb-5 flex items-start gap-3 rounded-[10px] border border-amber-200 bg-amber-50 p-6">
       <Info className="h-5 w-5 text-amber-600 shrink-0" aria-hidden />
       <div>
-        <div className="font-heading text-sm font-semibold text-amber-900">
+        <div className="text-sm font-semibold text-amber-900">
           Online payments aren't enabled yet
         </div>
         <p className="text-sm text-amber-900/80 mt-1">

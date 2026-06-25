@@ -1,11 +1,7 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react';
-import AuthShell from '@/components/AuthShell.jsx';
-import { Button } from '@/components/ui/button.jsx';
-import { Input } from '@/components/ui/input.jsx';
-import { Label } from '@/components/ui/label.jsx';
+import { Loader2, ShieldCheck } from 'lucide-react';
+import { GlassAuthScreen, PasswordField } from '@/components/GlassAuthScreen.jsx';
 import { ROLE_HOME, useAuth } from '@/lib/auth.jsx';
 import { useToast } from '@/components/ui/toast.jsx';
 import { ApiError } from '@/lib/api.js';
@@ -15,8 +11,6 @@ export default function ChangePassword() {
   const { user, changePassword, logout, mustChangePassword } = useAuth();
   const { error: toastError, success } = useToast();
   const navigate = useNavigate();
-  const [showCurrent, setShowCurrent] = useState(false);
-  const [showNew, setShowNew] = useState(false);
 
   const {
     register,
@@ -30,7 +24,7 @@ export default function ChangePassword() {
 
   async function onSubmit(values) {
     if (values.newPassword !== values.confirmPassword) {
-      toastError('Passwords do not match', "Re-enter the new password.");
+      toastError('Passwords do not match', 'Re-enter the new password.');
       return;
     }
     try {
@@ -48,116 +42,80 @@ export default function ChangePassword() {
 
   const title = mustChangePassword ? 'Set your password' : 'Change password';
   const subtitle = mustChangePassword
-    ? "Welcome! For security, choose a new password before continuing."
+    ? 'Welcome! For security, choose a new password before continuing.'
     : 'Pick a new password. Other devices signed in with the old one will be signed out.';
 
   return (
-    <AuthShell
-      title={title}
-      subtitle={subtitle}
-      footer={
-        <button
-          type="button"
-          onClick={logout}
-          className="text-sm text-muted-foreground hover:text-foreground underline cursor-pointer"
-        >
-          Sign out instead
-        </button>
-      }
-    >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
-        <div className="rounded-2xl bg-secondary/70 px-4 py-3 text-sm text-secondary-foreground">
-          Signed in as <span className="font-medium">{user?.email}</span>
+    <GlassAuthScreen title={title} subtitle={subtitle}>
+      <form onSubmit={handleSubmit(onSubmit)} className="mt-10 space-y-6 sm:mt-12" noValidate>
+        <div className="rounded-full border border-white/30 bg-white/10 px-4 py-2.5 text-sm text-white/85">
+          Signed in as <span className="font-semibold text-white">{user?.email}</span>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="currentPassword">Current password</Label>
-          <div className="relative">
-            <Input
-              id="currentPassword"
-              type={showCurrent ? 'text' : 'password'}
-              autoComplete="current-password"
-              disabled={isSubmitting}
-              className="pr-11"
-              {...register('currentPassword', { required: 'Required' })}
-            />
-            <PwToggle shown={showCurrent} onClick={() => setShowCurrent((s) => !s)} />
-          </div>
-          {errors.currentPassword && (
-            <p className="text-xs text-destructive">{errors.currentPassword.message}</p>
-          )}
-        </div>
+        <PasswordField
+          placeholder="Current password"
+          autoComplete="current-password"
+          disabled={isSubmitting}
+          error={errors.currentPassword}
+          {...register('currentPassword', { required: 'Required' })}
+        />
 
-        <div className="space-y-2">
-          <Label htmlFor="newPassword">New password</Label>
-          <div className="relative">
-            <Input
-              id="newPassword"
-              type={showNew ? 'text' : 'password'}
-              autoComplete="new-password"
-              disabled={isSubmitting}
-              className="pr-11"
-              {...register('newPassword', {
-                required: 'Choose a new password',
-                minLength: { value: 8, message: '8 characters minimum' },
-              })}
-            />
-            <PwToggle shown={showNew} onClick={() => setShowNew((s) => !s)} />
-          </div>
+        <div>
+          <PasswordField
+            placeholder="New password (min 8 characters)"
+            autoComplete="new-password"
+            disabled={isSubmitting}
+            error={errors.newPassword}
+            {...register('newPassword', {
+              required: 'Choose a new password',
+              minLength: { value: 8, message: '8 characters minimum' },
+            })}
+          />
           {pw && (
-            <div className="flex gap-1.5 pt-1">
+            <div className="mt-3 flex gap-1.5">
               {[0, 1, 2, 3].map((i) => (
                 <div
                   key={i}
                   className={`h-1.5 flex-1 rounded-full ${
                     i < strength.score
-                      ? ['bg-muted', 'bg-destructive', 'bg-amber-400', 'bg-leaf-400', 'bg-primary'][
+                      ? ['bg-white/20', 'bg-red-300', 'bg-amber-300', 'bg-lime-300', 'bg-white'][
                           strength.score
                         ]
-                      : 'bg-muted'
+                      : 'bg-white/20'
                   }`}
                 />
               ))}
             </div>
           )}
-          {errors.newPassword && (
-            <p className="text-xs text-destructive">{errors.newPassword.message}</p>
-          )}
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="confirmPassword">Confirm new password</Label>
-          <Input
-            id="confirmPassword"
-            type={showNew ? 'text' : 'password'}
-            autoComplete="new-password"
-            disabled={isSubmitting}
-            {...register('confirmPassword', { required: 'Re-enter the new password' })}
-          />
-          {errors.confirmPassword && (
-            <p className="text-xs text-destructive">{errors.confirmPassword.message}</p>
-          )}
-        </div>
+        <PasswordField
+          placeholder="Confirm new password"
+          autoComplete="new-password"
+          disabled={isSubmitting}
+          error={errors.confirmPassword}
+          {...register('confirmPassword', { required: 'Re-enter the new password' })}
+        />
 
-        <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/40 bg-white/25 py-4 text-base font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/35 disabled:opacity-60"
+        >
           {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
           {mustChangePassword ? 'Set password' : 'Update password'}
-        </Button>
-      </form>
-    </AuthShell>
-  );
-}
+        </button>
 
-function PwToggle({ shown, onClick }) {
-  return (
-    <button
-      type="button"
-      tabIndex={-1}
-      onClick={onClick}
-      className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-2 text-muted-foreground hover:text-foreground cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      aria-label={shown ? 'Hide password' : 'Show password'}
-    >
-      {shown ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-    </button>
+        <p className="text-center text-sm">
+          <button
+            type="button"
+            onClick={logout}
+            className="font-medium text-white/80 underline underline-offset-4 hover:text-white"
+          >
+            Sign out instead
+          </button>
+        </p>
+      </form>
+    </GlassAuthScreen>
   );
 }

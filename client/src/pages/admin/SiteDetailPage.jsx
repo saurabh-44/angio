@@ -295,65 +295,102 @@ function RecordsTable({ title, searchPlaceholder, viewAllTo, columns, rows, sear
         </span>
       </div>
 
-      <div className="mt-5 overflow-x-auto">
-        {loading ? (
-          <div className="space-y-3 py-2">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-10 w-full" />
-            ))}
-          </div>
-        ) : filtered.length === 0 ? (
-          <p className="py-10 text-center text-sm text-[#1E1E1E]/50">
-            {q ? 'No matches.' : emptyText}
-          </p>
-        ) : (
-          <table className="w-full min-w-[640px] border-collapse">
-            <thead>
-              <tr>
-                {columns.map((c) => (
-                  <th
-                    key={c.label}
-                    className="pb-4 text-left text-base font-medium text-[#001F00] first:pl-1"
-                  >
-                    {c.label}
-                  </th>
-                ))}
-                <th className="pb-4 text-right text-base font-medium text-[#001F00]">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((row, i) => {
-                const clickable = onRowClick && onRowClick.enabled(row);
-                return (
-                  <tr
-                    key={row.id ?? i}
-                    onClick={clickable ? () => onRowClick.go(row) : undefined}
-                    className={cn(
-                      'border-t border-[#E2E8F0]',
-                      clickable && 'cursor-pointer transition-colors hover:bg-[#F6FAF6]',
-                    )}
-                  >
-                    {columns.map((c) => (
-                      <td key={c.label} className="py-4 pr-4 text-sm text-[#1E1E1E] first:pl-1">
-                        {c.render(row)}
+      {loading ? (
+        <div className="mt-5 space-y-3 py-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-12 w-full rounded-[10px]" />
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
+        <p className="mt-5 py-10 text-center text-sm text-[#1E1E1E]/50">
+          {q ? 'No matches.' : emptyText}
+        </p>
+      ) : (
+        <>
+          {/* Desktop table (lg and up) */}
+          <div className="mt-5 hidden overflow-x-auto lg:block">
+            <table className="w-full min-w-[640px] border-collapse">
+              <thead>
+                <tr>
+                  {columns.map((c) => (
+                    <th
+                      key={c.label}
+                      className="pb-4 text-left text-base font-medium text-[#001F00] first:pl-1"
+                    >
+                      {c.label}
+                    </th>
+                  ))}
+                  <th className="pb-4 text-right text-base font-medium text-[#001F00]">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((row, i) => {
+                  const clickable = onRowClick && onRowClick.enabled(row);
+                  return (
+                    <tr
+                      key={row.id ?? i}
+                      onClick={clickable ? () => onRowClick.go(row) : undefined}
+                      className={cn(
+                        'border-t border-[#E2E8F0]',
+                        clickable && 'cursor-pointer transition-colors hover:bg-[#F6FAF6]',
+                      )}
+                    >
+                      {columns.map((c) => (
+                        <td key={c.label} className="py-4 pr-4 text-sm text-[#1E1E1E] first:pl-1">
+                          {c.render(row)}
+                        </td>
+                      ))}
+                      <td className="py-4 text-right">
+                        <ChevronRight
+                          className={cn(
+                            'ml-auto h-5 w-5',
+                            clickable ? 'text-[#0B5000]' : 'text-[#1E1E1E]/30',
+                          )}
+                          aria-hidden
+                        />
                       </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile cards (below lg) */}
+          <div className="mt-5 space-y-3 lg:hidden">
+            {filtered.map((row, i) => {
+              const clickable = onRowClick && onRowClick.enabled(row);
+              const [first, ...rest] = columns;
+              return (
+                <div
+                  key={row.id ?? i}
+                  role={clickable ? 'button' : undefined}
+                  tabIndex={clickable ? 0 : undefined}
+                  onClick={clickable ? () => onRowClick.go(row) : undefined}
+                  className={cn(
+                    'flex items-center justify-between gap-3 rounded-[10px] border border-[#E2E8F0] p-4',
+                    clickable && 'cursor-pointer transition-colors hover:border-[#001F00]/40',
+                  )}
+                >
+                  <div className="min-w-0 space-y-1.5">
+                    <div className="text-sm font-medium text-[#001F00]">{first.render(row)}</div>
+                    {rest.map((c) => (
+                      <div key={c.label} className="flex flex-wrap items-center gap-x-2 text-xs">
+                        <span className="text-[#1E1E1E]/50">{c.label}:</span>
+                        <span className="text-[#1E1E1E]">{c.render(row)}</span>
+                      </div>
                     ))}
-                    <td className="py-4 text-right">
-                      <ChevronRight
-                        className={cn(
-                          'ml-auto h-5 w-5',
-                          clickable ? 'text-[#0B5000]' : 'text-[#1E1E1E]/30',
-                        )}
-                        aria-hidden
-                      />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
+                  </div>
+                  <ChevronRight
+                    className={cn('h-5 w-5 shrink-0', clickable ? 'text-[#0B5000]' : 'text-[#1E1E1E]/20')}
+                    aria-hidden
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
     </section>
   );
 }

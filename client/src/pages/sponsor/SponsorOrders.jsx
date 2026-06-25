@@ -103,7 +103,7 @@ export default function SponsorOrders() {
         </div>
         <Link
           to="/sponsor/sponsor"
-          className="inline-flex items-center gap-2 rounded-[10px] bg-[#001F00] px-6 py-4 text-base font-medium text-[#F8FDFF] transition-colors hover:bg-[#0B5000]"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] bg-[#001F00] px-6 py-4 text-base font-medium text-[#F8FDFF] transition-colors hover:bg-[#0B5000] sm:w-auto sm:justify-start"
         >
           <Plus className="h-5 w-5" aria-hidden /> New Contribution
         </Link>
@@ -130,24 +130,23 @@ export default function SponsorOrders() {
             }
           />
         </div>
+      ) : filtered.length === 0 ? (
+        <p className="mt-10 border-t border-[#E2E8F0] px-3 py-10 text-center text-base text-[#1E1E1E]/50">
+          No contributions match “{q}”.
+        </p>
       ) : (
-        <div className="mt-10 overflow-x-auto">
-          <div className="min-w-[700px]">
-            {/* Header */}
-            <div className={`${COLS} px-3 pb-4 text-base text-[#001F00]`}>
-              <span>Date</span>
-              <span>Order ID</span>
-              <span>Type</span>
-              <span>CO₂ Absorbed</span>
-              <span className="text-right">View More</span>
-            </div>
-
-            {filtered.length === 0 ? (
-              <p className="border-t border-[#E2E8F0] px-3 py-10 text-center text-base text-[#1E1E1E]/50">
-                No contributions match “{q}”.
-              </p>
-            ) : (
-              filtered.map((o) => (
+        <>
+          {/* Desktop table (lg and up) */}
+          <div className="mt-10 hidden overflow-x-auto lg:block">
+            <div className="min-w-[700px]">
+              <div className={`${COLS} px-3 pb-4 text-base text-[#001F00]`}>
+                <span>Date</span>
+                <span>Order ID</span>
+                <span>Type</span>
+                <span>CO₂ Absorbed</span>
+                <span className="text-right">View More</span>
+              </div>
+              {filtered.map((o) => (
                 <button
                   key={o.id}
                   type="button"
@@ -162,10 +161,32 @@ export default function SponsorOrders() {
                     <ChevronRight className="h-5 w-5" aria-hidden />
                   </span>
                 </button>
-              ))
-            )}
+              ))}
+            </div>
           </div>
-        </div>
+
+          {/* Mobile cards (below lg) */}
+          <div className="mt-8 space-y-3 lg:hidden">
+            {filtered.map((o) => (
+              <button
+                key={o.id}
+                type="button"
+                onClick={() => setOpen(o)}
+                className="flex w-full items-center justify-between gap-3 rounded-[10px] border border-[#E2E8F0] p-4 text-left transition-colors hover:border-[#001F00]/40"
+              >
+                <div className="min-w-0">
+                  <div className="font-medium text-[#001F00]">{typeLabel(o)}</div>
+                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-[#1E1E1E]/60">
+                    <span>{formatDate(o.date)}</span>
+                    <span>{shortId(o.id)}</span>
+                    <span>{Math.round(o.co2Kg ?? 0)}Kg CO₂</span>
+                  </div>
+                </div>
+                <ChevronRight className="h-5 w-5 shrink-0 text-[#0B5000]" aria-hidden />
+              </button>
+            ))}
+          </div>
+        </>
       )}
 
       <OrderReportSheet order={open} onClose={() => setOpen(null)} />
