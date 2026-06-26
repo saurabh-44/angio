@@ -382,7 +382,7 @@ function StepBackButton({ onClick }) {
       type="button"
       onClick={onClick}
       aria-label="Back"
-      className="absolute -left-14 top-1 grid h-10 w-10 place-items-center rounded-full border border-[#001F00] text-[#001F00] transition-colors hover:bg-[#001F00] hover:text-white max-lg:static max-lg:mb-5"
+      className="absolute -left-14 top-1 grid h-9 w-9 place-items-center rounded-full border border-[#001F00] text-[#001F00] transition-colors hover:bg-[#001F00] hover:text-white max-lg:static max-lg:mb-4 lg:h-10 lg:w-10"
     >
       <ArrowIcon className="h-3.5 w-4 rotate-180" />
     </button>
@@ -393,9 +393,9 @@ function StepBackButton({ onClick }) {
 // ₹0 — the backend charges count × unit only.
 function PriceCard({ unit, count, total }) {
   return (
-    <div className="w-full max-w-[512px] rounded-[10px] bg-white p-7 shadow-[0_0_10px_rgba(0,0,0,0.12)]">
-      <h3 className="text-2xl font-medium text-[#001F00]">Price</h3>
-      <dl className="mt-6 space-y-[18px] text-base text-[#1E1E1E]">
+    <div className="w-full max-w-[512px] rounded-[10px] bg-white p-5 shadow-[0_0_10px_rgba(0,0,0,0.12)] lg:p-7">
+      <h3 className="text-xl font-medium text-[#001F00] lg:text-2xl">Price</h3>
+      <dl className="mt-4 space-y-3 text-base text-[#1E1E1E] lg:mt-6 lg:space-y-[18px]">
         <div className="flex justify-between">
           <dt>Cost per Tree</dt>
           <dd>{formatAmount(unit)}</dd>
@@ -409,11 +409,11 @@ function PriceCard({ unit, count, total }) {
           <dd>{formatAmount(0)}</dd>
         </div>
       </dl>
-      <div className="mt-6 flex justify-between border-t border-[#E2E8F0] pt-5 text-base font-medium text-[#1E1E1E]">
+      <div className="mt-4 flex justify-between border-t border-[#E2E8F0] pt-4 text-base font-medium text-[#1E1E1E] lg:mt-6 lg:pt-5">
         <span>Subtotal</span>
         <span>{formatAmount(total)}</span>
       </div>
-      <div className="mt-8 flex flex-col items-center gap-1.5">
+      <div className="mt-5 flex flex-col items-center gap-1.5 lg:mt-8">
         <img src={paymentMethods} alt="Accepted payment methods" className="h-9 w-auto" />
         <span className="text-xs text-[#1E1E1E]/80">Accepted Payment Methods</span>
       </div>
@@ -423,12 +423,12 @@ function PriceCard({ unit, count, total }) {
 
 function StepBar({ step }) {
   return (
-    <div className="my-9 flex flex-wrap items-center justify-center gap-x-4 gap-y-3 sm:gap-x-5">
+    <div className="my-6 flex flex-wrap items-center justify-center gap-x-2 gap-y-3 sm:gap-x-5 lg:my-9">
       {STEPS.map((label, i) => {
         const n = i + 1;
         const active = n <= step;
         return (
-          <div key={label} className="flex items-center gap-4 sm:gap-5">
+          <div key={label} className="flex items-center gap-2 sm:gap-5">
             <div
               className={cn(
                 'flex items-center gap-3',
@@ -443,11 +443,11 @@ function StepBar({ step }) {
               >
                 {n}
               </span>
-              <span className="text-xs">{label}</span>
+              <span className="hidden text-xs sm:inline">{label}</span>
             </div>
             {n < STEPS.length && (
               <span
-                className="hidden h-px w-12 border-t border-dashed border-[#B4B4B4] sm:block"
+                className="block h-px w-5 border-t border-dashed border-[#B4B4B4] sm:w-12"
                 aria-hidden
               />
             )}
@@ -498,11 +498,11 @@ function TreeDetailStep({
         Note: Once the order is placed, this information cannot be changed
       </p>
 
-      <div className="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-2">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:mt-10 lg:grid-cols-2 lg:gap-10">
         {/* Left — form */}
-        <div className="flex max-w-[520px] flex-col gap-8">
+        <div className="flex max-w-[520px] flex-col gap-5 lg:gap-8">
           <Select value={siteId} onValueChange={setSiteId} disabled={sitesLoading}>
-            <SelectTrigger className="h-auto rounded-[10px] border-[#001F00] px-5 py-4 text-base text-[#1E1E1E] focus:ring-0 focus:ring-offset-0">
+            <SelectTrigger className="h-auto rounded-[10px] border-[#001F00] px-5 py-3 text-base text-[#1E1E1E] focus:ring-0 focus:ring-offset-0 lg:py-4">
               <SelectValue placeholder={sitesLoading ? 'Loading sites…' : 'Select Site (optional)'} />
             </SelectTrigger>
             <SelectContent>
@@ -522,9 +522,9 @@ function TreeDetailStep({
           </Select>
 
           {/* Tree count */}
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between lg:gap-4">
             <span className="text-base text-[#1E1E1E]">Select Number of Trees</span>
-            <div className="flex w-[182px] items-center justify-between rounded-[10px] border border-[#001F00] px-5 py-3.5">
+            <div className="flex w-full items-center justify-between rounded-[10px] border border-[#001F00] px-5 py-3 lg:w-[182px] lg:py-3.5">
               <button
                 type="button"
                 onClick={() => setCount((c) => Math.max(1, c - 1))}
@@ -569,7 +569,7 @@ function TreeDetailStep({
           </div>
 
           {/* Donation date */}
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between lg:gap-4">
             <span className="text-base text-[#1E1E1E]">Set Donation Date</span>
             <DateField value={donationDate} max={today} onChange={setDonationDate} />
           </div>
@@ -600,13 +600,13 @@ function TreeDetailStep({
         <PriceCard unit={unit} count={count} total={total} />
       </div>
 
-      <hr className="mt-10 border-t border-black/70" />
+      <hr className="mt-6 border-t border-black/70 lg:mt-10" />
       <div className="mt-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <p className="max-w-3xl text-base leading-[21px] tracking-[0.01em] text-[#1E1E1E]">
+        <p className="max-w-3xl text-sm leading-snug tracking-[0.01em] text-[#1E1E1E] lg:text-base lg:leading-[21px]">
           We prioritise the site you prefer to plant a tree. Please note we might not be able to
           fully/partially allocate the trees to a site if the site runs out of land to plant more trees.
         </p>
-        <Button size="lg" onClick={onNext} disabled={overCapacity} className="shrink-0">
+        <Button size="lg" onClick={onNext} disabled={overCapacity} className="w-full shrink-0 lg:w-auto">
           Continue <ArrowRight className="h-4 w-4" />
         </Button>
       </div>
@@ -625,10 +625,12 @@ function DateField({ value, max, onChange }) {
         if (el?.showPicker) el.showPicker();
         else el?.focus();
       }}
-      className="relative flex w-[182px] cursor-pointer items-center justify-between gap-2 rounded-[10px] border border-[#001F00] px-5 py-3.5"
+      className="relative flex w-full cursor-pointer items-center justify-between gap-2 rounded-[10px] border border-[#001F00] px-5 py-3 lg:w-[182px] lg:py-3.5"
     >
       <Calendar className="h-5 w-5 shrink-0 text-[#1E1E1E]" aria-hidden />
-      <span className="text-base text-[#1E1E1E]">{value ? formatDate(value) : 'Select'}</span>
+      <span className="whitespace-nowrap text-base text-[#1E1E1E]">
+        {value ? formatDate(value) : 'Select'}
+      </span>
       <input
         ref={ref}
         type="date"
@@ -659,18 +661,18 @@ function BillingStep({ user, count, unit, total, busy, razorpayReady, address, s
         Note: Once the order is placed, this information cannot be changed
       </p>
 
-      <div className="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-2">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:mt-10 lg:grid-cols-2 lg:gap-10">
         {/* Left — contact (read-only) + address */}
         <div className="flex max-w-[530px] flex-col gap-5">
           <input value={user?.name ?? ''} readOnly aria-label="Name" className={cn(box, 'bg-[#001F00]/[0.03]')} />
           <input value={user?.email ?? ''} readOnly placeholder="Email ID" aria-label="Email" className={cn(box, 'bg-[#001F00]/[0.03]')} />
           <input value={user?.phone ?? ''} readOnly placeholder="Phone number" aria-label="Phone" className={cn(box, 'bg-[#001F00]/[0.03]')} />
           <input value={address.line1} onChange={field('line1')} placeholder="Address" disabled={busy} aria-label="Address" className={box} />
-          <div className="grid grid-cols-2 gap-5">
+          <div className="grid grid-cols-2 gap-3 sm:gap-5">
             <input value={address.country} onChange={field('country')} placeholder="Country" disabled={busy} aria-label="Country" className={box} />
             <input value={address.state} onChange={field('state')} placeholder="State" disabled={busy} aria-label="State" className={box} />
           </div>
-          <div className="grid grid-cols-2 gap-5">
+          <div className="grid grid-cols-2 gap-3 sm:gap-5">
             <input value={address.city} onChange={field('city')} placeholder="City" disabled={busy} aria-label="City" className={box} />
             <input value={address.pinCode} onChange={field('pinCode')} placeholder="Pin Code" inputMode="numeric" disabled={busy} aria-label="Pin code" className={box} />
           </div>
