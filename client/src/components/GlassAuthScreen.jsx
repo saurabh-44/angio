@@ -1,6 +1,6 @@
 import { forwardRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Figma auth screens (Sign Up / Sign In): a full-bleed forest photo with a
@@ -23,24 +23,14 @@ export function GlassAuthScreen({ title, subtitle, children }) {
       <Link
         to="/"
         aria-label="Back to home"
-        className="absolute left-6 top-6 z-10 grid h-14 w-14 place-items-center rounded-full border border-[#E2E8F0] bg-white/30 backdrop-blur-[2px] transition-colors hover:bg-white/40"
+        className="absolute left-5 top-5 z-10 grid h-10 w-10 place-items-center rounded-full border border-white/40 bg-white/20 text-white backdrop-blur-[2px] transition-colors hover:bg-white/35 sm:left-6 sm:top-6"
       >
-        {/* Exact Figma arrow (Vector.svg). */}
-        <svg width="18" height="23" viewBox="0 0 18 23" fill="none" aria-hidden>
-          <path
-            d="M16.0263 11.0377V15.2131C16.0263 20.3893 13.087 22.5161 9.49723 19.9201L6.60792 17.8246L3.71861 15.7292C0.128871 13.1332 0.128871 8.89533 3.71861 6.29934L6.60792 4.20384L9.49723 2.10835C13.087 -0.440655 16.0263 1.67048 16.0263 6.86231V11.0377Z"
-            stroke="white"
-            strokeWidth="2.05263"
-            strokeMiterlimit="10"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+        <ArrowLeft className="h-5 w-5" strokeWidth={2} aria-hidden />
       </Link>
 
       {/* Frosted glass form panel — ~48% of the viewport (Figma: 688/1440),
           padding 100/60, content fills the panel. */}
-      <div className="relative ml-auto flex min-h-screen w-full flex-col justify-center bg-white/20 px-6 py-12 backdrop-blur-[19px] sm:px-12 lg:w-[48%] lg:px-[60px] lg:py-[100px]">
+      <div className="relative ml-auto flex min-h-screen w-full flex-col justify-center bg-white/20 px-6 pb-12 pt-24 backdrop-blur-[19px] sm:px-12 lg:w-[48%] lg:px-[60px] lg:py-[100px]">
         <div className="mx-auto w-full max-w-[456px] lg:mx-0 lg:max-w-none">
           <h1
             className="text-4xl font-bold leading-tight text-white sm:text-5xl"

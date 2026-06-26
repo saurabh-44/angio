@@ -60,7 +60,7 @@ export function OtpInput({ value = '', onChange, length = 6, disabled, autoFocus
 
   return (
     <div
-      className="flex gap-2 sm:gap-3 justify-between"
+      className="flex gap-1.5 sm:gap-3 justify-between"
       role="group"
       aria-label={`${length}-digit verification code`}
       onPaste={handlePaste}
@@ -77,7 +77,7 @@ export function OtpInput({ value = '', onChange, length = 6, disabled, autoFocus
           onChange={(e) => handleChange(idx, e)}
           onKeyDown={(e) => handleKeyDown(idx, e)}
           className={cn(
-            'h-14 w-12 rounded-xl text-center font-mono text-2xl font-semibold transition-colors disabled:opacity-50 sm:h-16 sm:w-14',
+            'h-12 w-10 rounded-xl text-center font-mono text-xl font-semibold transition-colors disabled:opacity-50 sm:h-16 sm:w-14 sm:text-2xl',
             glass
               ? 'auth-glass-input border border-white/40 bg-white/10 text-white caret-white focus:border-white focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 [color-scheme:dark]'
               : 'border border-input bg-background text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',

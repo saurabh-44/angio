@@ -53,7 +53,10 @@ export default function Register() {
       subtitle="Create your account and be part of the mission."
     >
       <form onSubmit={handleSubmit(onSubmit)} className="mt-14 sm:mt-20" noValidate>
-        <div className="grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-2">
+        {/* Two columns on every width so short fields (name, DOB, gender) pair
+            up and the form stays compact on mobile. Long fields span the full
+            width on mobile but drop back to half-width at sm+ (desktop). */}
+        <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:gap-x-6">
           <Field
             placeholder="First Name*"
             autoComplete="given-name"
@@ -103,44 +106,52 @@ export default function Register() {
             </select>
           </FieldWrap>
 
-          <Field
-            type="email"
-            placeholder="Email ID*"
-            autoComplete="email"
-            error={errors.email}
-            {...register('email', {
-              required: 'Email is required',
-              pattern: { value: /\S+@\S+\.\S+/, message: 'Enter a valid email' },
-            })}
-          />
-          <Field
-            type="tel"
-            placeholder="Phone Number*"
-            autoComplete="tel"
-            error={errors.phone}
-            {...register('phone', {
-              required: 'Phone is required',
-              minLength: { value: 4, message: 'Enter a valid phone' },
-            })}
-          />
-          <PasswordField
-            placeholder="Create Password*"
-            autoComplete="new-password"
-            error={errors.password}
-            {...register('password', {
-              required: 'Password is required',
-              minLength: { value: 8, message: 'At least 8 characters' },
-            })}
-          />
-          <PasswordField
-            placeholder="Confirm Password*"
-            autoComplete="new-password"
-            error={errors.confirmPassword}
-            {...register('confirmPassword', {
-              required: 'Please confirm your password',
-              validate: (v) => v === watch('password') || 'Passwords do not match',
-            })}
-          />
+          <div className="col-span-2 sm:col-span-1">
+            <Field
+              type="email"
+              placeholder="Email ID*"
+              autoComplete="email"
+              error={errors.email}
+              {...register('email', {
+                required: 'Email is required',
+                pattern: { value: /\S+@\S+\.\S+/, message: 'Enter a valid email' },
+              })}
+            />
+          </div>
+          <div className="col-span-2 sm:col-span-1">
+            <Field
+              type="tel"
+              placeholder="Phone Number*"
+              autoComplete="tel"
+              error={errors.phone}
+              {...register('phone', {
+                required: 'Phone is required',
+                minLength: { value: 4, message: 'Enter a valid phone' },
+              })}
+            />
+          </div>
+          <div className="col-span-2 sm:col-span-1">
+            <PasswordField
+              placeholder="Create Password*"
+              autoComplete="new-password"
+              error={errors.password}
+              {...register('password', {
+                required: 'Password is required',
+                minLength: { value: 8, message: 'At least 8 characters' },
+              })}
+            />
+          </div>
+          <div className="col-span-2 sm:col-span-1">
+            <PasswordField
+              placeholder="Confirm Password*"
+              autoComplete="new-password"
+              error={errors.confirmPassword}
+              {...register('confirmPassword', {
+                required: 'Please confirm your password',
+                validate: (v) => v === watch('password') || 'Passwords do not match',
+              })}
+            />
+          </div>
         </div>
 
         <button
