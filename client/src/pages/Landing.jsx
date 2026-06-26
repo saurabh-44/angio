@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronDown, Leaf } from 'lucide-react';
+import { ChevronDown, Leaf, Menu, X } from 'lucide-react';
 import { ROLE_HOME, useAuth } from '@/lib/auth.jsx';
 import { BODY_FONT, HEADING_FONT } from '@/components/GlassAuthScreen.jsx';
 
@@ -69,6 +69,10 @@ function useScrollSpy(ids) {
 function HeroNav() {
   const { user } = useAuth();
   const activeId = useScrollSpy(SPY_IDS);
+  const [menuOpen, setMenuOpen] = useState(false);
+  // The footer (#contact) is a light section, so flip the mobile menu icon to
+  // dark there; over the hero photo + dark mission it stays white.
+  const onLight = activeId === 'contact';
   return (
     <header className="fixed inset-x-0 top-0 z-50">
       <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 pt-6 sm:px-6">
@@ -126,12 +130,69 @@ function HeroNav() {
               <ChevronDown className="h-4 w-4 shrink-0" aria-hidden />
             </Link>
           ) : (
-            <Link
-              to="/login"
-              className="rounded-full bg-gradient-to-br from-[#0B5000] to-[#001F00] px-6 py-2.5 text-sm font-medium text-[#F8FDFF] shadow-sm md:hidden"
-            >
-              Login
-            </Link>
+            // Mobile-only menu: a 3-line button that opens Login + quick links.
+            // (The desktop pill above already carries the links + Login CTA.)
+            <div className="relative md:hidden">
+              <button
+                type="button"
+                onClick={() => setMenuOpen((v) => !v)}
+                aria-label="Menu"
+                aria-expanded={menuOpen}
+                className={`relative z-50 grid h-11 w-11 place-items-center rounded-lg transition-colors focus:outline-none ${
+                  onLight
+                    ? 'text-[#001F00]'
+                    : 'text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.5)]'
+                }`}
+              >
+                {menuOpen ? (
+                  <X className="h-7 w-7" strokeWidth={1.75} />
+                ) : (
+                  <Menu className="h-7 w-7" strokeWidth={1.75} />
+                )}
+              </button>
+              {menuOpen && (
+                <>
+                  {/* Tap-away backdrop to dismiss the menu. */}
+                  <button
+                    type="button"
+                    aria-hidden
+                    tabIndex={-1}
+                    onClick={() => setMenuOpen(false)}
+                    className="fixed inset-0 z-40 cursor-default"
+                  />
+                  <div className="absolute right-0 top-full z-50 mt-2 w-48 overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white p-2 shadow-2xl shadow-black/15">
+                    {NAV_LINKS.map(({ label, to }) =>
+                      to.startsWith('#') ? (
+                        <a
+                          key={label}
+                          href={to}
+                          onClick={() => setMenuOpen(false)}
+                          className="block rounded-xl px-4 py-3 text-base text-[#001F00] transition-colors hover:bg-[#0B5000]/10 hover:text-[#0B5000]"
+                        >
+                          {label}
+                        </a>
+                      ) : (
+                        <Link
+                          key={label}
+                          to={to}
+                          onClick={() => setMenuOpen(false)}
+                          className="block rounded-xl px-4 py-3 text-base text-[#001F00] transition-colors hover:bg-[#0B5000]/10 hover:text-[#0B5000]"
+                        >
+                          {label}
+                        </Link>
+                      ),
+                    )}
+                    <Link
+                      to="/login"
+                      onClick={() => setMenuOpen(false)}
+                      className="mt-1 block rounded-xl bg-gradient-to-br from-[#0B5000] to-[#001F00] px-4 py-3 text-center text-base font-medium text-[#F8FDFF]"
+                    >
+                      Login
+                    </Link>
+                  </div>
+                </>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -142,18 +203,18 @@ function HeroNav() {
 function StatCard({ label, value, sub }) {
   return (
     <div
-      className="flex min-h-[160px] flex-col justify-between rounded-md bg-white p-5"
+      className="flex min-h-[120px] flex-col justify-between rounded-md bg-white p-4 sm:min-h-[160px] sm:p-5"
       style={{ fontFamily: BODY_FONT }}
     >
       <div className="text-sm font-medium text-[#001F00] sm:text-base">{label}</div>
       <div>
         <div
-          className="whitespace-nowrap text-4xl font-bold leading-none text-[#001F00] sm:text-[48px]"
+          className="text-3xl font-bold leading-none text-[#001F00] sm:whitespace-nowrap sm:text-[48px]"
           style={{ fontFamily: HEADING_FONT }}
         >
           {value}
         </div>
-        <div className="mt-1.5 text-sm font-medium text-[#001F00] sm:text-base">{sub}</div>
+        <div className="mt-1.5 text-xs font-medium text-[#001F00] sm:text-base">{sub}</div>
       </div>
     </div>
   );
@@ -183,7 +244,7 @@ function Hero() {
         <div aria-hidden className="h-20 sm:h-24" />
 
         {/* Headline + CTAs */}
-        <div className="mt-16 max-w-3xl sm:mt-20 lg:mt-24">
+        <div className="mt-10 max-w-3xl sm:mt-20 lg:mt-24">
           <h1
             className="text-4xl font-bold leading-[1.12] text-white sm:text-5xl lg:text-[64px] lg:leading-[1.08]"
             style={{ fontFamily: HEADING_FONT }}
@@ -192,18 +253,18 @@ function Hero() {
             <br />
             The Trees Together
           </h1>
-          <div className="mt-7 flex flex-wrap items-center gap-3">
+          <div className="mt-7 flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center">
             <Link to="/register" className={glassPill}>
               Make Contribution
             </Link>
-            <a href="#mission" className={glassPill + ' min-w-[140px]'}>
+            <a href="#mission" className={glassPill + ' sm:min-w-[140px]'}>
               Read More
             </a>
           </div>
         </div>
 
         {/* Stat cards near the bottom of the photo */}
-        <div className="mt-auto grid w-full max-w-3xl grid-cols-1 gap-4 pb-10 sm:grid-cols-[1fr_1.3fr] sm:pb-16">
+        <div className="mt-10 grid w-full max-w-3xl grid-cols-2 gap-3 pb-8 sm:mt-auto sm:gap-4 sm:grid-cols-[1fr_1.3fr] sm:pb-16">
           <StatCard label="Plantation Sites" value="123+" sub="Across Gujarat, India" />
           <StatCard
             label={
@@ -228,7 +289,7 @@ const MISSION_BG = '#06280F';
 
 function AppleMark() {
   return (
-    <svg viewBox="0 0 24 24" className="h-7 w-7 text-white" fill="currentColor" aria-hidden>
+    <svg viewBox="0 0 24 24" className="h-8 w-8 text-white" fill="currentColor" aria-hidden>
       <path d="M17.05 12.04c-.03-2.6 2.12-3.85 2.22-3.91-1.21-1.77-3.1-2.01-3.77-2.04-1.6-.16-3.13.94-3.94.94-.81 0-2.07-.92-3.4-.89-1.75.03-3.36 1.02-4.26 2.58-1.82 3.16-.46 7.83 1.3 10.39.86 1.25 1.89 2.66 3.24 2.61 1.3-.05 1.79-.84 3.36-.84 1.57 0 2.01.84 3.39.81 1.4-.02 2.29-1.28 3.15-2.54.99-1.46 1.4-2.87 1.42-2.94-.03-.01-2.73-1.05-2.76-4.16zM14.6 4.84c.72-.87 1.2-2.08 1.07-3.28-1.03.04-2.28.69-3.02 1.56-.66.77-1.24 2-1.08 3.18 1.15.09 2.33-.59 3.03-1.46z" />
     </svg>
   );
@@ -237,7 +298,7 @@ function AppleMark() {
 function PlayMark() {
   return (
     <svg viewBox="0 0 24 24" className="h-7 w-7 text-white" fill="currentColor" aria-hidden>
-      <path d="M3.6 2.25c-.27.16-.45.46-.45.86v17.78c0 .4.18.7.45.86l9.7-9.75-9.7-9.75zM15.9 14.5l2.34-2.35-2.35-2.36-2.86 2.36 2.87 2.35zm-2.16-2.99 2.35-2.36L5.4 2.86l8.34 8.65zm0 1.27-8.35 8.66 10.7-6.3-2.35-2.36z" />
+      <path d="M22.018 13.298l-3.919 2.218-3.515-3.493 3.543-3.521 3.891 2.202a1.49 1.49 0 0 1 0 2.594zM1.337.924a1.486 1.486 0 0 0-.112.568v21.017c0 .217.045.419.124.6l11.155-11.087L1.337.924zm12.207 10.065l3.258-3.238L3.45.195a1.466 1.466 0 0 0-.946-.149l11.04 10.943zm0 2.067l-11 10.933c.298.036.612-.016.906-.183l13.324-7.54-3.23-3.21z" />
     </svg>
   );
 }

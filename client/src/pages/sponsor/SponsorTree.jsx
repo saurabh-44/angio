@@ -330,17 +330,17 @@ function ContributionTypeStep({ value, onSelect, onNext }) {
               key={t.id}
               onClick={() => onSelect(t.id)}
               className={cn(
-                'flex cursor-pointer items-center gap-6 rounded-[10px] border p-5 transition-colors',
+                'flex cursor-pointer items-center gap-4 rounded-[10px] border p-4 transition-colors sm:gap-6 sm:p-5',
                 selected ? 'border-[#001F00]' : 'border-[#E2E8F0] hover:border-[#001F00]/40',
               )}
             >
-              <span className="grid h-[88px] w-[88px] shrink-0 place-items-center rounded-full bg-[#0B5000]/10 text-[#0B5000]">
-                <t.icon className="h-10 w-10" aria-hidden strokeWidth={1.5} />
+              <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-[#0B5000]/10 text-[#0B5000] sm:h-[88px] sm:w-[88px]">
+                <t.icon className="h-7 w-7 sm:h-10 sm:w-10" aria-hidden strokeWidth={1.5} />
               </span>
-              <span className="h-2 w-2 shrink-0 bg-[#001F00]" aria-hidden />
+              <span className="hidden h-2 w-2 shrink-0 bg-[#001F00] sm:block" aria-hidden />
               <div className="min-w-0 flex-1">
-                <div className="text-xl font-medium text-[#001F00] sm:text-2xl">{t.title}</div>
-                <p className="mt-1.5 text-base leading-[21px] tracking-[0.01em] text-[#1E1E1E]/50">
+                <div className="text-lg font-medium text-[#001F00] sm:text-2xl">{t.title}</div>
+                <p className="mt-1 text-sm leading-snug tracking-[0.01em] text-[#1E1E1E]/50 sm:mt-1.5 sm:text-base sm:leading-[21px]">
                   {t.desc}
                 </p>
               </div>
@@ -352,9 +352,9 @@ function ContributionTypeStep({ value, onSelect, onNext }) {
                     e.stopPropagation();
                     onNext();
                   }}
-                  className="grid h-[72px] w-[72px] shrink-0 place-items-center rounded-full border border-[#001F00] text-[#001F00] transition-colors hover:bg-[#001F00] hover:text-white"
+                  className="grid h-12 w-12 shrink-0 place-items-center rounded-full border border-[#001F00] text-[#001F00] transition-colors hover:bg-[#001F00] hover:text-white sm:h-[72px] sm:w-[72px]"
                 >
-                  <ArrowIcon className="h-4 w-5" />
+                  <ArrowIcon className="h-4 w-4 sm:w-5" />
                 </button>
               )}
             </div>

@@ -24,24 +24,30 @@ function StatCard({ label, value, sub, loading, className }) {
   return (
     <div
       className={cn(
-        'flex min-h-[200px] flex-col justify-between rounded-lg bg-[#E2E8F0] p-5',
+        // Compact on mobile (auto height, grouped content); the full Figma
+        // bento — tall card with the number pinned to the bottom — is lg+ only.
+        'flex flex-col gap-1.5 rounded-lg bg-[#E2E8F0] p-5 lg:min-h-[200px] lg:justify-between lg:gap-0',
         className,
       )}
       style={{ fontFamily: BODY_FONT }}
     >
-      <div className="text-base font-medium text-[#001F00]">{label}</div>
+      <div className="text-sm font-medium text-[#001F00] lg:text-base">{label}</div>
       <div>
         {loading ? (
-          <Skeleton className="h-12 w-24 bg-black/10" />
+          <Skeleton className="h-9 w-24 bg-black/10 lg:h-12" />
         ) : (
           <div
-            className="text-5xl font-bold leading-none text-[#001F00]"
+            className="text-3xl font-bold leading-tight text-[#001F00] lg:text-5xl lg:leading-none"
             style={{ fontFamily: HEADING_FONT }}
           >
             {value}
           </div>
         )}
-        {sub && <div className="mt-2.5 text-base font-light text-[#1E1E1E]/45">{sub}</div>}
+        {sub && (
+          <div className="mt-1.5 text-xs font-light text-[#1E1E1E]/45 lg:mt-2.5 lg:text-base">
+            {sub}
+          </div>
+        )}
       </div>
     </div>
   );
