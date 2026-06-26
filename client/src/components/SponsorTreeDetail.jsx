@@ -161,7 +161,7 @@ export default function SponsorTreeDetail({ plant, onClose }) {
           {/* QR */}
           {id && (
             <section className="rounded-[10px] border border-[#E2E8F0] p-5">
-              <div className="flex items-start gap-4">
+              <div className="flex flex-col items-start gap-4 sm:flex-row">
                 <div className="shrink-0 rounded-[10px] border border-[#E2E8F0] bg-white p-2">
                   <img
                     src={`/api/plants/${id}/qr.png?size=400`}
