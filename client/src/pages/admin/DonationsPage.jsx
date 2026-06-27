@@ -449,60 +449,65 @@ function DonationDetailSheet({ donation, onClose }) {
           </SheetDescription>
         </SheetHeader>
 
-        <div className="mt-6 grid grid-cols-3 gap-3">
-          <SummaryStat icon={Banknote} label="Donated" value={formatAmount(donation.amount)} />
-          <SummaryStat
-            icon={Sparkles}
-            label="Allocated"
-            value={formatAmount(allocatedTotal)}
-            tone={remaining > 0 ? 'amber' : 'leaf'}
-          />
-          <SummaryStat icon={Leaf} label="Target trees" value={String(allocatedPlants)} />
-        </div>
-
-        <div className="mt-5">
-          <DonationStatusChanger donation={donation} />
-        </div>
-
-        {formatAddress(donation.billingAddress) && (
-          <div className="mt-4 rounded-[10px] border border-[#E2E8F0] p-3.5">
-            <div className="flex items-center gap-2 text-sm font-medium text-[#001F00]">
-              <MapPin className="h-4 w-4 text-[#0B5000]" aria-hidden /> Billing address
-            </div>
-            <p className="mt-1.5 text-sm leading-relaxed text-[#1E1E1E]/60">
-              {formatAddress(donation.billingAddress)}
-            </p>
-          </div>
-        )}
-
+        {/* One scroll region for the whole body so the drawer scrolls as a
+            single page (esp. full-screen on mobile) instead of trapping scroll
+            inside the allocations list. The header + close button stay pinned. */}
         <div className="mt-6 -mx-2 flex-1 overflow-y-auto px-2">
-          <div className="mb-2 flex items-center justify-between">
-            <h3 className="text-sm font-semibold uppercase tracking-widest text-[#1E1E1E]/50">
-              Allocations
-            </h3>
-            <span
-              className={cn(
-                'inline-flex rounded-full px-3 py-1 text-xs font-medium',
-                remaining > 0 ? 'bg-amber-100 text-amber-700' : 'bg-[#0B5000]/10 text-[#0B5000]',
-              )}
-            >
-              {remaining > 0 ? `${formatAmount(remaining)} unallocated` : 'Fully allocated'}
-            </span>
+          <div className="grid grid-cols-3 gap-3">
+            <SummaryStat icon={Banknote} label="Donated" value={formatAmount(donation.amount)} />
+            <SummaryStat
+              icon={Sparkles}
+              label="Allocated"
+              value={formatAmount(allocatedTotal)}
+              tone={remaining > 0 ? 'amber' : 'leaf'}
+            />
+            <SummaryStat icon={Leaf} label="Target trees" value={String(allocatedPlants)} />
           </div>
 
-          {allocations.length === 0 ? (
-            <div className="rounded-[10px] border border-dashed border-[#B4B4B4] p-6 text-center text-sm text-[#1E1E1E]/50">
-              No allocations yet. Use the form below to split this donation across one or more sites.
+          <div className="mt-5">
+            <DonationStatusChanger donation={donation} />
+          </div>
+
+          {formatAddress(donation.billingAddress) && (
+            <div className="mt-4 rounded-[10px] border border-[#E2E8F0] p-3.5">
+              <div className="flex items-center gap-2 text-sm font-medium text-[#001F00]">
+                <MapPin className="h-4 w-4 text-[#0B5000]" aria-hidden /> Billing address
+              </div>
+              <p className="mt-1.5 text-sm leading-relaxed text-[#1E1E1E]/60">
+                {formatAddress(donation.billingAddress)}
+              </p>
             </div>
-          ) : (
-            <ul className="space-y-2">
-              {allocations.map((a) => (
-                <AllocationRow key={a.id ?? a._id} allocation={a} />
-              ))}
-            </ul>
           )}
 
-          {remaining > 0 && <AddAllocationForm donation={donation} remaining={remaining} />}
+          <div className="mt-6">
+            <div className="mb-2 flex items-center justify-between">
+              <h3 className="text-sm font-semibold uppercase tracking-widest text-[#1E1E1E]/50">
+                Allocations
+              </h3>
+              <span
+                className={cn(
+                  'inline-flex rounded-full px-3 py-1 text-xs font-medium',
+                  remaining > 0 ? 'bg-amber-100 text-amber-700' : 'bg-[#0B5000]/10 text-[#0B5000]',
+                )}
+              >
+                {remaining > 0 ? `${formatAmount(remaining)} unallocated` : 'Fully allocated'}
+              </span>
+            </div>
+
+            {allocations.length === 0 ? (
+              <div className="rounded-[10px] border border-dashed border-[#B4B4B4] p-6 text-center text-sm text-[#1E1E1E]/50">
+                No allocations yet. Use the form below to split this donation across one or more sites.
+              </div>
+            ) : (
+              <ul className="space-y-2">
+                {allocations.map((a) => (
+                  <AllocationRow key={a.id ?? a._id} allocation={a} />
+                ))}
+              </ul>
+            )}
+
+            {remaining > 0 && <AddAllocationForm donation={donation} remaining={remaining} />}
+          </div>
         </div>
       </SheetContent>
     </Sheet>
@@ -534,13 +539,13 @@ function DonationStatusChanger({ donation }) {
   }
 
   return (
-    <div className="flex items-center justify-between gap-3 rounded-[10px] border border-[#E2E8F0] p-3.5">
+    <div className="flex flex-col items-start gap-3 rounded-[10px] border border-[#E2E8F0] p-3.5 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex min-w-0 items-center gap-2">
         <span className="text-sm text-[#1E1E1E]/60">Payment status</span>
         <StatusPill status={current} />
       </div>
       <Select value={current} onValueChange={onChange} disabled={update.isPending}>
-        <SelectTrigger className="w-36 shrink-0">
+        <SelectTrigger className="w-full shrink-0 sm:w-36">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

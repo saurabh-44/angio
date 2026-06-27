@@ -30,8 +30,10 @@ const sheetVariants = cva(
         bottom:
           'inset-x-0 bottom-0 border-t border-border/60 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom rounded-t-2xl',
         left: 'inset-y-0 left-0 h-full w-3/4 border-r border-border/60 data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-md',
+        // Full-screen on phones (w-full) so detail content never clips; a
+        // capped side panel from sm up (sm:max-w-md, or per-sheet overrides).
         right:
-          'inset-y-0 right-0 h-full w-3/4 border-l border-border/60 data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-md pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))]',
+          'inset-y-0 right-0 h-full w-full border-l border-border/60 data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:w-3/4 sm:max-w-md pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))]',
       },
     },
     defaultVariants: { side: 'right' },

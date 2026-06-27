@@ -1,7 +1,7 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Camera,
-  ChevronLeft,
+  ArrowLeft,
   Download,
   ExternalLink,
   Eye,
@@ -99,10 +99,10 @@ export default function PlantDetailPage() {
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="grid h-[52px] w-[52px] shrink-0 place-items-center rounded-[10px] border border-[#B4B4B4] text-[#1E1E1E] transition-colors hover:border-[#0B5000] hover:text-[#0B5000]"
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[#E2E8F0] text-[#001F00] transition-colors hover:border-[#0B5000] hover:text-[#0B5000]"
           aria-label="Back to plants"
         >
-          <ChevronLeft className="h-5 w-5" />
+          <ArrowLeft className="h-5 w-5" />
         </button>
         <div className="min-w-0 flex-1">
           {isLoading ? (
@@ -333,7 +333,7 @@ function QrSection({ plantId, publicCode, scanCount, lastScannedAt }) {
   if (!plantId) return null;
   return (
     <section className="rounded-[10px] border border-[#E2E8F0] p-5">
-      <div className="flex items-start gap-4">
+      <div className="flex flex-col items-start gap-4 sm:flex-row">
         <div className="shrink-0 rounded-[10px] border border-[#E2E8F0] bg-white p-2">
           <img
             src={`/api/plants/${plantId}/qr.png?size=400`}

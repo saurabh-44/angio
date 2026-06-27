@@ -8,11 +8,13 @@ import {
   YAxis,
 } from 'recharts';
 import { AXIS_STYLE, CHART, TOOLTIP_LABEL_STYLE, TOOLTIP_STYLE } from './chartTheme.js';
+import { useIsMobile } from '@/lib/useIsMobile.js';
 
 // Weekly maintenance-log throughput. We use a cool secondary tint so
 // this chart sits visually between donations (amber) and trees (green)
 // in the dashboard hierarchy.
 export default function MaintenanceWeeks({ data }) {
+  const isMobile = useIsMobile();
   return (
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={data} margin={{ top: 10, right: 12, left: -8, bottom: 0 }}>
@@ -22,7 +24,8 @@ export default function MaintenanceWeeks({ data }) {
           tickLine={false}
           axisLine={false}
           tick={AXIS_STYLE}
-          interval={0}
+          interval={isMobile ? 'preserveStartEnd' : 0}
+          minTickGap={isMobile ? 24 : 5}
         />
         <YAxis
           tickLine={false}

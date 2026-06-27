@@ -12,15 +12,18 @@ export function useToast() {
   return ctx;
 }
 
+// New theme: white card with a bold coloured left accent + icon chip and a
+// strong shadow so toasts clearly pop over the page. Colour language matches
+// the app — green = success, red = error, blue = info.
 const toastVariants = cva(
-  'group pointer-events-auto relative flex w-full items-start gap-3 overflow-hidden rounded-xl border border-border/60 bg-card p-4 pr-8 shadow-soft',
+  'group pointer-events-auto relative flex w-full items-start gap-3 overflow-hidden rounded-xl border border-[#E2E8F0] border-l-4 bg-white p-4 pr-9 shadow-[0_14px_36px_-10px_rgba(0,31,0,0.32)]',
   {
     variants: {
       variant: {
-        default: '',
-        success: 'border-leaf-200 bg-leaf-50',
-        error: 'border-destructive/30 bg-destructive/5',
-        info: 'border-secondary bg-secondary',
+        default: 'border-l-[#1E1E1E]',
+        success: 'border-l-[#0B5000]',
+        error: 'border-l-[#DC2626]',
+        info: 'border-l-[#346EC4]',
       },
     },
     defaultVariants: { variant: 'default' },
@@ -34,11 +37,11 @@ const ICONS = {
   info: Info,
 };
 
-const ICON_COLORS = {
-  default: 'text-foreground',
-  success: 'text-leaf-700',
-  error: 'text-destructive',
-  info: 'text-secondary-foreground',
+const ICON_CHIPS = {
+  default: 'bg-[#1E1E1E]/10 text-[#1E1E1E]',
+  success: 'bg-[#0B5000]/10 text-[#0B5000]',
+  error: 'bg-[#DC2626]/10 text-[#DC2626]',
+  info: 'bg-[#346EC4]/10 text-[#346EC4]',
 };
 
 export const Toast = forwardRef(({ className, variant = 'default', title, description, ...props }, ref) => {
@@ -53,20 +56,27 @@ export const Toast = forwardRef(({ className, variant = 'default', title, descri
       )}
       {...props}
     >
-      <Icon className={cn('mt-0.5 h-5 w-5 shrink-0', ICON_COLORS[variant])} aria-hidden />
+      <span
+        className={cn(
+          'mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full',
+          ICON_CHIPS[variant] ?? ICON_CHIPS.default,
+        )}
+      >
+        <Icon className="h-[18px] w-[18px]" aria-hidden />
+      </span>
       <div className="flex-1">
         {title && (
-          <ToastPrimitive.Title className="font-semibold text-foreground leading-snug">
+          <ToastPrimitive.Title className="font-semibold leading-snug text-[#001F00]">
             {title}
           </ToastPrimitive.Title>
         )}
         {description && (
-          <ToastPrimitive.Description className="mt-0.5 text-sm text-muted-foreground">
+          <ToastPrimitive.Description className="mt-0.5 text-sm text-[#1E1E1E]/60">
             {description}
           </ToastPrimitive.Description>
         )}
       </div>
-      <ToastPrimitive.Close className="absolute right-2 top-2 rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+      <ToastPrimitive.Close className="absolute right-2.5 top-2.5 rounded-md p-1 text-[#1E1E1E]/40 transition-colors hover:text-[#001F00] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
         <X className="h-4 w-4" />
       </ToastPrimitive.Close>
     </ToastPrimitive.Root>

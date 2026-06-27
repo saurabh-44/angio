@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Download, Filter, Search } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Download, Filter, Search } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton.jsx';
 import EmptyState from '@/components/EmptyState.jsx';
 import { useToast } from '@/components/ui/toast.jsx';
@@ -73,10 +73,10 @@ export default function SiteDetailPage() {
         <button
           type="button"
           onClick={() => navigate(`${base}/sites`)}
-          className="grid h-[52px] w-[52px] shrink-0 place-items-center rounded-[10px] border border-[#B4B4B4] text-[#1E1E1E] transition-colors hover:border-[#0B5000] hover:text-[#0B5000]"
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[#E2E8F0] text-[#001F00] transition-colors hover:border-[#0B5000] hover:text-[#0B5000]"
           aria-label="Back to sites"
         >
-          <ChevronLeft className="h-5 w-5" />
+          <ArrowLeft className="h-5 w-5" />
         </button>
         <div className="min-w-0 flex-1">
           {isLoading ? (
@@ -219,7 +219,7 @@ export default function SiteDetailPage() {
 
 function InfoCard({ title, children, loading }) {
   return (
-    <section className="rounded-[10px] bg-white p-6 shadow-[0_0_20px_rgba(0,0,0,0.08)]">
+    <section className="rounded-[10px] bg-white p-4 shadow-[0_0_20px_rgba(0,0,0,0.08)] sm:p-6">
       <h2 className="text-xl font-medium text-[#001F00]">{title}</h2>
       <div className="mt-5 space-y-5">
         {loading
@@ -243,7 +243,7 @@ function InfoRow({ label, value, muted }) {
 
 function StatCard({ label, value, recordedOn, loading }) {
   return (
-    <div className="flex min-h-[200px] flex-col justify-between rounded-[10px] bg-white p-6 shadow-[0_0_20px_rgba(0,0,0,0.08)]">
+    <div className="flex min-h-[150px] flex-col justify-between rounded-[10px] bg-white p-4 shadow-[0_0_20px_rgba(0,0,0,0.08)] sm:min-h-[200px] sm:p-6">
       <div className="text-base font-medium text-[#001F00]">{label}</div>
       <div>
         {loading ? (
@@ -267,7 +267,7 @@ function RecordsTable({ title, searchPlaceholder, viewAllTo, columns, rows, sear
     : rows;
 
   return (
-    <section className="mt-6 rounded-[10px] bg-white p-6 shadow-[0_0_20px_rgba(0,0,0,0.08)]">
+    <section className="mt-6 rounded-[10px] bg-white p-4 shadow-[0_0_20px_rgba(0,0,0,0.08)] sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h2 className="text-xl font-medium text-[#001F00]">{title}</h2>
         {viewAllTo && (
