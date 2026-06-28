@@ -1,11 +1,18 @@
 # Production stack for the Environ API.
 #
-#   caddy   — public edge on :80/:443, auto Let's Encrypt TLS, reverse
-#             proxy to the Node server. Renews certs automatically.
 #   server  — Node/Express API (built from ./server/Dockerfile).
+#   web     — React SPA (built from ./client), served on port 80.
 #   mongo   — MongoDB 7, data on a named volume, NOT exposed to the host
-#             (only the server container can reach it over the internal
-#             network).
+#             (only the server container can reach it over `internal`).
+#
+# Public TLS is handled by a SHARED, host-level reverse proxy
+# (caddy-docker-proxy, in ~/proxy) on the external `edge` network. This
+# stack does NOT run its own Caddy and does NOT bind :80/:443 — it only
+# declares routes via container labels. The proxy auto-discovers those
+# labels and issues/renews Let's Encrypt certs automatically.
+#
+# Host prereqs: the `edge` network must exist and the ~/proxy stack must
+# be running. deploy.sh and CI create the `edge` network if missing.
 #
 # Bring up:  docker compose up -d --build
 # Logs:      docker compose logs -f server
@@ -34,11 +41,16 @@ services:
       PORT: "4000"
     depends_on:
       - mongo
+    # Public route, served by the shared edge proxy.
+    labels:
+      caddy: api.jainildesai.com
+      caddy.reverse_proxy: "{{upstreams 4000}}"
     networks:
       - internal
+      - edge
 
-  # Static web client (the React SPA) served on the internal network.
-  # The edge Caddy reverse-proxies environ.<domain> -> web:80.
+  # Static web client (the React SPA). The edge proxy reverse-proxies
+  # environ.<domain> -> web:80 via the labels below.
   web:
     build:
       context: ./client
@@ -48,29 +60,19 @@ services:
     restart: unless-stopped
     depends_on:
       - server
+    labels:
+      caddy: environ.jainildesai.com
+      caddy.reverse_proxy: "{{upstreams 80}}"
     networks:
       - internal
-
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy-data:/data
-      - caddy-config:/config
-    depends_on:
-      - server
-      - web
-    networks:
-      - internal
+      - edge
 
 volumes:
   mongo-data:
-  caddy-data:
-  caddy-config:
 
 networks:
   internal:
+  # Shared, host-level proxy network (owned by ~/proxy). Declared external
+  # so this stack joins it instead of creating/owning it.
+  edge:
+    external: true

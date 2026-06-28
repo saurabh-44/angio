@@ -54,5 +54,10 @@ jobs:
             git checkout main
             # Match origin exactly — gitignored files (server/.env) are kept.
             git reset --hard origin/main
-            docker compose up -d --build
+            # Shared, host-level proxy network (owned by ~/proxy). Create if
+            # missing so the external network reference resolves on a clean host.
+            docker network create edge 2>/dev/null || true
+            # --remove-orphans clears any stale container (e.g. the old caddy)
+            # left over from the pre-shared-proxy compose.
+            docker compose up -d --build --remove-orphans
             docker image prune -f
