@@ -94,7 +94,7 @@ export default function SponsorOrders() {
             onChange={(e) => setQ(e.target.value)}
             placeholder="OrderID, Date, Site..."
             aria-label="Search contributions"
-            className="w-full max-w-[381px] rounded-[10px] border border-[#B4B4B4] px-5 py-4 text-base text-[#1E1E1E] outline-none placeholder:text-[#B4B4B4] focus:border-[#001F00]"
+            className="w-full max-w-[381px] rounded-[10px] border border-[#B4B4B4] px-5 py-4 text-base text-[#1E1E1E] outline-none transition-colors placeholder:text-[#B4B4B4] focus:border-[#0B5000]"
           />
           <button
             type="button"

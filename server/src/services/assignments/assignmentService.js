@@ -102,7 +102,17 @@ export async function listAssignments({ volunteer, site, kind, active, page, lim
 export async function updateAssignment({ id, patch, actor }) {
   const a = await Assignment.findById(id);
   if (!a) throw HttpError.notFound('Assignment not found');
+  // Must be allowed to manage the assignment's current site.
   await assertCanWriteForSite(actor, a.site);
+  // Reassigning to a different site → must also be allowed to write there.
+  if (patch.site && String(patch.site) !== String(a.site)) {
+    await assertCanWriteForSite(actor, patch.site);
+  }
+  // Swapping the volunteer → validate they're a real, available volunteer.
+  if (patch.volunteer && String(patch.volunteer) !== String(a.volunteer)) {
+    const volunteer = await assertVolunteer(patch.volunteer);
+    await assertVolunteerAvailable(actor, volunteer);
+  }
   Object.assign(a, patch);
   await a.save();
   return a.toObject();

@@ -505,7 +505,7 @@ function TreeDetailStep({
         {/* Left — form */}
         <div className="flex max-w-[520px] flex-col gap-5 lg:gap-8">
           <Select value={siteId} onValueChange={setSiteId} disabled={sitesLoading}>
-            <SelectTrigger className="h-auto rounded-[10px] border-[#001F00] px-5 py-3 text-base text-[#1E1E1E] focus:ring-0 focus:ring-offset-0 lg:py-4">
+            <SelectTrigger className="h-auto rounded-[10px] border-[#B4B4B4] px-5 py-3 text-base text-[#1E1E1E] transition-colors focus:border-[#0B5000] focus:ring-0 focus:ring-offset-0 lg:py-4">
               <SelectValue placeholder={sitesLoading ? 'Loading sites…' : 'Select Site (optional)'} />
             </SelectTrigger>
             <SelectContent>
@@ -527,7 +527,7 @@ function TreeDetailStep({
           {/* Tree count */}
           <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between lg:gap-4">
             <span className="text-base text-[#1E1E1E]">Select Number of Trees</span>
-            <div className="flex w-full items-center justify-between rounded-[10px] border border-[#001F00] px-5 py-3 lg:w-[182px] lg:py-3.5">
+            <div className="flex w-full items-center justify-between rounded-[10px] border border-[#B4B4B4] px-5 py-3 transition-colors focus-within:border-[#0B5000] lg:w-[182px] lg:py-3.5">
               <button
                 type="button"
                 onClick={() => setCount((c) => Math.max(1, c - 1))}
@@ -586,7 +586,7 @@ function TreeDetailStep({
                 onChange={(e) => setNote(e.target.value)}
                 maxLength={120}
                 placeholder="e.g. Happy Birthday, Aanya!"
-                className="rounded-[10px] border border-[#001F00] px-5 py-3.5 text-base text-[#1E1E1E] outline-none"
+                className="rounded-[10px] border border-[#B4B4B4] px-5 py-3.5 text-base text-[#1E1E1E] outline-none transition-colors placeholder:text-[#B4B4B4] focus:border-[#0B5000]"
               />
             </label>
           )}
@@ -628,7 +628,7 @@ function DateField({ value, max, onChange }) {
         if (el?.showPicker) el.showPicker();
         else el?.focus();
       }}
-      className="relative flex w-full cursor-pointer items-center justify-between gap-2 rounded-[10px] border border-[#001F00] px-5 py-3 lg:w-[182px] lg:py-3.5"
+      className="relative flex w-full cursor-pointer items-center justify-between gap-2 rounded-[10px] border border-[#B4B4B4] px-5 py-3 transition-colors focus-within:border-[#0B5000] lg:w-[182px] lg:py-3.5"
     >
       <Calendar className="h-5 w-5 shrink-0 text-[#1E1E1E]" aria-hidden />
       <span className="whitespace-nowrap text-base text-[#1E1E1E]">
@@ -653,7 +653,7 @@ function DateField({ value, max, onChange }) {
 function BillingStep({ user, count, unit, total, busy, razorpayReady, address, setAddress, saveAddress, setSaveAddress, onBack, onPay }) {
   const field = (key) => (e) => setAddress((a) => ({ ...a, [key]: e.target.value }));
   const box =
-    'w-full rounded-[10px] border border-[#001F00] px-5 py-4 text-base text-[#1E1E1E] outline-none placeholder:text-[#1E1E1E]/40';
+    'w-full rounded-[10px] border border-[#B4B4B4] px-5 py-4 text-base text-[#1E1E1E] outline-none transition-colors placeholder:text-[#B4B4B4] focus:border-[#0B5000]';
 
   return (
     <div className="relative">

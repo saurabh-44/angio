@@ -27,7 +27,7 @@ function StatCard({ label, value, sub, loading, className }) {
       className={cn(
         // Compact on mobile (auto height, grouped content); the full Figma
         // bento — tall card with the number pinned to the bottom — is lg+ only.
-        'flex flex-col gap-1.5 rounded-lg bg-[#E2E8F0] p-5 lg:min-h-[200px] lg:justify-between lg:gap-0',
+        'flex flex-col gap-1.5 rounded-lg bg-[#DCE6F5] p-5 shadow-[0_8px_24px_-6px_rgba(15,23,42,0.18)] lg:min-h-[200px] lg:justify-between lg:gap-0',
         className,
       )}
       style={{ fontFamily: BODY_FONT }}
@@ -139,7 +139,10 @@ function CertificatesCard({ treesPlanted, className }) {
   const ready = treesPlanted > 0;
   return (
     <div
-      className={cn('flex min-h-[200px] flex-col rounded-lg bg-[#E2E8F0] p-5', className)}
+      className={cn(
+        'flex min-h-[200px] flex-col rounded-lg bg-[#DCE6F5] p-5 shadow-[0_8px_24px_-6px_rgba(15,23,42,0.18)]',
+        className,
+      )}
       style={{ fontFamily: BODY_FONT }}
     >
       <div className="text-base font-medium text-[#001F00]">Certificates</div>

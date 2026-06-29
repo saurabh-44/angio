@@ -121,7 +121,9 @@ export default function AppRouter() {
           <Route path="plants/:id" element={<PlantDetailPage />} />
           <Route path="maintenance" element={<MaintenancePage />} />
           <Route path="assignments" element={<AssignmentsPage />} />
-          <Route path="species" element={<SpeciesPage />} />
+          {/* Species hidden per client request (not in SRS) — page + backend
+              kept intact; uncomment to restore: */}
+          {/* <Route path="species" element={<SpeciesPage />} /> */}
           <Route path="map" element={<SponsorMap />} />
           {/* Import hidden per client request — uncomment to re-enable */}
           {/* <Route path="import" element={<ImportPage />} /> */}

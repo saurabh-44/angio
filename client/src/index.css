@@ -101,6 +101,16 @@
     @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
   }
 
+  /* Text-style form fields signal focus with a green border (focus:border-*),
+     so drop the ring on them — otherwise you get a double outline. Buttons and
+     links keep the ring for accessibility; fields with an explicit ring utility
+     (OTP cells, shadcn Input) keep theirs since utilities outrank this rule. */
+  input:focus-visible,
+  textarea:focus-visible,
+  [role='combobox']:focus-visible {
+    @apply ring-0 ring-offset-0;
+  }
+
   /* Glass auth fields sit over a photo — keep autofill from painting an
      opaque box. The long transition defers the browser's autofill bg
      indefinitely while preserving white text + caret. */

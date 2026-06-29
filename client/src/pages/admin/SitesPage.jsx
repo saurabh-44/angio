@@ -509,7 +509,7 @@ function SiteFormFields({
 // active Site-Name field.
 const fieldCls = (filled) =>
   cn(
-    'w-full rounded-[10px] border px-5 py-3.5 text-base text-[#1E1E1E] outline-none transition-colors placeholder:text-[#B4B4B4] focus:border-[#0B5000]',
+    'w-full rounded-[10px] border border-[#B4B4B4] px-5 py-3.5 text-base text-[#1E1E1E] outline-none transition-colors placeholder:text-[#B4B4B4] focus:border-[#0B5000]',
     filled ? 'border-[#001F00]' : 'border-[#B4B4B4]',
   );
 
@@ -665,7 +665,7 @@ function VolunteerMultiSelect({ value, onChange, disabled }) {
 // create-site mutation (now also carrying photo + volunteers).
 function SiteFormDialog({ open, onOpenChange }) {
   const create = useCreateSite();
-  const { success, error: toastError } = useToast();
+  const { success, error: toastError, info } = useToast();
   const {
     register,
     handleSubmit,
@@ -694,7 +694,7 @@ function SiteFormDialog({ open, onOpenChange }) {
 
   function useMyLocation() {
     if (!navigator.geolocation) {
-      toastError('Geolocation unavailable', 'Your browser does not support GPS.');
+      info('Location is optional', 'No GPS here — just type the address (and coordinates if you have them).');
       return;
     }
     setGeoBusy(true);
@@ -706,7 +706,7 @@ function SiteFormDialog({ open, onOpenChange }) {
       },
       (err) => {
         setGeoBusy(false);
-        toastError("Couldn't read GPS", err.message);
+        info('Location skipped', "It's optional — type the address manually, or allow location access to auto-fill.");
       },
       { enableHighAccuracy: true, timeout: 10_000 },
     );
@@ -717,11 +717,10 @@ function SiteFormDialog({ open, onOpenChange }) {
       toastError('Pick a Site Incharge', 'Choose the site incharge before saving.');
       return;
     }
-    if (!Number.isFinite(values.lat) || !Number.isFinite(values.lng)) {
-      toastError('Location required', 'Use my location or type the coordinates.');
-      return;
-    }
     try {
+      // Coordinates are optional — an off-site admin can save with just the
+      // address and add precise GPS later (or type it in if they have it).
+      const hasCoords = Number.isFinite(values.lat) && Number.isFinite(values.lng);
       await create.mutateAsync({
         name: values.name.trim(),
         address: values.address?.trim() || undefined,
@@ -729,7 +728,7 @@ function SiteFormDialog({ open, onOpenChange }) {
         state: values.state?.trim() || undefined,
         country: values.country?.trim() || undefined,
         pinCode: values.pinCode?.trim() || undefined,
-        geo: { lat: values.lat, lng: values.lng },
+        geo: hasCoords ? { lat: values.lat, lng: values.lng } : undefined,
         capacity: values.capacity || 0,
         pricePerTreeInr: Number.isFinite(values.pricePerTreeInr) ? values.pricePerTreeInr : undefined,
         owner,
@@ -790,7 +789,7 @@ function SiteFormDialog({ open, onOpenChange }) {
               className={cn(fieldCls(hasLocation), 'flex items-center justify-between text-left')}
             >
               <span className={hasLocation ? 'text-[#1E1E1E]' : 'text-[#B4B4B4]'}>
-                {hasLocation ? `${lat}, ${lng}` : 'Add Location (use my location)'}
+                {hasLocation ? `${lat}, ${lng}` : 'Add Location (optional · use my location)'}
               </span>
               {geoBusy ? (
                 <Loader2 className="h-5 w-5 animate-spin text-[#0B5000]" />
@@ -873,7 +872,7 @@ function SiteFormDialog({ open, onOpenChange }) {
 
 function SiteFormSheet({ site, onClose }) {
   const update = useUpdateSite();
-  const { success, error: toastError } = useToast();
+  const { success, error: toastError, info } = useToast();
   const open = !!site;
   const initial = useMemo(
     () => ({
@@ -883,8 +882,8 @@ function SiteFormSheet({ site, onClose }) {
       state: site?.state ?? '',
       country: site?.country ?? '',
       pinCode: site?.pinCode ?? '',
-      lat: site?.geo?.lat ?? 0,
-      lng: site?.geo?.lng ?? 0,
+      lat: site?.geo?.lat ?? '',
+      lng: site?.geo?.lng ?? '',
       capacity: site?.capacity ?? 0,
       pricePerTreeInr: site?.pricePerTreeInr ?? '',
     }),
@@ -921,7 +920,7 @@ function SiteFormSheet({ site, onClose }) {
 
   async function useMyLocation() {
     if (!navigator.geolocation) {
-      toastError('Geolocation unavailable', 'Your browser does not support GPS.');
+      info('Location is optional', 'No GPS here — just type the address (and coordinates if you have them).');
       return;
     }
     setGeoBusy(true);
@@ -933,7 +932,7 @@ function SiteFormSheet({ site, onClose }) {
       },
       (err) => {
         setGeoBusy(false);
-        toastError("Couldn't read GPS", err.message);
+        info('Location skipped', "It's optional — type the address manually, or allow location access to auto-fill.");
       },
       { enableHighAccuracy: true, timeout: 10_000 },
     );
@@ -950,7 +949,10 @@ function SiteFormSheet({ site, onClose }) {
           state: values.state?.trim() ?? '',
           country: values.country?.trim() ?? '',
           pinCode: values.pinCode?.trim() ?? '',
-          geo: { lat: values.lat, lng: values.lng },
+          geo:
+            Number.isFinite(values.lat) && Number.isFinite(values.lng)
+              ? { lat: values.lat, lng: values.lng }
+              : undefined,
           photo: photo ? { url: photo.url, publicId: photo.publicId } : null,
           capacity: values.capacity || 0,
           pricePerTreeInr: Number.isFinite(values.pricePerTreeInr) ? values.pricePerTreeInr : undefined,
@@ -1007,7 +1009,7 @@ function SiteFormSheet({ site, onClose }) {
 
 function DeleteSiteConfirm({ site, onClose }) {
   const remove = useDeleteSite();
-  const { success, error: toastError } = useToast();
+  const { success, error: toastError, info } = useToast();
 
   async function handleConfirm() {
     try {

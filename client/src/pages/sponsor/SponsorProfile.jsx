@@ -17,7 +17,7 @@ const GENDERS = [
 ];
 
 const underline =
-  'w-full border-b border-[#1E1E1E]/60 bg-transparent pb-2 text-base text-[#1E1E1E] outline-none transition-colors focus:border-[#0B5000] disabled:opacity-60 [color-scheme:light]';
+  'w-full border-b border-[#B4B4B4] bg-transparent pb-2 text-base text-[#1E1E1E] outline-none transition-colors focus:border-[#0B5000] disabled:opacity-60 [color-scheme:light]';
 
 function initials(name) {
   return (name || 'U')
@@ -104,7 +104,9 @@ export default function SponsorProfile() {
   return (
     <div style={{ fontFamily: BODY_FONT }}>
       <PageHeading>
-        <h2 className="text-2xl font-medium text-[#001F00]">Hi, {user?.name}</h2>
+        <h2 className="text-3xl font-semibold text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>
+          Hi, {user?.name}
+        </h2>
         <p className="mt-1 text-base leading-[21px] tracking-[0.01em] text-[#1E1E1E]/50">
           If you have any edits to make, change the values and hit the save button.
         </p>

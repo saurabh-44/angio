@@ -316,9 +316,9 @@ function UserRoleFilter({ value, onChange }) {
 
 // Field styles for the Figma Add-User modal (rounded-10, dark outline).
 const USER_FIELD =
-  'w-full rounded-[10px] border border-[#1E1E1E] px-5 py-3.5 text-base text-[#1E1E1E] outline-none transition-colors placeholder:text-[#1E1E1E]/55 focus:border-[#0B5000] disabled:opacity-60';
+  'w-full rounded-[10px] border border-[#B4B4B4] px-5 py-3.5 text-base text-[#1E1E1E] outline-none transition-colors placeholder:text-[#B4B4B4] focus:border-[#0B5000] disabled:opacity-60';
 const USER_TRIGGER =
-  'h-auto w-full rounded-[10px] border-[#1E1E1E] px-5 py-3.5 text-base text-[#1E1E1E] data-[placeholder]:text-[#1E1E1E]/55 focus:ring-0 focus:ring-offset-0';
+  'h-auto w-full rounded-[10px] border-[#B4B4B4] px-5 py-3.5 text-base text-[#1E1E1E] transition-colors data-[placeholder]:text-[#B4B4B4] focus:border-[#0B5000] focus:ring-0 focus:ring-offset-0';
 
 // Figma "Add User" — single-column modal. Wires to the same create-user
 // mutation, now also carrying an optional admin-set password + assigned site.

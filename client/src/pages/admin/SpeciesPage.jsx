@@ -39,7 +39,7 @@ const LIMIT = 20;
 
 // Field styling matching the new modal pattern (rounded-10, dark outline).
 const FIELD =
-  'w-full rounded-[10px] border border-[#1E1E1E] px-5 py-3.5 text-base text-[#1E1E1E] outline-none transition-colors placeholder:text-[#1E1E1E]/55 focus:border-[#0B5000] disabled:opacity-60';
+  'w-full rounded-[10px] border border-[#B4B4B4] px-5 py-3.5 text-base text-[#1E1E1E] outline-none transition-colors placeholder:text-[#B4B4B4] focus:border-[#0B5000] disabled:opacity-60';
 
 export default function SpeciesPage() {
   const [q, setQ] = useState('');
@@ -317,7 +317,7 @@ function SpeciesFormFields({ register, errors, isActive, setIsActive, disabled }
           rows={3}
           placeholder="Optional notes about the species"
           disabled={disabled}
-          className="w-full resize-y rounded-[10px] border border-[#1E1E1E] px-5 py-3.5 text-base text-[#1E1E1E] outline-none transition-colors placeholder:text-[#1E1E1E]/55 focus:border-[#0B5000] disabled:opacity-60"
+          className="w-full resize-y rounded-[10px] border border-[#B4B4B4] px-5 py-3.5 text-base text-[#1E1E1E] outline-none transition-colors placeholder:text-[#B4B4B4] focus:border-[#0B5000] disabled:opacity-60"
           {...register('description', { maxLength: 2000 })}
         />
       </div>
