@@ -6,6 +6,7 @@ import { useAssignments } from '@/queries/assignments.js';
 import { formatDate, formatGeo } from '@/lib/format.js';
 import { cn } from '@/lib/utils';
 import { BODY_FONT, HEADING_FONT } from '@/components/GlassAuthScreen.jsx';
+import { PageHeading } from '@/components/PageHeading.jsx';
 
 const KIND_PILL = {
   planting: 'bg-[#0B5000]/10 text-[#0B5000]',
@@ -29,13 +30,15 @@ export default function VolunteerAssignments() {
 
   return (
     <div style={{ fontFamily: BODY_FONT }}>
-      <div className="text-xs font-medium uppercase tracking-widest text-[#0B5000]">Your work</div>
-      <h1 className="mt-1 text-3xl font-semibold text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>
-        My assignments
-      </h1>
-      <p className="mt-1 text-base text-[#1E1E1E]/50">
-        The sites you're responsible for planting or maintaining.
-      </p>
+      <PageHeading>
+        <div className="text-xs font-medium uppercase tracking-widest text-[#0B5000]">Your work</div>
+        <h1 className="mt-1 text-3xl font-semibold text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>
+          My assignments
+        </h1>
+        <p className="mt-1 text-base text-[#1E1E1E]/50">
+          The sites you're responsible for planting or maintaining.
+        </p>
+      </PageHeading>
 
       {isLoading ? (
         <div className="mt-8 grid grid-cols-1 gap-5 md:grid-cols-2">

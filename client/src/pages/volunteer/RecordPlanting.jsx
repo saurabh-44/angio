@@ -21,6 +21,7 @@ import { useCreatePlant } from '@/queries/plants.js';
 import { useSpeciesList } from '@/queries/species.js';
 import { ApiError } from '@/lib/api.js';
 import { BODY_FONT, HEADING_FONT } from '@/components/GlassAuthScreen.jsx';
+import { PageHeading } from '@/components/PageHeading.jsx';
 
 const CUSTOM_SPECIES = '__custom__';
 const GROWTH_STAGES = [
@@ -32,7 +33,7 @@ const GROWTH_STAGES = [
 
 function Header() {
   return (
-    <div>
+    <PageHeading>
       <div className="text-xs font-medium uppercase tracking-widest text-[#0B5000]">Field work</div>
       <h1 className="mt-1 text-3xl font-semibold text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>
         Record a planting
@@ -40,7 +41,7 @@ function Header() {
       <p className="mt-1 text-base text-[#1E1E1E]/50">
         Capture the location, snap a photo, and submit — the sponsor will see it right away.
       </p>
-    </div>
+    </PageHeading>
   );
 }
 

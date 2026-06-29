@@ -9,6 +9,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader.jsx';
+import { PageHeading } from '@/components/PageHeading.jsx';
 import { StatTile } from '@/components/StatTile.jsx';
 import { Skeleton } from '@/components/ui/skeleton.jsx';
 import { Badge } from '@/components/ui/badge.jsx';
@@ -47,11 +48,13 @@ export default function AdminHome() {
 
   return (
     <>
-      <PageHeader
-        eyebrow="NGO Admin"
-        title={`Hi, ${user?.name?.split(' ')[0] ?? 'there'}`}
-        description="Live momentum across sponsors, sites, plants, and weekly maintenance."
-      />
+      <PageHeading>
+        <PageHeader
+          eyebrow="NGO Admin"
+          title={`Hi, ${user?.name?.split(' ')[0] ?? 'there'}`}
+          description="Live momentum across sponsors, sites, plants, and weekly maintenance."
+        />
+      </PageHeading>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 sm:gap-5">
         <StatTile

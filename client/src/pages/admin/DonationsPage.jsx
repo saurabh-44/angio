@@ -45,6 +45,7 @@ import { ApiError } from '@/lib/api.js';
 import { formatAmount, formatDate } from '@/lib/format.js';
 import { cn } from '@/lib/utils';
 import { BODY_FONT, HEADING_FONT } from '@/components/GlassAuthScreen.jsx';
+import { PageHeading } from '@/components/PageHeading.jsx';
 
 const LIMIT = 20;
 const METHOD_OPTIONS = [
@@ -110,13 +111,15 @@ export default function DonationsPage() {
 
   return (
     <div style={{ fontFamily: BODY_FONT }}>
-      <h1 className="text-3xl font-semibold text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>
-        Donations
-      </h1>
-      <p className="mt-1 max-w-2xl text-base text-[#1E1E1E]/50">
-        Record each sponsor's contribution, then allocate it across one or more sites with a target
-        plant count.
-      </p>
+      <PageHeading>
+        <h1 className="text-3xl font-semibold text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>
+          Donations
+        </h1>
+        <p className="mt-1 max-w-2xl text-base text-[#1E1E1E]/50">
+          Record each sponsor's contribution, then allocate it across one or more sites with a target
+          plant count.
+        </p>
+      </PageHeading>
 
       {/* Sponsor filter + Export + Record donation */}
       <div className="mt-8 flex flex-wrap items-center gap-3">

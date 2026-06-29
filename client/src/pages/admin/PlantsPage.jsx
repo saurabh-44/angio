@@ -16,6 +16,7 @@ import {
 import { usePlants } from '@/queries/plants.js';
 import { useSites } from '@/queries/sites.js';
 import { BODY_FONT, HEADING_FONT } from '@/components/GlassAuthScreen.jsx';
+import { PageHeading } from '@/components/PageHeading.jsx';
 
 const STATUSES = ['alive', 'dead', 'removed'];
 const LIMIT = 24;
@@ -55,7 +56,7 @@ export default function PlantsPage() {
 
   return (
     <div style={{ fontFamily: BODY_FONT }}>
-      <div>
+      <PageHeading>
         <h1 className="text-3xl font-semibold text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>
           Plants
         </h1>
@@ -63,7 +64,7 @@ export default function PlantsPage() {
           Every tree volunteers have planted. Tap a card for its location map, planting photo, QR,
           and weekly maintenance.
         </p>
-      </div>
+      </PageHeading>
 
       {/* Filters + export */}
       <div className="mt-8 flex flex-wrap items-center gap-3">

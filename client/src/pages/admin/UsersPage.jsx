@@ -65,6 +65,7 @@ import { ApiError } from '@/lib/api.js';
 import { formatDate } from '@/lib/format.js';
 import { cn } from '@/lib/utils';
 import { BODY_FONT, HEADING_FONT } from '@/components/GlassAuthScreen.jsx';
+import { PageHeading } from '@/components/PageHeading.jsx';
 
 const ROLE_OPTIONS = ['sponsor', 'site_owner', 'volunteer', 'ngo_admin'];
 
@@ -105,9 +106,11 @@ export default function UsersPage() {
 
   return (
     <div style={{ fontFamily: BODY_FONT }}>
-      <h1 className="text-3xl font-semibold text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>
-        Users
-      </h1>
+      <PageHeading>
+        <h1 className="text-3xl font-semibold text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>
+          Users
+        </h1>
+      </PageHeading>
 
       {/* Search + role filter + New User */}
       <div className="mt-8 flex flex-wrap items-center gap-3">

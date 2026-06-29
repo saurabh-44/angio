@@ -8,6 +8,7 @@ import { useDonorCo2 } from '@/queries/co2.js';
 import { formatAmount } from '@/lib/format.js';
 import { cn } from '@/lib/utils';
 import { BODY_FONT, HEADING_FONT } from '@/components/GlassAuthScreen.jsx';
+import { PageHeading } from '@/components/PageHeading.jsx';
 
 // Figma sponsor dashboard: a bento of grey stat cards. Data layer is unchanged
 // — the same plants / maintenance / donations / CO₂ queries feed the numbers,
@@ -80,11 +81,11 @@ export default function SponsorHome() {
   return (
     <div style={{ fontFamily: BODY_FONT }}>
       {/* Heading */}
-      <div className="mb-8">
+      <PageHeading>
         <h1 className="text-3xl font-semibold text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>
           Dashboard
         </h1>
-      </div>
+      </PageHeading>
 
       {/* Bento stat grid */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

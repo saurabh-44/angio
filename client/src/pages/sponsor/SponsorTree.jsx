@@ -29,6 +29,7 @@ import { formatAmount, formatDate } from '@/lib/format.js';
 import { ApiError } from '@/lib/api.js';
 import { cn } from '@/lib/utils';
 import { BODY_FONT, HEADING_FONT } from '@/components/GlassAuthScreen.jsx';
+import { PageHeading } from '@/components/PageHeading.jsx';
 import paymentMethods from '@/assets/payment-methods.png';
 
 const ANY_SITE = '__any__';
@@ -304,9 +305,11 @@ export default function SponsorTree() {
 // "Contribute • N" heading (Figma).
 function ContributeHeading({ count }) {
   return (
-    <h1 className="text-3xl font-semibold text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>
-      Contribute <span className="font-normal">•&nbsp;{count}</span>
-    </h1>
+    <PageHeading>
+      <h1 className="text-3xl font-semibold text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>
+        Contribute <span className="font-normal">•&nbsp;{count}</span>
+      </h1>
+    </PageHeading>
   );
 }
 

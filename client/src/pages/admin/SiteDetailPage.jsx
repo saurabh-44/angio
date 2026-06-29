@@ -10,6 +10,7 @@ import { openAuthedPdf } from '@/lib/nativeFile.js';
 import { formatDate } from '@/lib/format.js';
 import { cn } from '@/lib/utils';
 import { BODY_FONT, HEADING_FONT } from '@/components/GlassAuthScreen.jsx';
+import { PageHeading } from '@/components/PageHeading.jsx';
 
 const STATUS_PILL = {
   completed: 'bg-[#0B5000]/10 text-[#0B5000]',
@@ -66,9 +67,8 @@ export default function SiteDetailPage() {
 
   return (
     <div style={{ fontFamily: BODY_FONT }}>
-      {/* Header: back + title on the left. Download Report sits on its own
-          right-aligned line just below the floating user chip, so the two
-          never overlap. */}
+      {/* Header: back + title, portaled into the desktop top bar. */}
+      <PageHeading>
       <div className="flex items-center gap-4">
         <button
           type="button"
@@ -94,6 +94,7 @@ export default function SiteDetailPage() {
           )}
         </div>
       </div>
+      </PageHeading>
       <div className="mt-4 flex justify-end">
         <button
           type="button"

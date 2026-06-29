@@ -42,6 +42,7 @@ import { ApiError } from '@/lib/api.js';
 import { formatDate } from '@/lib/format.js';
 import { cn } from '@/lib/utils';
 import { BODY_FONT, HEADING_FONT } from '@/components/GlassAuthScreen.jsx';
+import { PageHeading } from '@/components/PageHeading.jsx';
 
 const LIMIT = 20;
 const KIND_OPTIONS = [
@@ -66,14 +67,16 @@ export default function AssignmentsPage() {
 
   return (
     <div style={{ fontFamily: BODY_FONT }}>
-      <h1 className="text-3xl font-semibold text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>
-        {isOwner ? 'Volunteers on my sites' : 'Assignments'}
-      </h1>
-      <p className="mt-1 max-w-2xl text-base text-[#1E1E1E]/50">
-        {isOwner
-          ? 'The volunteers planting and watering at the sites you manage. Add a new volunteer to your pool or assign someone you already have to a site.'
-          : 'Match volunteers to sites for planting and weekly maintenance.'}
-      </p>
+      <PageHeading>
+        <h1 className="text-3xl font-semibold text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>
+          {isOwner ? 'Volunteers on my sites' : 'Assignments'}
+        </h1>
+        <p className="mt-1 max-w-2xl text-base text-[#1E1E1E]/50">
+          {isOwner
+            ? 'The volunteers planting and watering at the sites you manage. Add a new volunteer to your pool or assign someone you already have to a site.'
+            : 'Match volunteers to sites for planting and weekly maintenance.'}
+        </p>
+      </PageHeading>
 
       <div className="mt-8 flex flex-wrap items-center justify-end gap-3">
         {isOwner && (
