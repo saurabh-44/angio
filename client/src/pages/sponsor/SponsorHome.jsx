@@ -8,6 +8,7 @@ import { useDonorCo2 } from '@/queries/co2.js';
 import { formatAmount } from '@/lib/format.js';
 import { cn } from '@/lib/utils';
 import { BODY_FONT, HEADING_FONT } from '@/components/GlassAuthScreen.jsx';
+import { PageHeading } from '@/components/PageHeading.jsx';
 
 // Figma sponsor dashboard: a bento of grey stat cards. Data layer is unchanged
 // — the same plants / maintenance / donations / CO₂ queries feed the numbers,
@@ -26,7 +27,7 @@ function StatCard({ label, value, sub, loading, className }) {
       className={cn(
         // Compact on mobile (auto height, grouped content); the full Figma
         // bento — tall card with the number pinned to the bottom — is lg+ only.
-        'flex flex-col gap-1.5 rounded-lg bg-[#E2E8F0] p-5 lg:min-h-[200px] lg:justify-between lg:gap-0',
+        'flex flex-col gap-1.5 rounded-lg bg-[#DCE6F5] p-5 shadow-[0_8px_24px_-6px_rgba(15,23,42,0.18)] lg:min-h-[200px] lg:justify-between lg:gap-0',
         className,
       )}
       style={{ fontFamily: BODY_FONT }}
@@ -80,11 +81,11 @@ export default function SponsorHome() {
   return (
     <div style={{ fontFamily: BODY_FONT }}>
       {/* Heading */}
-      <div className="mb-8">
+      <PageHeading>
         <h1 className="text-3xl font-semibold text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>
           Dashboard
         </h1>
-      </div>
+      </PageHeading>
 
       {/* Bento stat grid */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -138,7 +139,10 @@ function CertificatesCard({ treesPlanted, className }) {
   const ready = treesPlanted > 0;
   return (
     <div
-      className={cn('flex min-h-[200px] flex-col rounded-lg bg-[#E2E8F0] p-5', className)}
+      className={cn(
+        'flex min-h-[200px] flex-col rounded-lg bg-[#DCE6F5] p-5 shadow-[0_8px_24px_-6px_rgba(15,23,42,0.18)]',
+        className,
+      )}
       style={{ fontFamily: BODY_FONT }}
     >
       <div className="text-base font-medium text-[#001F00]">Certificates</div>

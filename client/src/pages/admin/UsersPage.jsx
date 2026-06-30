@@ -7,6 +7,7 @@ import {
   KeyRound,
   Loader2,
   Mail,
+  MapPin,
   Phone,
   Plus,
   Search,
@@ -65,6 +66,7 @@ import { ApiError } from '@/lib/api.js';
 import { formatDate } from '@/lib/format.js';
 import { cn } from '@/lib/utils';
 import { BODY_FONT, HEADING_FONT } from '@/components/GlassAuthScreen.jsx';
+import { PageHeading } from '@/components/PageHeading.jsx';
 
 const ROLE_OPTIONS = ['sponsor', 'site_owner', 'volunteer', 'ngo_admin'];
 
@@ -105,9 +107,11 @@ export default function UsersPage() {
 
   return (
     <div style={{ fontFamily: BODY_FONT }}>
-      <h1 className="text-3xl font-semibold text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>
-        Users
-      </h1>
+      <PageHeading>
+        <h1 className="text-3xl font-semibold text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>
+          Users
+        </h1>
+      </PageHeading>
 
       {/* Search + role filter + New User */}
       <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -313,9 +317,9 @@ function UserRoleFilter({ value, onChange }) {
 
 // Field styles for the Figma Add-User modal (rounded-10, dark outline).
 const USER_FIELD =
-  'w-full rounded-[10px] border border-[#1E1E1E] px-5 py-3.5 text-base text-[#1E1E1E] outline-none transition-colors placeholder:text-[#1E1E1E]/55 focus:border-[#0B5000] disabled:opacity-60';
+  'w-full rounded-[10px] border border-[#B4B4B4] px-5 py-3.5 text-base text-[#1E1E1E] outline-none transition-colors placeholder:text-[#B4B4B4] focus:border-[#0B5000] disabled:opacity-60';
 const USER_TRIGGER =
-  'h-auto w-full rounded-[10px] border-[#1E1E1E] px-5 py-3.5 text-base text-[#1E1E1E] data-[placeholder]:text-[#1E1E1E]/55 focus:ring-0 focus:ring-offset-0';
+  'h-auto w-full rounded-[10px] border-[#B4B4B4] px-5 py-3.5 text-base text-[#1E1E1E] transition-colors data-[placeholder]:text-[#B4B4B4] focus:border-[#0B5000] focus:ring-0 focus:ring-offset-0';
 
 // Figma "Add User" — single-column modal. Wires to the same create-user
 // mutation, now also carrying an optional admin-set password + assigned site.
@@ -726,6 +730,11 @@ function EditUserSheet({ user, onClose, actor, onRequestDelete }) {
 }
 
 function UserSummary({ user }) {
+  // For a Site Incharge, show which site(s) they manage (owner === this user).
+  // Cheap for everyone else — a non-owner simply owns no sites.
+  const userId = user.id ?? user._id;
+  const sitesQ = useSites({ owner: userId, limit: 100 });
+  const ownedSites = sitesQ.data?.items ?? [];
   return (
     <div className="space-y-2 rounded-[10px] border border-[#E2E8F0] bg-[#F6FAF6] p-4">
       <div className="flex flex-wrap items-center gap-2">
@@ -757,6 +766,23 @@ function UserSummary({ user }) {
           Added by <span className="font-medium text-[#001F00]">{user.createdBy.name}</span>
           {user.createdBy.role && (
             <span className="text-[#1E1E1E]/50">({user.createdBy.role.replace('_', ' ')})</span>
+          )}
+        </div>
+      )}
+      {user.role === 'site_owner' && (
+        <div className="flex items-start gap-2 text-sm text-[#1E1E1E]/70">
+          <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+          {sitesQ.isLoading ? (
+            <span className="text-[#1E1E1E]/50">Loading sites…</span>
+          ) : ownedSites.length === 0 ? (
+            <span className="text-[#1E1E1E]/50">No site assigned yet</span>
+          ) : (
+            <span>
+              In charge of{' '}
+              <span className="font-medium text-[#001F00]">
+                {ownedSites.map((s) => s.name).join(', ')}
+              </span>
+            </span>
           )}
         </div>
       )}

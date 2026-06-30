@@ -20,6 +20,7 @@ import { useMaintenance } from '@/queries/maintenance.js';
 import { formatDate, formatDbh, formatGeo, formatHeight, formatRelative } from '@/lib/format.js';
 import { cn } from '@/lib/utils';
 import { BODY_FONT, HEADING_FONT } from '@/components/GlassAuthScreen.jsx';
+import { PageHeading } from '@/components/PageHeading.jsx';
 
 const PLANT_STATUS = {
   alive: 'bg-[#0B5000]/10 text-[#0B5000]',
@@ -94,7 +95,8 @@ export default function PlantDetailPage() {
 
   return (
     <div style={{ fontFamily: BODY_FONT }}>
-      {/* Header */}
+      {/* Header — back + title, portaled into the desktop top bar */}
+      <PageHeading>
       <div className="flex items-center gap-4">
         <button
           type="button"
@@ -120,6 +122,7 @@ export default function PlantDetailPage() {
           )}
         </div>
       </div>
+      </PageHeading>
 
       {isLoading || !plant ? (
         <div className="mt-7 grid gap-6 lg:grid-cols-[1.4fr_1fr]">

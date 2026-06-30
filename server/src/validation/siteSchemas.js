@@ -22,7 +22,7 @@ export const createSiteSchema = z.object({
   state: z.string().trim().max(120).optional(),
   country: z.string().trim().max(120).optional(),
   pinCode: z.string().trim().max(16).optional(),
-  geo,
+  geo: geo.optional(),
   photo: photo.optional(),
   capacity: z.number().int().min(0).default(0),
   pricePerTreeInr: z.number().min(0).optional(),

@@ -10,6 +10,7 @@ import { openAuthedPdf } from '@/lib/nativeFile.js';
 import { formatDate } from '@/lib/format.js';
 import { cn } from '@/lib/utils';
 import { BODY_FONT, HEADING_FONT } from '@/components/GlassAuthScreen.jsx';
+import { PageHeading } from '@/components/PageHeading.jsx';
 
 const STATUS_PILL = {
   completed: 'bg-[#0B5000]/10 text-[#0B5000]',
@@ -66,9 +67,8 @@ export default function SiteDetailPage() {
 
   return (
     <div style={{ fontFamily: BODY_FONT }}>
-      {/* Header: back + title on the left. Download Report sits on its own
-          right-aligned line just below the floating user chip, so the two
-          never overlap. */}
+      {/* Header: back + title, portaled into the desktop top bar. */}
+      <PageHeading>
       <div className="flex items-center gap-4">
         <button
           type="button"
@@ -94,6 +94,7 @@ export default function SiteDetailPage() {
           )}
         </div>
       </div>
+      </PageHeading>
       <div className="mt-4 flex justify-end">
         <button
           type="button"
@@ -219,7 +220,7 @@ export default function SiteDetailPage() {
 
 function InfoCard({ title, children, loading }) {
   return (
-    <section className="rounded-[10px] bg-white p-4 shadow-[0_0_20px_rgba(0,0,0,0.08)] sm:p-6">
+    <section className="rounded-[10px] bg-[#DCE6F5] p-4 shadow-[0_8px_24px_-6px_rgba(15,23,42,0.14)] sm:p-6">
       <h2 className="text-xl font-medium text-[#001F00]">{title}</h2>
       <div className="mt-5 space-y-5">
         {loading
@@ -243,7 +244,7 @@ function InfoRow({ label, value, muted }) {
 
 function StatCard({ label, value, recordedOn, loading }) {
   return (
-    <div className="flex min-h-[150px] flex-col justify-between rounded-[10px] bg-white p-4 shadow-[0_0_20px_rgba(0,0,0,0.08)] sm:min-h-[200px] sm:p-6">
+    <div className="flex min-h-[150px] flex-col justify-between rounded-[10px] bg-[#DCE6F5] p-4 shadow-[0_8px_24px_-6px_rgba(15,23,42,0.14)] sm:min-h-[200px] sm:p-6">
       <div className="text-base font-medium text-[#001F00]">{label}</div>
       <div>
         {loading ? (
@@ -267,7 +268,7 @@ function RecordsTable({ title, searchPlaceholder, viewAllTo, columns, rows, sear
     : rows;
 
   return (
-    <section className="mt-6 rounded-[10px] bg-white p-4 shadow-[0_0_20px_rgba(0,0,0,0.08)] sm:p-6">
+    <section className="mt-6 rounded-[10px] bg-white p-4 shadow-[0_8px_24px_-6px_rgba(15,23,42,0.14)] sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h2 className="text-xl font-medium text-[#001F00]">{title}</h2>
         {viewAllTo && (

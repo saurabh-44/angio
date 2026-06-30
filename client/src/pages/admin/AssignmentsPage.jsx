@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import {
   CalendarClock,
   Clipboard,
   Loader2,
+  Pencil,
   Plus,
   Trash2,
   UserPlus,
@@ -34,6 +35,7 @@ import {
   useAssignments,
   useCreateAssignment,
   useDeleteAssignment,
+  useUpdateAssignment,
 } from '@/queries/assignments.js';
 import { useCreateUser, useUsers } from '@/queries/users.js';
 import { useSites } from '@/queries/sites.js';
@@ -42,6 +44,7 @@ import { ApiError } from '@/lib/api.js';
 import { formatDate } from '@/lib/format.js';
 import { cn } from '@/lib/utils';
 import { BODY_FONT, HEADING_FONT } from '@/components/GlassAuthScreen.jsx';
+import { PageHeading } from '@/components/PageHeading.jsx';
 
 const LIMIT = 20;
 const KIND_OPTIONS = [
@@ -59,6 +62,7 @@ export default function AssignmentsPage() {
   const [page, setPage] = useState(1);
   const [createOpen, setCreateOpen] = useState(false);
   const [newVolunteerOpen, setNewVolunteerOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
   const [confirming, setConfirming] = useState(null);
   const { data, isLoading, isError, refetch } = useAssignments({ page, limit: LIMIT });
   const items = data?.items ?? [];
@@ -66,14 +70,16 @@ export default function AssignmentsPage() {
 
   return (
     <div style={{ fontFamily: BODY_FONT }}>
-      <h1 className="text-3xl font-semibold text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>
-        {isOwner ? 'Volunteers on my sites' : 'Assignments'}
-      </h1>
-      <p className="mt-1 max-w-2xl text-base text-[#1E1E1E]/50">
-        {isOwner
-          ? 'The volunteers planting and watering at the sites you manage. Add a new volunteer to your pool or assign someone you already have to a site.'
-          : 'Match volunteers to sites for planting and weekly maintenance.'}
-      </p>
+      <PageHeading>
+        <h1 className="text-3xl font-semibold text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>
+          {isOwner ? 'Volunteers on my sites' : 'Assignments'}
+        </h1>
+        <p className="mt-1 max-w-2xl text-base text-[#1E1E1E]/50">
+          {isOwner
+            ? 'The volunteers planting and watering at the sites you manage. Add a new volunteer to your pool or assign someone you already have to a site.'
+            : 'Match volunteers to sites for planting and weekly maintenance.'}
+        </p>
+      </PageHeading>
 
       <div className="mt-8 flex flex-wrap items-center justify-end gap-3">
         {isOwner && (
@@ -167,14 +173,24 @@ export default function AssignmentsPage() {
                       </span>
                     </td>
                     <td className="py-4 text-right">
-                      <button
-                        type="button"
-                        onClick={() => setConfirming(a)}
-                        aria-label="Remove assignment"
-                        className="inline-grid h-9 w-9 place-items-center rounded-lg text-[#1E1E1E]/50 transition-colors hover:bg-red-50 hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      <div className="inline-flex items-center justify-end gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setEditing(a)}
+                          aria-label="Edit assignment"
+                          className="inline-grid h-9 w-9 place-items-center rounded-lg text-[#1E1E1E]/50 transition-colors hover:bg-[#0B5000]/10 hover:text-[#0B5000]"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirming(a)}
+                          aria-label="Remove assignment"
+                          className="inline-grid h-9 w-9 place-items-center rounded-lg text-[#1E1E1E]/50 transition-colors hover:bg-red-50 hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -212,14 +228,24 @@ export default function AssignmentsPage() {
                     {formatDate(a.startsAt)}
                     {a.endsAt && <> – {formatDate(a.endsAt)}</>}
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => setConfirming(a)}
-                    aria-label="Remove assignment"
-                    className="inline-grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[#1E1E1E]/50 transition-colors hover:bg-red-50 hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setEditing(a)}
+                      aria-label="Edit assignment"
+                      className="inline-grid h-9 w-9 place-items-center rounded-lg text-[#1E1E1E]/50 transition-colors hover:bg-[#0B5000]/10 hover:text-[#0B5000]"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirming(a)}
+                      aria-label="Remove assignment"
+                      className="inline-grid h-9 w-9 place-items-center rounded-lg text-[#1E1E1E]/50 transition-colors hover:bg-red-50 hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -228,7 +254,16 @@ export default function AssignmentsPage() {
         </>
       )}
 
-      <CreateAssignmentDialog open={createOpen} onOpenChange={setCreateOpen} />
+      <AssignmentDialog
+        open={createOpen || !!editing}
+        assignment={editing}
+        onOpenChange={(o) => {
+          if (!o) {
+            setCreateOpen(false);
+            setEditing(null);
+          }
+        }}
+      />
       <CreateVolunteerDialog open={newVolunteerOpen} onOpenChange={setNewVolunteerOpen} />
       <DeleteAssignmentConfirm assignment={confirming} onClose={() => setConfirming(null)} />
     </div>
@@ -349,17 +384,15 @@ function CreateVolunteerDialog({ open, onOpenChange }) {
   );
 }
 
-function CreateAssignmentDialog({ open, onOpenChange }) {
+function AssignmentDialog({ open, assignment, onOpenChange }) {
+  const isEdit = !!assignment;
   const create = useCreateAssignment();
+  const update = useUpdateAssignment();
+  const pending = isEdit ? update.isPending : create.isPending;
   const { success, error: toastError } = useToast();
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset,
-    watch,
-    setValue,
-  } = useForm({ defaultValues: { kind: 'planting' } });
+  const { register, handleSubmit, reset, watch, setValue } = useForm({
+    defaultValues: { kind: 'planting' },
+  });
   const [volunteer, setVolunteer] = useState('');
   const [site, setSite] = useState('');
   const kind = watch('kind');
@@ -372,12 +405,28 @@ function CreateAssignmentDialog({ open, onOpenChange }) {
   const vols = volsQ.data?.items ?? [];
   const sites = sitesQ.data?.items ?? [];
 
-  function close() {
-    onOpenChange(false);
-    reset({ kind: 'planting' });
-    setVolunteer('');
-    setSite('');
-  }
+  // Prefill from the assignment when editing; clear it for a new assignment.
+  useEffect(() => {
+    if (!open) return;
+    if (assignment) {
+      setVolunteer(
+        String(assignment.volunteer?.id ?? assignment.volunteer?._id ?? assignment.volunteer ?? ''),
+      );
+      setSite(String(assignment.site?.id ?? assignment.site?._id ?? assignment.site ?? ''));
+      reset({
+        kind: assignment.kind ?? 'planting',
+        startsAt: assignment.startsAt
+          ? new Date(assignment.startsAt).toISOString().slice(0, 10)
+          : '',
+        endsAt: assignment.endsAt ? new Date(assignment.endsAt).toISOString().slice(0, 10) : '',
+        note: assignment.note ?? '',
+      });
+    } else {
+      setVolunteer('');
+      setSite('');
+      reset({ kind: 'planting', startsAt: '', endsAt: '', note: '' });
+    }
+  }, [open, assignment, reset]);
 
   async function onSubmit(values) {
     if (!volunteer || !site) {
@@ -385,33 +434,50 @@ function CreateAssignmentDialog({ open, onOpenChange }) {
       return;
     }
     try {
-      await create.mutateAsync({
-        volunteer,
-        site,
-        kind: values.kind,
-        startsAt: values.startsAt || undefined,
-        endsAt: values.endsAt || undefined,
-        note: values.note?.trim() || undefined,
-      });
-      success('Assignment created');
-      close();
+      if (isEdit) {
+        await update.mutateAsync({
+          id: assignment.id ?? assignment._id,
+          patch: {
+            volunteer,
+            site,
+            kind: values.kind,
+            startsAt: values.startsAt || undefined,
+            endsAt: values.endsAt || null,
+            note: values.note?.trim() || undefined,
+          },
+        });
+        success('Assignment updated', 'The volunteer has been reassigned.');
+      } else {
+        await create.mutateAsync({
+          volunteer,
+          site,
+          kind: values.kind,
+          startsAt: values.startsAt || undefined,
+          endsAt: values.endsAt || undefined,
+          note: values.note?.trim() || undefined,
+        });
+        success('Assignment created');
+      }
+      onOpenChange(false);
     } catch (err) {
       toastError(
-        "Couldn't create assignment",
+        isEdit ? "Couldn't update assignment" : "Couldn't create assignment",
         err instanceof ApiError ? err.message : 'Try again.',
       );
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => (o ? onOpenChange(true) : close())}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="rounded-[10px] sm:max-w-lg" style={{ fontFamily: BODY_FONT }}>
         <DialogHeader className="gap-1.5">
           <DialogTitle className="text-2xl font-medium text-[#001F00]" style={{ fontFamily: BODY_FONT }}>
-            Assign a volunteer
+            {isEdit ? 'Edit assignment' : 'Assign a volunteer'}
           </DialogTitle>
           <DialogDescription className="text-base text-[#1E1E1E]/50">
-            Decide who plants or waters where. Volunteers see only the sites they're assigned to.
+            {isEdit
+              ? "Reassign this volunteer to a different site or change their task. Their planted-tree history stays with the original site."
+              : "Decide who plants or waters where. Volunteers see only the sites they're assigned to."}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
@@ -515,11 +581,11 @@ function CreateAssignmentDialog({ open, onOpenChange }) {
 
           <button
             type="submit"
-            disabled={create.isPending}
+            disabled={pending}
             className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] bg-[#346EC4] px-5 py-3.5 text-base font-semibold text-white transition-colors hover:bg-[#2c5da6] disabled:opacity-70"
           >
-            {create.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-            Assign
+            {pending && <Loader2 className="h-4 w-4 animate-spin" />}
+            {isEdit ? 'Save changes' : 'Assign'}
           </button>
         </form>
       </DialogContent>

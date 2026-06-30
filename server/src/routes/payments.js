@@ -22,12 +22,20 @@ export const paymentsRouter = Router();
 // before the requireAuth gate below.
 paymentsRouter.post('/webhook', asyncHandler(postWebhook));
 
-// All other payment endpoints are sponsor-only. Site owners / volunteers /
-// admins never use this surface — admins record offline payments via
-// /api/donations instead.
-paymentsRouter.use(requireAuth, blockIfForcedPasswordChange, requireRole('sponsor'));
+// Sponsorship info (default per-tree price + Razorpay-enabled flag) is
+// read-only and not sensitive. Sponsors need it to check out; the NGO admin
+// needs the default rate to auto-cost donation allocations.
+paymentsRouter.get(
+  '/info',
+  requireAuth,
+  blockIfForcedPasswordChange,
+  requireRole('sponsor', 'ngo_admin'),
+  asyncHandler(getSponsorshipInfo),
+);
 
-paymentsRouter.get('/info', asyncHandler(getSponsorshipInfo));
+// All other payment endpoints are sponsor-only. Site owners / volunteers never
+// use this surface — admins record offline payments via /api/donations.
+paymentsRouter.use(requireAuth, blockIfForcedPasswordChange, requireRole('sponsor'));
 
 // Sponsor's own orders (status / CO₂ views). Read-only.
 paymentsRouter.get('/orders', asyncHandler(getOrders));

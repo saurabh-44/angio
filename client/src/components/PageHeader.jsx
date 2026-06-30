@@ -6,7 +6,7 @@ export default function PageHeader({ eyebrow, title, description, actions, class
   return (
     <header
       className={cn(
-        'flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between mb-6',
+        'flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between',
         className,
       )}
     >

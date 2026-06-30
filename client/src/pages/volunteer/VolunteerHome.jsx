@@ -6,6 +6,7 @@ import { usePlants } from '@/queries/plants.js';
 import { useAssignments } from '@/queries/assignments.js';
 import { useMaintenance } from '@/queries/maintenance.js';
 import { BODY_FONT, HEADING_FONT } from '@/components/GlassAuthScreen.jsx';
+import { PageHeading } from '@/components/PageHeading.jsx';
 
 function dash(v) {
   return v == null ? '—' : String(v);
@@ -37,13 +38,15 @@ export default function VolunteerHome() {
 
   return (
     <div style={{ fontFamily: BODY_FONT }}>
-      <div className="text-xs font-medium uppercase tracking-widest text-[#0B5000]">Volunteer</div>
-      <h1 className="mt-1 text-3xl font-semibold text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>
-        Welcome, {user?.name?.split(' ')[0] ?? 'there'}
-      </h1>
-      <p className="mt-1 text-base text-[#1E1E1E]/50">
-        Record what you plant and water in the field. Big buttons, no fuss.
-      </p>
+      <PageHeading>
+        <div className="text-xs font-medium uppercase tracking-widest text-[#0B5000]">Volunteer</div>
+        <h1 className="mt-1 text-3xl font-semibold text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>
+          Welcome, {user?.name?.split(' ')[0] ?? 'there'}
+        </h1>
+        <p className="mt-1 text-base text-[#1E1E1E]/50">
+          Record what you plant and water in the field. Big buttons, no fuss.
+        </p>
+      </PageHeading>
 
       {/* Primary field actions */}
       <div className="mt-6 flex flex-col gap-3 sm:flex-row">

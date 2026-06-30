@@ -1,4 +1,4 @@
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { ROLE_HOME, useAuth } from '@/lib/auth.jsx';
 import { Spinner } from '@/components/ui/spinner.jsx';
 
@@ -12,7 +12,6 @@ import { Spinner } from '@/components/ui/spinner.jsx';
 // itself sets it to false so the user can actually clear the flag.
 export default function PrivateRoute({ children, roles, redirectIfForced = true }) {
   const { status, isAuthenticated, role, mustChangePassword } = useAuth();
-  const location = useLocation();
 
   if (status === 'pending') {
     return (
@@ -22,8 +21,9 @@ export default function PrivateRoute({ children, roles, redirectIfForced = true 
     );
   }
 
+  // Signed-out (incl. after Sign out) → public home/landing, not the login page.
   if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/" replace />;
   }
 
   if (redirectIfForced && mustChangePassword) {
@@ -31,7 +31,7 @@ export default function PrivateRoute({ children, roles, redirectIfForced = true 
   }
 
   if (roles && !roles.includes(role)) {
-    return <Navigate to={ROLE_HOME[role] ?? '/login'} replace />;
+    return <Navigate to={ROLE_HOME[role] ?? '/'} replace />;
   }
 
   return children;

@@ -30,7 +30,9 @@ const siteSchema = new Schema(
     state: { type: String, trim: true, maxlength: 120 },
     country: { type: String, trim: true, maxlength: 120 },
     pinCode: { type: String, trim: true, maxlength: 16 },
-    geo: { type: geoSchema, required: true },
+    // Optional: an admin often creates a site off-location, so they may save
+    // it with just the address and add precise coordinates later.
+    geo: { type: geoSchema },
     photo: { type: photoSchema },
     capacity: { type: Number, min: 0, default: 0 },
     // Price per tree a sponsor pays to fund a planting at this site, in

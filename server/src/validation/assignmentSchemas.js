@@ -16,6 +16,11 @@ export const createAssignmentSchema = z.object({
 });
 
 export const updateAssignmentSchema = z.object({
+  // Reassigning: the volunteer can be moved to a different site (or swapped).
+  // Their planting/maintenance history stays put — plants reference the site
+  // + volunteer, not the assignment record.
+  volunteer: objectId.optional(),
+  site: objectId.optional(),
   kind: z.enum(ASSIGNMENT_KINDS).optional(),
   startsAt: z.coerce.date().optional(),
   endsAt: z.coerce.date().nullable().optional(),

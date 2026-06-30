@@ -26,8 +26,9 @@ export const NAV_BY_ROLE = {
     // Plants hub — each tree's location/map and weekly maintenance live in its detail.
     { to: '/admin/plants', label: 'Plants', icon: Leaf },
     { to: '/admin/assignments', label: 'Assignments', icon: Clipboard },
-    { to: '/admin/species', label: 'Species', icon: TreePine },
-    // Hidden per client request — page + backend kept intact; uncomment to restore:
+    // Hidden per client request (not in SRS) — page + backend kept intact;
+    // uncomment to restore:
+    // { to: '/admin/species', label: 'Species', icon: TreePine },
     // { to: '/admin/import', label: 'Import', icon: FileSpreadsheet },
   ],
   site_owner: [
