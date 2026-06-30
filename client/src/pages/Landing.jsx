@@ -33,7 +33,6 @@ export default function Landing() {
 // item can follow the scroll. "Contribute" is the register CTA (a route).
 const NAV_LINKS = [
   { label: 'Home', to: '#home' },
-  { label: 'About Us', to: '#mission' },
   { label: 'Contribute', to: '/register' },
   { label: 'Contact Us', to: '#contact' },
 ];
@@ -434,7 +433,6 @@ function Footer() {
             title="Navigate"
             links={[
               ['Home', '#home'],
-              ['About Us', '#mission'],
               ['Contribute', '/register'],
               ['Get In Touch', '#contact'],
             ]}

@@ -7,6 +7,7 @@ import {
   KeyRound,
   Loader2,
   Mail,
+  MapPin,
   Phone,
   Plus,
   Search,
@@ -729,6 +730,11 @@ function EditUserSheet({ user, onClose, actor, onRequestDelete }) {
 }
 
 function UserSummary({ user }) {
+  // For a Site Incharge, show which site(s) they manage (owner === this user).
+  // Cheap for everyone else — a non-owner simply owns no sites.
+  const userId = user.id ?? user._id;
+  const sitesQ = useSites({ owner: userId, limit: 100 });
+  const ownedSites = sitesQ.data?.items ?? [];
   return (
     <div className="space-y-2 rounded-[10px] border border-[#E2E8F0] bg-[#F6FAF6] p-4">
       <div className="flex flex-wrap items-center gap-2">
@@ -760,6 +766,23 @@ function UserSummary({ user }) {
           Added by <span className="font-medium text-[#001F00]">{user.createdBy.name}</span>
           {user.createdBy.role && (
             <span className="text-[#1E1E1E]/50">({user.createdBy.role.replace('_', ' ')})</span>
+          )}
+        </div>
+      )}
+      {user.role === 'site_owner' && (
+        <div className="flex items-start gap-2 text-sm text-[#1E1E1E]/70">
+          <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+          {sitesQ.isLoading ? (
+            <span className="text-[#1E1E1E]/50">Loading sites…</span>
+          ) : ownedSites.length === 0 ? (
+            <span className="text-[#1E1E1E]/50">No site assigned yet</span>
+          ) : (
+            <span>
+              In charge of{' '}
+              <span className="font-medium text-[#001F00]">
+                {ownedSites.map((s) => s.name).join(', ')}
+              </span>
+            </span>
           )}
         </div>
       )}

@@ -40,6 +40,7 @@ import {
   useUpdateDonation,
 } from '@/queries/donations.js';
 import { useSites } from '@/queries/sites.js';
+import { useSponsorshipInfo } from '@/queries/payments.js';
 import { useUsers } from '@/queries/users.js';
 import { ApiError } from '@/lib/api.js';
 import { formatAmount, formatDate } from '@/lib/format.js';
@@ -427,6 +428,8 @@ function DonationDetailSheet({ donation, onClose }) {
     limit: 100,
     enabled: !!donation,
   });
+  const info = useSponsorshipInfo();
+  const globalUnit = info.data?.unitPriceInr ?? 0;
   const allocations = allocsData?.items ?? [];
   const allocatedTotal = useMemo(
     () => allocations.reduce((s, a) => s + (a.allocatedAmount ?? 0), 0),
@@ -436,7 +439,19 @@ function DonationDetailSheet({ donation, onClose }) {
     () => allocations.reduce((s, a) => s + (a.targetPlants ?? 0), 0),
     [allocations],
   );
-  const remaining = (donation?.amount ?? 0) - allocatedTotal;
+  // Trees the sponsor paid for. Sponsor orders store treeCount; for older /
+  // offline donations fall back to amount ÷ the default per-tree price.
+  const orderedTrees =
+    donation?.treeCount && donation.treeCount > 0
+      ? donation.treeCount
+      : globalUnit > 0
+        ? Math.round((donation?.amount ?? 0) / globalUnit)
+        : 0;
+  const remainingTrees = Math.max(0, orderedTrees - allocatedPlants);
+  const remainingMoney = Math.max(0, (donation?.amount ?? 0) - allocatedTotal);
+  // Per-tree money the sponsor actually paid — keeps each allocation's money
+  // share within the donation total (the admin never types an amount).
+  const ratePaid = orderedTrees > 0 ? (donation?.amount ?? 0) / orderedTrees : globalUnit;
 
   if (!donation) return null;
 
@@ -458,13 +473,13 @@ function DonationDetailSheet({ donation, onClose }) {
         <div className="mt-6 -mx-2 flex-1 overflow-y-auto px-2">
           <div className="grid grid-cols-3 gap-3">
             <SummaryStat icon={Banknote} label="Donated" value={formatAmount(donation.amount)} />
+            <SummaryStat icon={Leaf} label="Trees ordered" value={String(orderedTrees)} />
             <SummaryStat
               icon={Sparkles}
               label="Allocated"
-              value={formatAmount(allocatedTotal)}
-              tone={remaining > 0 ? 'amber' : 'leaf'}
+              value={`${allocatedPlants}/${orderedTrees}`}
+              tone={remainingTrees > 0 ? 'amber' : 'leaf'}
             />
-            <SummaryStat icon={Leaf} label="Target trees" value={String(allocatedPlants)} />
           </div>
 
           <div className="mt-5">
@@ -490,10 +505,12 @@ function DonationDetailSheet({ donation, onClose }) {
               <span
                 className={cn(
                   'inline-flex rounded-full px-3 py-1 text-xs font-medium',
-                  remaining > 0 ? 'bg-amber-100 text-amber-700' : 'bg-[#0B5000]/10 text-[#0B5000]',
+                  remainingTrees > 0 ? 'bg-amber-100 text-amber-700' : 'bg-[#0B5000]/10 text-[#0B5000]',
                 )}
               >
-                {remaining > 0 ? `${formatAmount(remaining)} unallocated` : 'Fully allocated'}
+                {remainingTrees > 0
+                  ? `${remainingTrees} tree${remainingTrees === 1 ? '' : 's'} unallocated`
+                  : 'Fully allocated'}
               </span>
             </div>
 
@@ -509,7 +526,14 @@ function DonationDetailSheet({ donation, onClose }) {
               </ul>
             )}
 
-            {remaining > 0 && <AddAllocationForm donation={donation} remaining={remaining} />}
+            {remainingTrees > 0 && (
+              <AddAllocationForm
+                donation={donation}
+                remainingTrees={remainingTrees}
+                ratePaid={ratePaid}
+                remainingMoney={remainingMoney}
+              />
+            )}
           </div>
         </div>
       </SheetContent>
@@ -620,7 +644,7 @@ function AllocationRow({ allocation }) {
   );
 }
 
-function AddAllocationForm({ donation, remaining }) {
+function AddAllocationForm({ donation, remainingTrees, ratePaid, remainingMoney }) {
   const create = useCreateAllocation();
   const { success, error: toastError } = useToast();
   const {
@@ -636,16 +660,23 @@ function AddAllocationForm({ donation, remaining }) {
       toastError('Pick a site', 'Choose the site this allocation funds.');
       return;
     }
-    if (values.allocatedAmount > remaining) {
-      toastError('Too much', `Only ${formatAmount(remaining)} is unallocated for this donation.`);
+    if (values.targetPlants > remainingTrees) {
+      toastError(
+        'Too many trees',
+        `Only ${remainingTrees} of the sponsor's ordered tree${remainingTrees === 1 ? '' : 's'} ${remainingTrees === 1 ? 'is' : 'are'} left to allocate.`,
+      );
       return;
     }
     try {
+      // Money share is derived from the trees (× the rate the sponsor paid) and
+      // clamped to the unallocated balance — the admin only chooses trees.
+      const computed = Math.round(values.targetPlants * ratePaid * 100) / 100;
+      const allocatedAmount = Math.min(computed, remainingMoney);
       await create.mutateAsync({
         donation: donation.id ?? donation._id,
         site,
         targetPlants: values.targetPlants,
-        allocatedAmount: values.allocatedAmount,
+        allocatedAmount,
         note: values.note?.trim() || undefined,
       });
       success('Allocation added');
@@ -663,33 +694,32 @@ function AddAllocationForm({ donation, remaining }) {
     >
       <div className="text-sm font-medium text-[#001F00]">Add allocation</div>
       <SiteSelect value={site} onChange={setSite} disabled={create.isPending} />
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5">
-          <Label htmlFor="targetPlants" className="text-xs text-[#001F00]">Target trees</Label>
-          <Input
-            id="targetPlants"
-            type="number"
-            min="1"
-            placeholder="50"
-            disabled={create.isPending}
-            {...register('targetPlants', { required: true, valueAsNumber: true, min: 1 })}
-          />
-          {errors.targetPlants && <p className="text-xs text-destructive">At least one tree.</p>}
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="allocatedAmount" className="text-xs text-[#001F00]">
-            Amount (max {formatAmount(remaining)})
-          </Label>
-          <Input
-            id="allocatedAmount"
-            type="number"
-            step="0.01"
-            min="0"
-            placeholder="0.00"
-            disabled={create.isPending}
-            {...register('allocatedAmount', { required: true, valueAsNumber: true, min: 0 })}
-          />
-        </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="targetPlants" className="text-xs text-[#001F00]">
+          Number of trees{' '}
+          <span className="font-normal text-[#1E1E1E]/40">
+            ({remainingTrees} left to allocate)
+          </span>
+        </Label>
+        <Input
+          id="targetPlants"
+          type="number"
+          min="1"
+          max={remainingTrees}
+          placeholder={String(remainingTrees)}
+          disabled={create.isPending}
+          {...register('targetPlants', {
+            required: true,
+            valueAsNumber: true,
+            min: 1,
+            max: remainingTrees,
+          })}
+        />
+        {errors.targetPlants && (
+          <p className="text-xs text-destructive">
+            Enter between 1 and {remainingTrees} tree{remainingTrees === 1 ? '' : 's'}.
+          </p>
+        )}
       </div>
       <Input placeholder="Note (optional)" disabled={create.isPending} {...register('note')} />
       <Button type="submit" disabled={create.isPending} className="w-full">
