@@ -11,7 +11,9 @@ import {
   Users,
 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader.jsx';
-import { Button } from '@/components/ui/button.jsx';
+import DownloadLink from '@/components/DownloadLink.jsx';
+import { Button, buttonVariants } from '@/components/ui/button.jsx';
+import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge.jsx';
 import { useToast } from '@/components/ui/toast.jsx';
 import { api, ApiError } from '@/lib/api.js';
@@ -146,11 +148,12 @@ function ImportCard({
       </div>
 
       <div className="flex flex-col sm:flex-row gap-2">
-        <Button asChild variant="outline" className="flex-1">
-          <a href={templateHref} target="_blank" rel="noopener noreferrer" download>
-            <Download className="h-4 w-4" /> Download template
-          </a>
-        </Button>
+        <DownloadLink
+          href={templateHref}
+          className={cn(buttonVariants({ variant: 'outline' }), 'flex-1')}
+        >
+          <Download className="h-4 w-4" /> Download template
+        </DownloadLink>
         <Button
           type="button"
           className="flex-1"

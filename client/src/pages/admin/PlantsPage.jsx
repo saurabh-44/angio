@@ -4,6 +4,7 @@ import { Download, Filter, Leaf } from 'lucide-react';
 import EmptyState from '@/components/EmptyState.jsx';
 import Pagination from '@/components/Pagination.jsx';
 import PlantCard from '@/components/PlantCard.jsx';
+import DownloadLink from '@/components/DownloadLink.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Skeleton } from '@/components/ui/skeleton.jsx';
 import {
@@ -109,12 +110,13 @@ export default function PlantsPage() {
             ))}
           </SelectContent>
         </Select>
-        <a
+        <DownloadLink
           href={`/api/excel/export/plants.xlsx${buildPlantExportQuery({ site, status })}`}
-          className="ml-auto inline-flex shrink-0 items-center gap-2 rounded-[10px] border border-[#001F00] px-5 py-3 text-sm font-medium text-[#001F00] transition-colors hover:bg-[#001F00] hover:text-white"
+          filename="plants.xlsx"
+          className="ml-auto inline-flex shrink-0 items-center gap-2 rounded-[10px] border border-[#001F00] px-5 py-3 text-sm font-medium text-[#001F00] transition-colors hover:bg-[#001F00] hover:text-white disabled:opacity-60"
         >
           <Download className="h-4 w-4" aria-hidden /> Export to Excel
-        </a>
+        </DownloadLink>
       </div>
 
       {isLoading ? (
