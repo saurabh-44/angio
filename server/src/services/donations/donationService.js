@@ -27,10 +27,25 @@ export async function createDonation({ input, actor }) {
     throw HttpError.forbidden('Only the NGO admin can record donations');
   }
   await assertDonorIsDonor(input.donor);
+  const { site, ...donationInput } = input;
+  if (site) await loadSiteForAllocation(site);
   const donation = await Donation.create({
-    ...input,
+    ...donationInput,
+    intendedSite: site ?? undefined,
     recordedBy: actor.userId,
   });
+  // A chosen site reserves the whole donation (trees + money) against it now;
+  // otherwise the admin splits it across sites later via allocations.
+  if (site) {
+    await Allocation.create({
+      donation: donation._id,
+      donor: donation.donor,
+      site,
+      targetPlants: donation.treeCount,
+      allocatedAmount: donation.amount,
+      createdBy: actor.userId,
+    });
+  }
   return donation.toObject();
 }
 

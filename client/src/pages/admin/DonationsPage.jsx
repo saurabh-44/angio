@@ -294,12 +294,28 @@ function CreateDonationDialog({ open, onOpenChange }) {
     watch,
   } = useForm({ defaultValues: { method: 'cash' } });
   const [donor, setDonor] = useState('');
+  const [site, setSite] = useState('');
   const method = watch('method');
+
+  // When a site is chosen the amount is derived (trees × the site's per-tree
+  // rate, falling back to the global default). Without a site the admin types
+  // the amount directly.
+  const sitesQ = useSites({ limit: 200 });
+  const info = useSponsorshipInfo();
+  const globalUnit = info.data?.unitPriceInr ?? 0;
+  const selectedSite = (sitesQ.data?.items ?? []).find(
+    (s) => String(s.id ?? s._id) === String(site),
+  );
+  const rate = selectedSite ? (selectedSite.pricePerTreeInr ?? globalUnit) : globalUnit;
+  const usingDefaultRate = !!selectedSite && selectedSite.pricePerTreeInr == null;
+  const trees = Number(watch('treeCount')) || 0;
+  const autoAmount = Math.round(trees * rate * 100) / 100;
 
   function close() {
     onOpenChange(false);
     reset({ method: 'cash' });
     setDonor('');
+    setSite('');
   }
 
   async function onSubmit(values) {
@@ -307,15 +323,45 @@ function CreateDonationDialog({ open, onOpenChange }) {
       toastError('Pick a sponsor', 'Choose which sponsor this donation is from.');
       return;
     }
+    let amount;
+    let treeCount;
+    if (site) {
+      if (!trees || trees < 1) {
+        toastError('Number of trees', 'Enter how many trees this donation funds.');
+        return;
+      }
+      if (rate <= 0) {
+        toastError(
+          'No price for this site yet',
+          'Set a Price/tree on the site first, or record without a site and enter the amount.',
+        );
+        return;
+      }
+      treeCount = trees;
+      amount = autoAmount;
+    } else {
+      amount = Number(values.amount);
+      if (!amount || amount <= 0) {
+        toastError('Amount', 'Enter the amount received.');
+        return;
+      }
+      // Derive a tree count from the default rate so it can be allocated later.
+      treeCount = globalUnit > 0 ? Math.round(amount / globalUnit) : undefined;
+    }
     try {
       await create.mutateAsync({
         donor,
-        amount: values.amount,
+        amount,
+        treeCount,
+        site: site || undefined,
         paidAt: values.paidAt || undefined,
         method: values.method,
         note: values.note?.trim() || undefined,
       });
-      success('Donation recorded', 'Now allocate it to one or more sites.');
+      success(
+        'Donation recorded',
+        site ? 'Reserved to the chosen site.' : 'Now allocate it to one or more sites.',
+      );
       close();
     } catch (err) {
       toastError("Couldn't record donation", err instanceof ApiError ? err.message : 'Try again.');
@@ -339,7 +385,37 @@ function CreateDonationDialog({ open, onOpenChange }) {
             <DonorSelect value={donor} onChange={setDonor} disabled={create.isPending} />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Label className="text-[#001F00]">Site (optional)</Label>
+            <SiteSelect value={site} onChange={setSite} disabled={create.isPending} />
+          </div>
+
+          {site ? (
+            // Site chosen → enter trees, amount auto-calculates at the site rate.
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="treeCount" className="text-[#001F00]">Number of trees</Label>
+                <Input
+                  id="treeCount"
+                  type="number"
+                  min="1"
+                  placeholder="e.g. 25"
+                  disabled={create.isPending}
+                  {...register('treeCount', { valueAsNumber: true })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[#001F00]">Amount (auto)</Label>
+                <div className="flex h-11 items-center rounded-xl border border-input bg-[#E2E8F0]/40 px-4 text-sm font-medium text-[#001F00]">
+                  {formatAmount(autoAmount)}
+                </div>
+                <p className="text-[11px] text-[#1E1E1E]/50">
+                  {trees} × {formatAmount(rate)}/tree{usingDefaultRate ? ' (default)' : ''}
+                </p>
+              </div>
+            </div>
+          ) : (
+            // No site → the admin types the amount received.
             <div className="space-y-2">
               <Label htmlFor="amount" className="text-[#001F00]">Amount</Label>
               <Input
@@ -349,32 +425,29 @@ function CreateDonationDialog({ open, onOpenChange }) {
                 min="1"
                 placeholder="0.00"
                 disabled={create.isPending}
-                {...register('amount', {
-                  required: 'Required',
-                  valueAsNumber: true,
-                  min: { value: 1, message: 'Must be > 0' },
-                })}
+                {...register('amount', { valueAsNumber: true })}
               />
-              {errors.amount && <p className="text-xs text-destructive">{errors.amount.message}</p>}
             </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="paidAt" className="text-[#001F00]">Date received</Label>
               <Input id="paidAt" type="date" disabled={create.isPending} {...register('paidAt')} />
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-[#001F00]">Payment method</Label>
-            <Select value={method} onValueChange={(v) => setValue('method', v)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {METHOD_OPTIONS.map((m) => (
-                  <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="space-y-2">
+              <Label className="text-[#001F00]">Payment method</Label>
+              <Select value={method} onValueChange={(v) => setValue('method', v)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {METHOD_OPTIONS.map((m) => (
+                    <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="space-y-2">

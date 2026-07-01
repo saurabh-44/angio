@@ -6,13 +6,23 @@ const objectId = z.string().refine((v) => Types.ObjectId.isValid(v), {
   message: 'Invalid id',
 });
 
-export const createDonationSchema = z.object({
-  donor: objectId,
-  amount: z.number().positive(),
-  paidAt: z.coerce.date().optional(),
-  method: z.enum(PAYMENT_METHODS).default('other'),
-  note: z.string().trim().max(1000).optional(),
-});
+export const createDonationSchema = z
+  .object({
+    donor: objectId,
+    amount: z.number().positive(),
+    // Trees this money funds. Required when a site is chosen (the whole
+    // donation is reserved to that site); optional otherwise — derived from
+    // the default rate so the donation can still be allocated later.
+    treeCount: z.number().int().positive().optional(),
+    site: objectId.optional(),
+    paidAt: z.coerce.date().optional(),
+    method: z.enum(PAYMENT_METHODS).default('other'),
+    note: z.string().trim().max(1000).optional(),
+  })
+  .refine((d) => !d.site || d.treeCount != null, {
+    message: 'Tree count is required when a site is chosen',
+    path: ['treeCount'],
+  });
 
 export const updateDonationSchema = z.object({
   amount: z.number().positive().optional(),
