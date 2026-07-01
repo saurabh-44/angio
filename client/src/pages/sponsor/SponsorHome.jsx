@@ -1,5 +1,6 @@
 import { Cloud, Download, FileText } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton.jsx';
+import DownloadLink from '@/components/DownloadLink.jsx';
 import { useAuth } from '@/lib/auth.jsx';
 import { usePlants } from '@/queries/plants.js';
 import { useMaintenance } from '@/queries/maintenance.js';
@@ -185,11 +186,9 @@ function CertButton({ href, download, icon: Icon, label, disabled }) {
     );
   }
   return (
-    <a
+    <DownloadLink
       href={href}
-      download={download}
-      target="_blank"
-      rel="noopener noreferrer"
+      filename={download}
       className={cn(base, 'border border-[#001F00] text-[#001F00] hover:bg-[#001F00]/5')}
     >
       <span className="inline-flex items-center gap-2">
@@ -197,6 +196,6 @@ function CertButton({ href, download, icon: Icon, label, disabled }) {
         {label}
       </span>
       <Download className="h-3.5 w-3.5" aria-hidden />
-    </a>
+    </DownloadLink>
   );
 }

@@ -41,20 +41,21 @@ export default function AppLayout() {
       </Sheet>
 
       <div className="relative flex min-w-0 flex-1 flex-col pt-[env(safe-area-inset-top)]">
-        {/* Mobile nav trigger — floats top-left over the panel */}
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="absolute left-2 top-2 z-30 lg:hidden"
-          onClick={() => setMobileOpen(true)}
-          aria-label="Open navigation"
-        >
-          <Menu className="h-5 w-5" />
-        </Button>
-
-        {/* Mobile user chip — floats over the panel's top-right. */}
-        <div className="absolute right-6 top-5 z-30 sm:right-8 sm:top-6 lg:hidden">
+        {/* Mobile top bar — burger + user chip in a normal-flow row that sits
+            in the grey strip below the notch, above the white card. The
+            wrapper's pt-[safe-area] already clears the notch, so this only
+            needs a small gap. */}
+        <div className="flex items-center gap-4 px-4 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pb-2 pt-2 lg:hidden">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => setMobileOpen(true)}
+            aria-label="Open navigation"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+          <div className="min-w-0 flex-1" />
           <UserMenu />
         </div>
 
@@ -70,7 +71,7 @@ export default function AppLayout() {
           {/* Desktop: the panel is flush to the right/bottom edges with only the
               top-left corner curved (where it meets the icon rail + top bar).
               Mobile keeps the inset rounded card. */}
-          <div className="min-h-[calc(100vh-1.5rem)] w-full rounded-3xl bg-white px-5 pb-6 pt-16 shadow-[0_8px_40px_rgba(0,0,0,0.06)] sm:p-8 lg:min-h-0 lg:rounded-bl-none lg:rounded-br-none lg:rounded-tr-none">
+          <div className="min-h-[calc(100vh-1.5rem)] w-full rounded-3xl bg-white px-5 pb-6 pt-6 shadow-[0_8px_40px_rgba(0,0,0,0.06)] sm:p-8 lg:min-h-0 lg:rounded-bl-none lg:rounded-br-none lg:rounded-tr-none">
             <Suspense
               fallback={
                 <div className="grid place-items-center py-24">

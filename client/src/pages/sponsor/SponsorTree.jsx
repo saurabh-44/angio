@@ -12,6 +12,7 @@ import {
   Trees,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button.jsx';
+import DownloadLink from '@/components/DownloadLink.jsx';
 import { Skeleton } from '@/components/ui/skeleton.jsx';
 import {
   Select,
@@ -749,15 +750,13 @@ function OrderPlacedStep({ placed, onContributeAgain, onExit }) {
         <button type="button" onClick={onContributeAgain} className={blueBtn}>
           Contribute Again
         </button>
-        <a
+        <DownloadLink
           href="/api/certificates/plantation.pdf"
-          download="plantation-report.pdf"
-          target="_blank"
-          rel="noopener noreferrer"
+          filename="plantation-report.pdf"
           className={blueBtn}
         >
           Download PDF
-        </a>
+        </DownloadLink>
       </div>
     </div>
   );
