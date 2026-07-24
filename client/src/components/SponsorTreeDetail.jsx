@@ -16,6 +16,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet.jsx';
+import DownloadLink from './DownloadLink.jsx';
 import { useMaintenance } from '@/queries/maintenance.js';
 import { formatDate, formatDbh, formatGeo, formatHeight, formatRelative } from '@/lib/format.js';
 import { cn } from '@/lib/utils';
@@ -186,13 +187,13 @@ export default function SponsorTreeDetail({ plant, onClose }) {
                     </div>
                   )}
                   <div className="flex flex-wrap gap-2 pt-1">
-                    <a
+                    <DownloadLink
                       href={`/api/plants/${id}/qr.png?size=1024`}
-                      download={`tree-${plant.publicCode ?? id}.png`}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-[#001F00] px-4 py-2 text-sm text-[#001F00] transition-colors hover:bg-[#001F00] hover:text-white"
+                      filename={`tree-${plant.publicCode ?? id}.png`}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-[#001F00] px-4 py-2 text-sm text-[#001F00] transition-colors hover:bg-[#001F00] hover:text-white disabled:opacity-60"
                     >
                       <Download className="h-4 w-4" /> Download
-                    </a>
+                    </DownloadLink>
                     {plant.publicCode && (
                       <a
                         href={`/tree/${plant.publicCode}`}

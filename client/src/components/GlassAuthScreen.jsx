@@ -23,7 +23,7 @@ export function GlassAuthScreen({ title, subtitle, children }) {
       <Link
         to="/"
         aria-label="Back to home"
-        className="absolute left-5 top-5 z-10 grid h-10 w-10 place-items-center rounded-full border border-white/40 bg-white/20 text-white backdrop-blur-[2px] transition-colors hover:bg-white/35 sm:left-6 sm:top-6"
+        className="absolute left-[max(1.25rem,env(safe-area-inset-left))] top-[max(1.25rem,calc(env(safe-area-inset-top)+0.75rem))] z-10 grid h-10 w-10 place-items-center rounded-full border border-white/40 bg-white/20 text-white backdrop-blur-[2px] transition-colors hover:bg-white/35 sm:left-6 sm:top-6"
       >
         <ArrowLeft className="h-5 w-5" strokeWidth={2} aria-hidden />
       </Link>

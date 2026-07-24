@@ -74,7 +74,7 @@ function HeroNav() {
   const onLight = activeId === 'contact';
   return (
     <header className="fixed inset-x-0 top-0 z-50">
-      <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 pt-6 sm:px-6">
+      <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-[max(1.5rem,calc(env(safe-area-inset-top)+0.75rem))] sm:px-6">
         {/* Left spacer keeps the pill nav centred on desktop. */}
         <div className="hidden flex-1 md:block" />
 
