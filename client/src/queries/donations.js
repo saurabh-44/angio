@@ -73,6 +73,31 @@ export function useCreateAllocation() {
   });
 }
 
+// Existing unsponsored trees on an allocation's site that can be assigned
+// to it, plus how many more the order still needs. Only fetched when a
+// picker is opened (enabled gate), so it doesn't run for every row.
+export function useAttachablePlants(allocationId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: ['allocations', 'attachable', allocationId],
+    queryFn: () => api.get(`/api/allocations/${allocationId}/attachable-plants`),
+    enabled: enabled && !!allocationId,
+  });
+}
+
+export function useAttachPlants() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ allocationId, plantIds }) =>
+      api.post(`/api/allocations/${allocationId}/attach-plants`, { plantIds }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: allocationKeys.all });
+      qc.invalidateQueries({ queryKey: donationKeys.all });
+      qc.invalidateQueries({ queryKey: ['allocations', 'attachable'] });
+      qc.invalidateQueries({ queryKey: ['plants'] });
+    },
+  });
+}
+
 export function useUpdateAllocation() {
   const qc = useQueryClient();
   return useMutation({

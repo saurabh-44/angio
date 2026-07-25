@@ -10,6 +10,7 @@ import {
   Stethoscope,
 } from 'lucide-react';
 import PhotoCapture from '@/components/PhotoCapture.jsx';
+import GpsCapture from '@/components/GpsCapture.jsx';
 import EmptyState from '@/components/EmptyState.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
@@ -26,6 +27,8 @@ import { useToast } from '@/components/ui/toast.jsx';
 import { useAssignments } from '@/queries/assignments.js';
 import { usePlants } from '@/queries/plants.js';
 import { useCreateMaintenance } from '@/queries/maintenance.js';
+import { useSites } from '@/queries/sites.js';
+import { useAuth } from '@/lib/auth.jsx';
 import { ApiError } from '@/lib/api.js';
 import { cn } from '@/lib/utils';
 import { BODY_FONT, HEADING_FONT } from '@/components/GlassAuthScreen.jsx';
@@ -51,19 +54,29 @@ export default function RecordMaintenance() {
   const navigate = useNavigate();
   const { success, error: toastError } = useToast();
 
+  const { role } = useAuth();
+  // A site owner can log watering like a volunteer — but they own sites rather
+  // than being assigned to them, so their sites come from their own sites.
+  const isOwner = role === 'site_owner';
   const { data: assignmentsData, isLoading: loadingAssignments } = useAssignments({ limit: 50 });
-  const assignments = assignmentsData?.items ?? [];
+  const { data: ownedSitesData, isLoading: loadingOwnedSites } = useSites({
+    limit: 200,
+    enabled: isOwner,
+  });
   const sites = useMemo(() => {
+    if (isOwner) return ownedSitesData?.items ?? [];
     const seen = new Map();
-    for (const a of assignments) {
+    for (const a of assignmentsData?.items ?? []) {
       const id = a.site?.id ?? a.site?._id;
       if (id && !seen.has(id)) seen.set(id, a.site);
     }
     return Array.from(seen.values());
-  }, [assignments]);
+  }, [isOwner, ownedSitesData, assignmentsData]);
+  const loadingSites = isOwner ? loadingOwnedSites : loadingAssignments;
 
   const [siteId, setSiteId] = useState(location.state?.siteId ?? '');
   const [plantId, setPlantId] = useState('');
+  const [geo, setGeo] = useState({ lat: null, lng: null });
   const [note, setNote] = useState('');
   const [photo, setPhoto] = useState(null);
 
@@ -83,13 +96,17 @@ export default function RecordMaintenance() {
   const plants = plantsData?.items ?? [];
 
   const create = useCreateMaintenance();
-  const ready = siteId && plantId && photo;
+  // A watering log now requires the volunteer's live location too, so
+  // there's verifiable proof they were physically at the tree.
+  const geoReady = geo.lat != null && geo.lng != null;
+  const ready = siteId && plantId && geoReady && photo;
 
   async function submit(e) {
     e.preventDefault();
     if (!ready) return;
     const body = {
       plant: plantId,
+      geo,
       photo,
       note: note.trim() || undefined,
     };
@@ -103,13 +120,13 @@ export default function RecordMaintenance() {
     try {
       await create.mutateAsync(body);
       success('Watering logged', 'Sponsors will see this in their feed.');
-      navigate('/volunteer');
+      navigate(isOwner ? '/site' : '/volunteer');
     } catch (err) {
       toastError("Couldn't save the log", err instanceof ApiError ? err.message : 'Try again.');
     }
   }
 
-  if (loadingAssignments) {
+  if (loadingSites) {
     return (
       <div style={{ fontFamily: BODY_FONT }}>
         <Header />
@@ -125,8 +142,12 @@ export default function RecordMaintenance() {
         <div className="mt-10">
           <EmptyState
             icon={Droplets}
-            title="No sites assigned yet"
-            description="Your NGO or site owner needs to add you to a site first."
+            title={isOwner ? 'No sites to log watering on yet' : 'No sites assigned yet'}
+            description={
+              isOwner
+                ? 'Create a site with planted trees before logging watering.'
+                : 'Your NGO or site owner needs to add you to a site first.'
+            }
           />
         </div>
       </div>
@@ -141,7 +162,14 @@ export default function RecordMaintenance() {
 
       <form onSubmit={submit} className="mt-6 max-w-2xl space-y-5">
         <Section step="1" title="Which site?">
-          <Select value={siteId} onValueChange={(v) => { setSiteId(v); setPlantId(''); }}>
+          <Select
+            value={siteId}
+            onValueChange={(v) => {
+              setSiteId(v);
+              setPlantId('');
+              setGeo({ lat: null, lng: null });
+            }}
+          >
             <SelectTrigger><SelectValue placeholder="Pick a site" /></SelectTrigger>
             <SelectContent>
               {sites.map((s) => (
@@ -160,7 +188,14 @@ export default function RecordMaintenance() {
                 No alive plants on this site yet.
               </p>
             ) : (
-              <Select value={plantId} onValueChange={setPlantId}>
+              <Select
+                value={plantId}
+                onValueChange={(v) => {
+                  setPlantId(v);
+                  // Re-capture presence for each tree.
+                  setGeo({ lat: null, lng: null });
+                }}
+              >
                 <SelectTrigger><SelectValue placeholder="Pick a tree" /></SelectTrigger>
                 <SelectContent>
                   {plants.map((p) => (
@@ -176,7 +211,13 @@ export default function RecordMaintenance() {
         )}
 
         {plantId && (
-          <Section step="3" title="Today's photo">
+          <Section step="3" title="Your location">
+            <GpsCapture value={geo} onChange={setGeo} disabled={create.isPending} />
+          </Section>
+        )}
+
+        {plantId && geoReady && (
+          <Section step="4" title="Today's photo">
             <PhotoCapture
               purpose="maintenance"
               plantId={plantId}
@@ -186,8 +227,8 @@ export default function RecordMaintenance() {
           </Section>
         )}
 
-        {plantId && (
-          <Section step="4" title="Note (optional)">
+        {plantId && geoReady && (
+          <Section step="5" title="Note (optional)">
             <Label htmlFor="note" className="sr-only">Note</Label>
             <Input
               id="note"
@@ -198,7 +239,7 @@ export default function RecordMaintenance() {
           </Section>
         )}
 
-        {plantId && (
+        {plantId && geoReady && (
           <section className="overflow-hidden rounded-[10px] border border-[#E2E8F0] bg-white">
             <button
               type="button"
@@ -304,7 +345,9 @@ export default function RecordMaintenance() {
               <Sparkles className="h-5 w-5 shrink-0 text-[#1E1E1E]/40" aria-hidden />
             )}
             <p className="flex-1 text-sm text-[#1E1E1E]/60">
-              {ready ? 'All set — submit when ready.' : 'Pick a tree and upload a photo.'}
+              {ready
+                ? 'All set — submit when ready.'
+                : 'Pick a tree, capture your location, and upload a photo.'}
             </p>
             <button
               type="submit"

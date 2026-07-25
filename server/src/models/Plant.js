@@ -32,6 +32,35 @@ const photoSchema = new Schema(
   { _id: false },
 );
 
+// Rich per-tree measurements from a bulk import of the NGO's existing
+// (pre-app) plantation records — data the live field forms don't capture.
+// Present only on plants with origin === 'historical'.
+const historicalSchema = new Schema(
+  {
+    // The tree's ID in the source spreadsheet — makes re-imports
+    // idempotent and traces a row back to its origin.
+    sourceRowId: { type: Number },
+    // Free-text label for the import run (e.g. the file name + date).
+    batch: { type: String, trim: true, maxlength: 120 },
+    // Survival rate from the field survey ("Yes"/"No" in the sheet).
+    survival: { type: Boolean },
+    // Qualitative health at survey time (Good / Fair / Poor).
+    healthScore: { type: String, trim: true, maxlength: 40 },
+    // Root-collar circumference (m) and diameter (cm).
+    trunkCircumferenceM: { type: Number, min: 0 },
+    rcdCm: { type: Number, min: 0 },
+    // Average canopy diameter (m).
+    canopyDiameterM: { type: Number, min: 0 },
+    // Carbon figures exactly as calculated in the source sheet (tonnes).
+    agbTon: { type: Number, min: 0 },
+    bgbTon: { type: Number, min: 0 },
+    totalBiomassTon: { type: Number, min: 0 },
+    carbonTon: { type: Number, min: 0 },
+    co2Ton: { type: Number, min: 0 },
+  },
+  { _id: false },
+);
+
 const plantSchema = new Schema(
   {
     // 12-char public code embedded in the tree's QR. Non-enumerable so
@@ -46,9 +75,14 @@ const plantSchema = new Schema(
     },
 
     site: { type: Schema.Types.ObjectId, ref: 'Site', required: true, index: true },
-    allocation: { type: Schema.Types.ObjectId, ref: 'Allocation', required: true, index: true },
+    // Allocation + donor are OPTIONAL at the model level so historical
+    // (pre-app) trees with no sponsor can be imported. The live planting
+    // API still requires them via createPlantSchema (zod), so every
+    // app-recorded plant continues to carry both. Donor-scoped reads
+    // simply never match an unsponsored tree.
+    allocation: { type: Schema.Types.ObjectId, ref: 'Allocation', index: true },
     // Denormalised for fast donor-scoped reads.
-    donor: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    donor: { type: Schema.Types.ObjectId, ref: 'User', index: true },
 
     // Human-friendly name for the tree. Optional on input — the pre-save
     // hook below fills a sensible default (the species name, else
@@ -79,12 +113,23 @@ const plantSchema = new Schema(
     plantedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     plantedAt: { type: Date, required: true, default: () => new Date() },
 
-    // GPS where the tree was planted. This is the data donors rely on
-    // to verify the trees actually exist — it MUST be set at create time.
-    geo: { type: geoSchema, required: true },
+    // GPS where the tree was planted. The live planting API requires it
+    // (createPlantSchema) — every app-recorded tree is geo-tagged for
+    // donor verification. Optional at the model level only so historical
+    // imports of trees whose location was never surveyed can still be saved.
+    geo: { type: geoSchema },
 
     // First-day photo. Cloudinary publicId so we can render at any size.
-    plantingPhoto: { type: photoSchema, required: true },
+    // Required by the live planting API; optional at the model level so
+    // historical trees (which predate the app) can be imported without one.
+    plantingPhoto: { type: photoSchema },
+
+    // Provenance. 'field' = recorded live through the app (the default, so
+    // every existing plant reads as 'field'); 'historical' = bulk-imported
+    // from the NGO's pre-app records (may lack a sponsor, allocation,
+    // photo, or GPS). See historicalSchema for the extra survey fields.
+    origin: { type: String, enum: ['field', 'historical'], default: 'field', index: true },
+    historical: { type: historicalSchema, default: undefined },
 
     status: { type: String, enum: PLANT_STATUSES, default: 'alive', index: true },
     notes: { type: String, trim: true, maxlength: 2000 },

@@ -144,6 +144,8 @@ export default function AppRouter() {
           <Route path="volunteers" element={<AssignmentsPage />} />
           <Route path="plants" element={<PlantsPage />} />
           <Route path="plants/:id" element={<PlantDetailPage />} />
+          <Route path="plant" element={<RecordPlanting />} />
+          <Route path="water" element={<RecordMaintenance />} />
           <Route path="maintenance" element={<MaintenancePage />} />
         </Route>
 

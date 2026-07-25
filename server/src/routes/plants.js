@@ -6,6 +6,7 @@ import {
   getPlantById,
   getPlants,
   patchPlant,
+  postMovePlants,
   postPlant,
 } from '../controllers/plantController.js';
 import { getPlantQrPng } from '../controllers/qrController.js';
@@ -16,6 +17,9 @@ plantsRouter.use(requireAuth, blockIfForcedPasswordChange);
 
 plantsRouter.get('/', asyncHandler(getPlants));
 plantsRouter.post('/', asyncHandler(postPlant));
+// Bulk re-home unsponsored trees to another site. Declared before '/:id'
+// routes so the literal path is matched first.
+plantsRouter.post('/move-site', asyncHandler(postMovePlants));
 plantsRouter.get('/:id', asyncHandler(getPlantById));
 plantsRouter.get('/:id/qr.png', asyncHandler(getPlantQrPng));
 plantsRouter.patch('/:id', asyncHandler(patchPlant));

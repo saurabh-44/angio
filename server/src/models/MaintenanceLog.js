@@ -12,12 +12,29 @@ const photoSchema = new Schema(
   { _id: false },
 );
 
+// Where the volunteer physically stood when logging this watering.
+// Captured from the device's live GPS (never typed by hand). Optional at
+// the model level so older logs and non-field callers stay valid; the
+// field app requires it before a watering can be submitted.
+const geoSchema = new Schema(
+  {
+    lat: { type: Number, required: true, min: -90, max: 90 },
+    lng: { type: Number, required: true, min: -180, max: 180 },
+  },
+  { _id: false },
+);
+
 const maintenanceLogSchema = new Schema(
   {
     plant: { type: Schema.Types.ObjectId, ref: 'Plant', required: true, index: true },
     // Denormalised for fast scope reads.
     site: { type: Schema.Types.ObjectId, ref: 'Site', required: true, index: true },
-    donor: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    // Copied from the plant's donor. Optional because an unsponsored
+    // (e.g. bulk-imported historical) tree can still be watered before it
+    // is linked to a sponsor — its logs then carry no donor, and simply
+    // never surface in a donor-scoped read. App-recorded plants always
+    // have a donor, so their logs always carry one.
+    donor: { type: Schema.Types.ObjectId, ref: 'User', index: true },
 
     volunteer: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     // Snapped-to-Monday date of the week this log covers. Two logs in
@@ -25,6 +42,8 @@ const maintenanceLogSchema = new Schema(
     weekOf: { type: Date, required: true },
 
     photo: { type: photoSchema, required: true },
+    // Live GPS location captured at the time of the watering check.
+    geo: { type: geoSchema },
     note: { type: String, trim: true, maxlength: 1000 },
 
     // ── Monitoring extensions ────────────────────────────────────

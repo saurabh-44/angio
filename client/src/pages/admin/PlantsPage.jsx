@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Download, Filter, Leaf } from 'lucide-react';
+import { ArrowRightLeft, Download, Filter, Leaf, Loader2, X } from 'lucide-react';
 import EmptyState from '@/components/EmptyState.jsx';
 import Pagination from '@/components/Pagination.jsx';
 import PlantCard from '@/components/PlantCard.jsx';
@@ -14,10 +14,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select.jsx';
-import { usePlants } from '@/queries/plants.js';
+import { usePlants, useMovePlants } from '@/queries/plants.js';
 import { useSites } from '@/queries/sites.js';
+import { useAuth } from '@/lib/auth.jsx';
+import { useToast } from '@/components/ui/toast.jsx';
+import { ApiError } from '@/lib/api.js';
+import { cn } from '@/lib/utils';
 import { BODY_FONT, HEADING_FONT } from '@/components/GlassAuthScreen.jsx';
 import { PageHeading } from '@/components/PageHeading.jsx';
+
+// A tree can be re-homed to another site only while it's unsponsored —
+// once linked to a sponsor's order it's pinned to that order's site.
+const isMovable = (p) => !p.donor && !p.allocation;
 
 const STATUSES = ['alive', 'dead', 'removed'];
 const LIMIT = 24;
@@ -38,9 +46,18 @@ const TRIGGER =
 // consolidated here, mirroring the sponsor "My Trees" hub).
 export default function PlantsPage() {
   const navigate = useNavigate();
+  const { role } = useAuth();
+  const isAdmin = role === 'ngo_admin';
+  const { success, error: toastError } = useToast();
   const [site, setSite] = useState('');
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
+
+  // Bulk "move to site" selection (admin only). Selection is cleared
+  // whenever the filter or page changes so ids never linger off-screen.
+  const move = useMovePlants();
+  const [selected, setSelected] = useState(() => new Set());
+  const [moveTarget, setMoveTarget] = useState('');
 
   const { data, isLoading, isError, refetch } = usePlants({
     site: site || undefined,
@@ -54,9 +71,36 @@ export default function PlantsPage() {
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
   const hasFilter = !!site || !!status;
+  const movableOnPage = isAdmin && items.some(isMovable);
+
+  function clearSelection() {
+    setSelected(new Set());
+    setMoveTarget('');
+  }
+  function toggle(id) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+  async function doMove() {
+    const target = sites.find((s) => (s.id ?? s._id) === moveTarget);
+    try {
+      const res = await move.mutateAsync({ plantIds: [...selected], site: moveTarget });
+      success('Trees moved', `${res.moved} tree${res.moved === 1 ? '' : 's'} moved to ${target?.name ?? 'the site'}.`);
+      clearSelection();
+    } catch (err) {
+      toastError("Couldn't move trees", err instanceof ApiError ? err.message : 'Try again.');
+    }
+  }
 
   return (
-    <div style={{ fontFamily: BODY_FONT }}>
+    <div
+      style={{ fontFamily: BODY_FONT }}
+      className={cn(isAdmin && selected.size > 0 && 'pb-28')}
+    >
       <PageHeading>
         <h1 className="text-3xl font-semibold text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>
           Plants
@@ -77,6 +121,7 @@ export default function PlantsPage() {
           onValueChange={(v) => {
             setSite(v === 'all' ? '' : v);
             setPage(1);
+            clearSelection();
           }}
         >
           <SelectTrigger className={TRIGGER}>
@@ -96,6 +141,7 @@ export default function PlantsPage() {
           onValueChange={(v) => {
             setStatus(v === 'all' ? '' : v);
             setPage(1);
+            clearSelection();
           }}
         >
           <SelectTrigger className={TRIGGER}>
@@ -146,17 +192,92 @@ export default function PlantsPage() {
         </div>
       ) : (
         <>
-          <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {items.map((p) => (
-              <PlantCard
-                key={p.id ?? p._id}
-                plant={p}
-                onClick={() => navigate(`${p.id ?? p._id}`)}
-              />
-            ))}
+          {movableOnPage && selected.size === 0 && (
+            <p className="mt-6 inline-flex items-center gap-1.5 text-xs text-[#1E1E1E]/50">
+              <ArrowRightLeft className="h-3.5 w-3.5" aria-hidden />
+              Tick unsponsored trees to move them to another site.
+            </p>
+          )}
+          <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {items.map((p) => {
+              const id = p.id ?? p._id;
+              const selectable = isAdmin && isMovable(p);
+              const checked = selected.has(id);
+              return (
+                <div key={id} className="relative">
+                  {selectable && (
+                    <label
+                      className={cn(
+                        'absolute left-3 top-3 z-10 flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border bg-white/95 shadow-sm',
+                        checked ? 'border-[#0B5000] ring-2 ring-[#0B5000]/30' : 'border-[#E2E8F0]',
+                      )}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggle(id)}
+                        className="h-4 w-4 accent-[#0B5000]"
+                        aria-label="Select tree to move"
+                      />
+                    </label>
+                  )}
+                  <PlantCard plant={p} onClick={() => navigate(`${id}`)} />
+                </div>
+              );
+            })}
           </div>
-          <Pagination page={page} limit={LIMIT} total={total} onChange={setPage} />
+          <Pagination
+            page={page}
+            limit={LIMIT}
+            total={total}
+            onChange={(p) => {
+              setPage(p);
+              clearSelection();
+            }}
+          />
         </>
+      )}
+
+      {/* Bulk move action bar — appears while trees are selected (admin only).
+          Uses `fixed` (not `sticky`) so it stays put when the Move-to-site
+          dropdown opens and Radix locks page scrolling. */}
+      {isAdmin && selected.size > 0 && (
+        <div className="fixed inset-x-0 bottom-6 z-40 px-4">
+          <div className="mx-auto flex max-w-2xl flex-wrap items-center gap-3 rounded-[10px] border border-[#E2E8F0] bg-white p-3 shadow-[0_8px_30px_rgba(0,0,0,0.14)]">
+            <span className="inline-flex items-center gap-2 text-sm font-medium text-[#001F00]">
+              <ArrowRightLeft className="h-4 w-4 text-[#0B5000]" aria-hidden />
+              {selected.size} selected
+            </span>
+            <div className="flex flex-1 items-center gap-2">
+              <Select value={moveTarget} onValueChange={setMoveTarget}>
+                <SelectTrigger className="h-auto flex-1 rounded-[10px] border-[#E2E8F0] px-4 py-2.5 text-sm focus:ring-0 focus:ring-offset-0">
+                  <SelectValue placeholder="Move to site…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sites.map((s) => (
+                    <SelectItem key={s.id ?? s._id} value={s.id ?? s._id}>
+                      {s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button type="button" size="sm" onClick={doMove} disabled={!moveTarget || move.isPending}>
+                {move.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                Move
+              </Button>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                onClick={clearSelection}
+                aria-label="Clear selection"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

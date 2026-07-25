@@ -83,6 +83,139 @@ export async function createPlant({ input, actor }) {
   return plant.toObject();
 }
 
+// Only the NGO admin, or the owner of the allocation's site, may assign
+// existing trees to an order. Mirrors the own-site rule used elsewhere.
+async function assertCanManageAllocationSite(siteId, actor) {
+  if (actor.role === 'ngo_admin') return;
+  if (actor.role === 'site_owner') {
+    const site = await Site.findById(siteId).select('owner').lean();
+    if (site && String(site.owner) === actor.userId) return;
+    throw HttpError.forbidden('You can only manage orders on your own site');
+  }
+  throw HttpError.forbidden('You do not have permission to assign trees');
+}
+
+// Trees that are already planted but not yet linked to any order — the
+// bulk-imported historical trees, plus how many more the allocation still
+// needs. Used to fulfil a new sponsor order with existing trees.
+export async function listAttachablePlants({ allocationId, actor }) {
+  const allocation = await Allocation.findById(allocationId)
+    .select('_id site donor targetPlants')
+    .lean();
+  if (!allocation) throw HttpError.notFound('Allocation not found');
+  await assertCanManageAllocationSite(allocation.site, actor);
+
+  const planted = await Plant.countDocuments({ allocation: allocation._id });
+  const remaining = Math.max(0, allocation.targetPlants - planted);
+
+  // Unsponsored (donor & allocation unset) alive trees on the same site.
+  // `{ field: null }` matches both null and missing, so imported trees
+  // (which never set these fields) are included.
+  const candidates = await Plant.find({
+    site: allocation.site,
+    donor: null,
+    allocation: null,
+    status: 'alive',
+  })
+    .select('publicCode name species geo plantedAt heightCm origin historical.sourceRowId')
+    .sort({ 'historical.sourceRowId': 1, plantedAt: 1 })
+    .limit(1000)
+    .lean();
+
+  return {
+    allocationId: allocation._id,
+    targetPlants: allocation.targetPlants,
+    planted,
+    remaining,
+    available: candidates.length,
+    candidates,
+  };
+}
+
+// Links the given already-planted trees to an allocation's donor + order.
+// Validates every tree is genuinely unsponsored, alive, and on the
+// allocation's site, and never assigns more than the order still needs.
+export async function attachPlantsToAllocation({ allocationId, plantIds, actor }) {
+  const allocation = await Allocation.findById(allocationId)
+    .select('_id site donor targetPlants')
+    .lean();
+  if (!allocation) throw HttpError.notFound('Allocation not found');
+  await assertCanManageAllocationSite(allocation.site, actor);
+
+  const planted = await Plant.countDocuments({ allocation: allocation._id });
+  const remaining = Math.max(0, allocation.targetPlants - planted);
+  if (remaining === 0) {
+    throw HttpError.badRequest('This order has already met its target tree count');
+  }
+  // De-dupe the requested ids so a repeated id can't inflate the count.
+  const requested = Array.from(new Set(plantIds.map(String)));
+  if (requested.length > remaining) {
+    throw HttpError.badRequest(
+      `Only ${remaining} more tree${remaining === 1 ? '' : 's'} can be assigned to this order`,
+    );
+  }
+
+  // Re-load under the strict eligibility filter so nothing already
+  // assigned, dead, or on another site can slip through.
+  const eligible = await Plant.find({
+    _id: { $in: requested },
+    site: allocation.site,
+    donor: null,
+    allocation: null,
+    status: 'alive',
+  })
+    .select('_id')
+    .lean();
+  if (eligible.length !== requested.length) {
+    throw HttpError.badRequest(
+      'Some selected trees are no longer available (already assigned, not alive, or on another site)',
+    );
+  }
+
+  const result = await Plant.updateMany(
+    { _id: { $in: eligible.map((p) => p._id) } },
+    { $set: { donor: allocation.donor, allocation: allocation._id } },
+  );
+  const attached = result.modifiedCount ?? eligible.length;
+  return { attached, remaining: Math.max(0, remaining - attached) };
+}
+
+// Re-home unsponsored trees to a different site. Only the NGO admin may do
+// this (it's a cross-site operation), and only unsponsored trees are
+// eligible — a sponsored tree is pinned to its order's site. The
+// denormalised `site` on any maintenance logs is kept in sync.
+export async function movePlantsToSite({ plantIds, site, actor }) {
+  if (actor.role !== 'ngo_admin') {
+    throw HttpError.forbidden('Only the NGO admin can move trees between sites');
+  }
+  const target = await Site.findById(site).select('_id').lean();
+  if (!target) throw HttpError.badRequest('Target site not found');
+
+  const requested = Array.from(new Set(plantIds.map(String)));
+  const plants = await Plant.find({ _id: { $in: requested } })
+    .select('_id donor allocation')
+    .lean();
+  if (plants.length !== requested.length) {
+    throw HttpError.badRequest('Some selected trees were not found');
+  }
+  const sponsored = plants.filter((p) => p.donor || p.allocation);
+  if (sponsored.length) {
+    throw HttpError.badRequest(
+      `${sponsored.length} selected tree${sponsored.length === 1 ? ' is' : 's are'} assigned to a sponsor's order — those can't be moved between sites`,
+    );
+  }
+
+  const ids = plants.map((p) => p._id);
+  const result = await Plant.updateMany(
+    { _id: { $in: ids } },
+    { $set: { site: target._id } },
+  );
+  // Keep the denormalised site on any maintenance logs in sync so
+  // site-scoped maintenance reads stay correct after the move.
+  await MaintenanceLog.updateMany({ plant: { $in: ids } }, { $set: { site: target._id } });
+  return { moved: result.modifiedCount ?? ids.length, site: String(target._id) };
+}
+
 // Volunteers don't need to know which donor funded a tree they planted —
 // scoping is enforced via plant.donor server-side, but we don't surface
 // the donor's identity to them.
@@ -214,6 +347,7 @@ export async function createMaintenanceLog({ input, actor }) {
     photo: input.photo,
     note: input.note,
   };
+  if (input.geo) update.geo = input.geo;
   if (input.heightCm != null) update.heightCm = input.heightCm;
   if (input.dbhCm != null) update.dbhCm = input.dbhCm;
   if (input.healthStatus) update.healthStatus = input.healthStatus;

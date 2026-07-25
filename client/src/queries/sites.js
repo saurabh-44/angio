@@ -7,7 +7,7 @@ export const siteKeys = {
   detail: (id) => ['sites', 'detail', id],
 };
 
-export function useSites(params = {}) {
+export function useSites({ enabled = true, ...params } = {}) {
   return useQuery({
     queryKey: siteKeys.list(params),
     queryFn: () => {
@@ -20,6 +20,7 @@ export function useSites(params = {}) {
       return api.get(`/api/sites${qs ? `?${qs}` : ''}`);
     },
     keepPreviousData: true,
+    enabled,
   });
 }
 

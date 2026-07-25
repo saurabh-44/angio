@@ -56,3 +56,16 @@ export function useDeletePlant() {
     onSuccess: () => qc.invalidateQueries({ queryKey: plantKeys.all }),
   });
 }
+
+// Re-home unsponsored trees to another site (NGO admin only). Also touches
+// allocations/sites views, so invalidate broadly.
+export function useMovePlants() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ plantIds, site }) => api.post('/api/plants/move-site', { plantIds, site }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: plantKeys.all });
+      qc.invalidateQueries({ queryKey: ['sites'] });
+    },
+  });
+}

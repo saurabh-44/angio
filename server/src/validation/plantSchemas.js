@@ -59,6 +59,9 @@ export const createMaintenanceSchema = z.object({
   plant: objectId,
   weekOf: z.coerce.date().optional(),
   photo,
+  // Live GPS location where the volunteer stood. Optional here so existing
+  // callers (seed/import/tests) keep working; the field app enforces it.
+  geo: geo.optional(),
   note: z.string().trim().max(1000).optional(),
   // ── Monitoring extensions (all optional) ────────────────────────
   // Match the model: heightCm 0–5000, dbhCm 0–500, enum health,
@@ -75,4 +78,19 @@ export const listMaintenanceQuerySchema = z.object({
   donor: objectId.optional(),
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(500).default(20),
+});
+
+// Assigning already-planted, unsponsored trees (e.g. bulk-imported
+// historical ones) to a sponsor's allocation. The IDs must all be
+// unsponsored, alive, and on the allocation's site — enforced server-side.
+export const attachPlantsSchema = z.object({
+  plantIds: z.array(objectId).min(1).max(500),
+});
+
+// Re-homing already-planted, unsponsored trees to a different site (e.g.
+// correcting a bulk import). Only unsponsored trees can move — enforced
+// server-side — since a sponsored tree is tied to an order on its site.
+export const movePlantsSchema = z.object({
+  plantIds: z.array(objectId).min(1).max(1000),
+  site: objectId,
 });

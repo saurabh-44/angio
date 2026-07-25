@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { Leaf, MapPin, Sprout, Users } from 'lucide-react';
 import { useAuth } from '@/lib/auth.jsx';
 import { useSites, useMySitesSummary } from '@/queries/sites.js';
@@ -31,7 +32,7 @@ function StatCard({ icon: Icon, value, label, loading }) {
 
 export default function SiteHome() {
   const { user } = useAuth();
-  const sites = useSites({ limit: 1 });
+  const sites = useSites({ limit: 50 });
   const plants = usePlants({ limit: 1 });
   const summary = useMySitesSummary();
   const assignments = useAssignments({ limit: 1, active: true });
@@ -48,7 +49,30 @@ export default function SiteHome() {
         </p>
       </PageHeading>
 
-      <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      {/* The site(s) this incharge manages — shown by name so it's clear at a
+          glance which sites are theirs. Tap one to open its full record. */}
+      {sites.data?.items?.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm text-[#1E1E1E]/50">
+            Your site{sites.data.items.length === 1 ? '' : 's'}:
+          </span>
+          {sites.data.items.map((s) => {
+            const id = s.id ?? s._id;
+            return (
+              <Link
+                key={id}
+                to={`/site/sites/${id}`}
+                className="inline-flex items-center gap-1.5 rounded-full bg-[#0B5000]/10 px-3 py-1 text-sm font-medium text-[#0B5000] transition-colors hover:bg-[#0B5000]/20"
+              >
+                <MapPin className="h-3.5 w-3.5" aria-hidden />
+                {s.name}
+              </Link>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           icon={MapPin}
           value={dash(sites.data?.total)}

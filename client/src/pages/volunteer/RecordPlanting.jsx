@@ -19,6 +19,8 @@ import { useAssignments } from '@/queries/assignments.js';
 import { useAllocations } from '@/queries/donations.js';
 import { useCreatePlant } from '@/queries/plants.js';
 import { useSpeciesList } from '@/queries/species.js';
+import { useSites } from '@/queries/sites.js';
+import { useAuth } from '@/lib/auth.jsx';
 import { ApiError } from '@/lib/api.js';
 import { BODY_FONT, HEADING_FONT } from '@/components/GlassAuthScreen.jsx';
 import { PageHeading } from '@/components/PageHeading.jsx';
@@ -51,20 +53,29 @@ export default function RecordPlanting() {
   const location = useLocation();
   const navigate = useNavigate();
   const { success, error: toastError } = useToast();
+  const { role } = useAuth();
+  // A site owner can plant just like a volunteer — but they own sites rather
+  // than being assigned to them, so their planting sites are their own sites.
+  const isOwner = role === 'site_owner';
 
   const { data: assignmentsData, isLoading: loadingAssignments } = useAssignments({
     kind: 'planting',
     limit: 50,
   });
-  const assignments = assignmentsData?.items ?? [];
+  const { data: ownedSitesData, isLoading: loadingOwnedSites } = useSites({
+    limit: 200,
+    enabled: isOwner,
+  });
   const sites = useMemo(() => {
+    if (isOwner) return ownedSitesData?.items ?? [];
     const seen = new Map();
-    for (const a of assignments) {
+    for (const a of assignmentsData?.items ?? []) {
       const id = a.site?.id ?? a.site?._id;
       if (id && !seen.has(id)) seen.set(id, a.site);
     }
     return Array.from(seen.values());
-  }, [assignments]);
+  }, [isOwner, ownedSitesData, assignmentsData]);
+  const loadingSites = isOwner ? loadingOwnedSites : loadingAssignments;
 
   const [siteId, setSiteId] = useState(location.state?.siteId ?? '');
   const [allocationId, setAllocationId] = useState('');
@@ -109,13 +120,13 @@ export default function RecordPlanting() {
         plantingPhoto: photo,
       });
       success('Tree recorded!', 'Thanks for your work — the sponsor will see it shortly.');
-      navigate('/volunteer');
+      navigate(isOwner ? '/site' : '/volunteer');
     } catch (err) {
       toastError("Couldn't save the planting", err instanceof ApiError ? err.message : 'Try again.');
     }
   }
 
-  if (loadingAssignments) {
+  if (loadingSites) {
     return (
       <div style={{ fontFamily: BODY_FONT }}>
         <Header />
@@ -131,8 +142,12 @@ export default function RecordPlanting() {
         <div className="mt-10">
           <EmptyState
             icon={Sprout}
-            title="No planting sites assigned yet"
-            description="Your NGO or site owner needs to add you to a site first."
+            title={isOwner ? 'No sites to plant on yet' : 'No planting sites assigned yet'}
+            description={
+              isOwner
+                ? 'Create a site and record a sponsor order on it before recording plantings.'
+                : 'Your NGO or site owner needs to add you to a site first.'
+            }
           />
         </div>
       </div>

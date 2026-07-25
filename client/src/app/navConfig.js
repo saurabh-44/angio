@@ -37,6 +37,9 @@ export const NAV_BY_ROLE = {
     { to: '/site/volunteers', label: 'Volunteers', icon: Users },
     // Plants hub — each tree's location/map and weekly maintenance live in its detail.
     { to: '/site/plants', label: 'Plants', icon: Leaf },
+    // The incharge can also record plantings + watering themselves, like a volunteer.
+    { to: '/site/plant', label: 'Record planting', icon: Sprout },
+    { to: '/site/water', label: 'Record watering', icon: Camera },
   ],
   sponsor: [
     { to: '/sponsor', label: 'Overview', icon: LayoutDashboard, end: true },
