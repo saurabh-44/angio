@@ -23,13 +23,6 @@ import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
 import { Skeleton } from '@/components/ui/skeleton.jsx';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog.jsx';
-import {
   Sheet,
   SheetContent,
   SheetDescription,
@@ -743,26 +736,23 @@ function SiteFormDialog({ open, onOpenChange }) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => (o ? onOpenChange(true) : close())}>
-      <DialogContent
-        className="w-[calc(100vw-1.5rem)] max-w-[1000px] gap-5 rounded-[10px] border-b-4 border-b-[#001F00] p-7 sm:p-9"
-        style={{ fontFamily: BODY_FONT }}
-      >
-        <DialogHeader className="gap-1.5">
-          <DialogTitle className="text-2xl font-medium text-[#001F00]" style={{ fontFamily: BODY_FONT }}>
+    <Sheet open={open} onOpenChange={(o) => !o && close()}>
+      <SheetContent side="right" className="flex flex-col sm:max-w-lg" style={{ fontFamily: BODY_FONT }}>
+        <SheetHeader>
+          <SheetTitle className="text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>
             Create New Site
-          </DialogTitle>
-          <DialogDescription className="text-base text-[#1E1E1E]/50">
+          </SheetTitle>
+          <SheetDescription className="text-[#1E1E1E]/50">
             Fill in all required details
-          </DialogDescription>
-        </DialogHeader>
+          </SheetDescription>
+        </SheetHeader>
 
         <form
           onSubmit={handleSubmit(onSubmit)}
-          className="grid gap-7 lg:grid-cols-[1fr_343px]"
+          className="-mx-2 mt-6 flex-1 space-y-4 overflow-y-auto px-2"
           noValidate
         >
-          {/* Left — identity + address */}
+          {/* Identity + address */}
           <div className="space-y-5">
             <div>
               <input
@@ -830,7 +820,7 @@ function SiteFormDialog({ open, onOpenChange }) {
             </div>
           </div>
 
-          {/* Right — photo, capacity, volunteers, submit */}
+          {/* Photo, capacity, volunteers */}
           <div className="flex flex-col gap-5">
             <SitePhotoUpload photo={photo} onChange={setPhoto} disabled={create.isPending} />
             <input
@@ -855,18 +845,20 @@ function SiteFormDialog({ open, onOpenChange }) {
               onChange={setVolunteers}
               disabled={create.isPending}
             />
-            <button
-              type="submit"
-              disabled={create.isPending}
-              className="mt-auto inline-flex items-center justify-center gap-2 rounded-[10px] bg-[#346EC4] px-5 py-4 text-base font-semibold text-white transition-colors hover:bg-[#2c5da6] disabled:opacity-70"
-            >
+          </div>
+
+          <SheetFooter className="pt-2">
+            <Button type="button" variant="ghost" onClick={close} disabled={create.isPending}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={create.isPending}>
               {create.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
               Add Site
-            </button>
-          </div>
+            </Button>
+          </SheetFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }
 

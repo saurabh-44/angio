@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
@@ -618,32 +618,24 @@ function TreeDetailStep({
   );
 }
 
-// Bordered date box (Figma): calendar icon + formatted date; clicking opens
-// the native picker via a transparent overlay input.
+// Bordered date box (Figma): calendar icon + formatted date. A real, tappable
+// <input type="date"> is laid transparently over the whole box, so tapping it
+// opens the native picker on iOS/Android + web (showPicker() is unavailable in
+// the Capacitor WebView, so we don't rely on it).
 function DateField({ value, max, onChange }) {
-  const ref = useRef(null);
   return (
-    <div
-      onClick={() => {
-        const el = ref.current;
-        if (el?.showPicker) el.showPicker();
-        else el?.focus();
-      }}
-      className="relative flex w-full cursor-pointer items-center justify-between gap-2 rounded-[10px] border border-[#B4B4B4] px-5 py-3 transition-colors focus-within:border-[#0B5000] lg:w-[182px] lg:py-3.5"
-    >
-      <Calendar className="h-5 w-5 shrink-0 text-[#1E1E1E]" aria-hidden />
-      <span className="whitespace-nowrap text-base text-[#1E1E1E]">
+    <div className="relative flex w-full items-center justify-between gap-2 rounded-[10px] border border-[#B4B4B4] px-5 py-3 transition-colors focus-within:border-[#0B5000] lg:w-[182px] lg:py-3.5">
+      <Calendar className="pointer-events-none h-5 w-5 shrink-0 text-[#1E1E1E]" aria-hidden />
+      <span className="pointer-events-none whitespace-nowrap text-base text-[#1E1E1E]">
         {value ? formatDate(value) : 'Select'}
       </span>
       <input
-        ref={ref}
         type="date"
         value={value}
         max={max}
         onChange={(e) => onChange(e.target.value)}
-        className="pointer-events-none absolute inset-0 opacity-0"
+        className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
         aria-label="Donation date"
-        tabIndex={-1}
       />
     </div>
   );

@@ -17,12 +17,13 @@ import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
 import { Skeleton } from '@/components/ui/skeleton.jsx';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog.jsx';
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet.jsx';
 import {
   Select,
   SelectContent,
@@ -254,7 +255,7 @@ export default function AssignmentsPage() {
         </>
       )}
 
-      <AssignmentDialog
+      <AssignmentSheet
         open={createOpen || !!editing}
         assignment={editing}
         onOpenChange={(o) => {
@@ -264,7 +265,7 @@ export default function AssignmentsPage() {
           }
         }}
       />
-      <CreateVolunteerDialog open={newVolunteerOpen} onOpenChange={setNewVolunteerOpen} />
+      <CreateVolunteerSheet open={newVolunteerOpen} onOpenChange={setNewVolunteerOpen} />
       <DeleteAssignmentConfirm assignment={confirming} onClose={() => setConfirming(null)} />
     </div>
   );
@@ -274,7 +275,7 @@ export default function AssignmentsPage() {
 // with role=volunteer; backend stamps createdBy=actor so NGO admin can
 // audit who added them and so the assignment dialog only shows owners
 // their own pool.
-function CreateVolunteerDialog({ open, onOpenChange }) {
+function CreateVolunteerSheet({ open, onOpenChange }) {
   const create = useCreateUser();
   const { success, error: toastError } = useToast();
   const {
@@ -312,18 +313,18 @@ function CreateVolunteerDialog({ open, onOpenChange }) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => (o ? onOpenChange(true) : close())}>
-      <DialogContent className="rounded-[10px] sm:max-w-lg" style={{ fontFamily: BODY_FONT }}>
-        <DialogHeader className="gap-1.5">
-          <DialogTitle className="text-2xl font-medium text-[#001F00]" style={{ fontFamily: BODY_FONT }}>
+    <Sheet open={open} onOpenChange={(o) => !o && close()}>
+      <SheetContent side="right" className="flex flex-col sm:max-w-lg" style={{ fontFamily: BODY_FONT }}>
+        <SheetHeader>
+          <SheetTitle className="text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>
             Add a new volunteer
-          </DialogTitle>
-          <DialogDescription className="text-base text-[#1E1E1E]/50">
+          </SheetTitle>
+          <SheetDescription className="text-[#1E1E1E]/50">
             They'll receive an email with a temp password. After they sign in once you can assign
             them to any of your sites.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+          </SheetDescription>
+        </SheetHeader>
+        <form onSubmit={handleSubmit(onSubmit)} className="-mx-2 mt-6 flex-1 space-y-4 overflow-y-auto px-2" noValidate>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="v-firstName">First name</Label>
@@ -370,21 +371,22 @@ function CreateVolunteerDialog({ open, onOpenChange }) {
             <Label htmlFor="v-phone">Phone (optional)</Label>
             <Input id="v-phone" disabled={create.isPending} {...register('phone')} />
           </div>
-          <button
-            type="submit"
-            disabled={create.isPending}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] bg-[#346EC4] px-5 py-3.5 text-base font-semibold text-white transition-colors hover:bg-[#2c5da6] disabled:opacity-70"
-          >
-            {create.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-            <UserPlus className="h-4 w-4" /> Add volunteer
-          </button>
+          <SheetFooter className="pt-2">
+            <Button type="button" variant="ghost" onClick={close} disabled={create.isPending}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={create.isPending}>
+              {create.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              <UserPlus className="h-4 w-4" /> Add volunteer
+            </Button>
+          </SheetFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }
 
-function AssignmentDialog({ open, assignment, onOpenChange }) {
+function AssignmentSheet({ open, assignment, onOpenChange }) {
   const isEdit = !!assignment;
   const create = useCreateAssignment();
   const update = useUpdateAssignment();
@@ -468,19 +470,19 @@ function AssignmentDialog({ open, assignment, onOpenChange }) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="rounded-[10px] sm:max-w-lg" style={{ fontFamily: BODY_FONT }}>
-        <DialogHeader className="gap-1.5">
-          <DialogTitle className="text-2xl font-medium text-[#001F00]" style={{ fontFamily: BODY_FONT }}>
+    <Sheet open={open} onOpenChange={(o) => !o && onOpenChange(false)}>
+      <SheetContent side="right" className="flex flex-col sm:max-w-lg" style={{ fontFamily: BODY_FONT }}>
+        <SheetHeader>
+          <SheetTitle className="text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>
             {isEdit ? 'Edit assignment' : 'Assign a volunteer'}
-          </DialogTitle>
-          <DialogDescription className="text-base text-[#1E1E1E]/50">
+          </SheetTitle>
+          <SheetDescription className="text-[#1E1E1E]/50">
             {isEdit
               ? "Reassign this volunteer to a different site or change their task. Their planted-tree history stays with the original site."
               : "Decide who plants or waters where. Volunteers see only the sites they're assigned to."}
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+          </SheetDescription>
+        </SheetHeader>
+        <form onSubmit={handleSubmit(onSubmit)} className="-mx-2 mt-6 flex-1 space-y-4 overflow-y-auto px-2" noValidate>
           <div className="space-y-2">
             <Label>Volunteer</Label>
             <Select value={volunteer} onValueChange={setVolunteer} disabled={volsQ.isLoading}>
@@ -563,7 +565,7 @@ function AssignmentDialog({ open, assignment, onOpenChange }) {
             </Select>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="startsAt">Starts</Label>
               <Input id="startsAt" type="date" {...register('startsAt')} />
@@ -579,17 +581,18 @@ function AssignmentDialog({ open, assignment, onOpenChange }) {
             <Input id="note" {...register('note')} />
           </div>
 
-          <button
-            type="submit"
-            disabled={pending}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] bg-[#346EC4] px-5 py-3.5 text-base font-semibold text-white transition-colors hover:bg-[#2c5da6] disabled:opacity-70"
-          >
-            {pending && <Loader2 className="h-4 w-4 animate-spin" />}
-            {isEdit ? 'Save changes' : 'Assign'}
-          </button>
+          <SheetFooter className="pt-2">
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={pending}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={pending}>
+              {pending && <Loader2 className="h-4 w-4 animate-spin" />}
+              {isEdit ? 'Save changes' : 'Assign'}
+            </Button>
+          </SheetFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }
 

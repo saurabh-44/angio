@@ -1,5 +1,6 @@
 import { Navigate } from 'react-router-dom';
 import { ROLE_HOME, useAuth } from '@/lib/auth.jsx';
+import { isNative } from '@/lib/nativeAuth.js';
 import { Spinner } from '@/components/ui/spinner.jsx';
 
 // "/" is special: signed-out users see the marketing landing page,
@@ -16,6 +17,10 @@ export default function PublicRoot({ landing }) {
       </div>
     );
   }
+
+  // The marketing Landing page is website-only. In the native apps there is
+  // no marketing surface — a signed-out launch goes straight to /login.
+  if (isNative && !isAuthenticated) return <Navigate to="/login" replace />;
 
   if (isAuthenticated) {
     if (mustChangePassword) return <Navigate to="/change-password" replace />;
