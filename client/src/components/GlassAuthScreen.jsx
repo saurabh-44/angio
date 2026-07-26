@@ -10,7 +10,11 @@ import { cn } from '@/lib/utils';
 export const HEADING_FONT = "'Zalando Sans Expanded', 'Plus Jakarta Sans', sans-serif";
 export const BODY_FONT = "'Zalando Sans', 'Inter', sans-serif";
 
-export function GlassAuthScreen({ title, subtitle, children }) {
+// `showBack` controls the "Back to home" arrow. It defaults on (web + the
+// register/forgot screens, where it returns to the previous auth screen). The
+// login screen turns it off on native, since there is no marketing home to go
+// back to — the app opens straight on login.
+export function GlassAuthScreen({ title, subtitle, children, showBack = true }) {
   return (
     <div className="relative min-h-screen w-full overflow-hidden" style={{ fontFamily: BODY_FONT }}>
       <img
@@ -20,13 +24,15 @@ export function GlassAuthScreen({ title, subtitle, children }) {
         className="absolute inset-0 h-full w-full object-cover"
       />
 
-      <Link
-        to="/"
-        aria-label="Back to home"
-        className="absolute left-[max(1.25rem,env(safe-area-inset-left))] top-[max(1.25rem,calc(env(safe-area-inset-top)+0.75rem))] z-10 grid h-10 w-10 place-items-center rounded-full border border-white/40 bg-white/20 text-white backdrop-blur-[2px] transition-colors hover:bg-white/35 sm:left-6 sm:top-6"
-      >
-        <ArrowLeft className="h-5 w-5" strokeWidth={2} aria-hidden />
-      </Link>
+      {showBack && (
+        <Link
+          to="/"
+          aria-label="Back to home"
+          className="absolute left-[max(1.25rem,env(safe-area-inset-left))] top-[max(1.25rem,calc(env(safe-area-inset-top)+0.75rem))] z-10 grid h-10 w-10 place-items-center rounded-full border border-white/40 bg-white/20 text-white backdrop-blur-[2px] transition-colors hover:bg-white/35 sm:left-6 sm:top-6"
+        >
+          <ArrowLeft className="h-5 w-5" strokeWidth={2} aria-hidden />
+        </Link>
+      )}
 
       {/* Frosted glass form panel — ~48% of the viewport (Figma: 688/1440),
           padding 100/60, content fills the panel. */}

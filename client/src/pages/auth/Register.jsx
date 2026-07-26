@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
+import { ChevronDown } from 'lucide-react';
 import { ROLE_HOME, useAuth } from '@/lib/auth.jsx';
 import { useToast } from '@/components/ui/toast.jsx';
 import { ApiError } from '@/lib/api.js';
@@ -43,9 +44,13 @@ export default function Register() {
     }
   }
 
-  // Date field: starts as text (so "Date Of Birth" shows as a placeholder),
-  // switches to a real date picker on focus.
+  // Date field: a real <input type="date"> so tapping opens the native picker
+  // on iOS/Android (showPicker() is unavailable in the Capacitor WebView). Its
+  // own value text is hidden while empty so "Date Of Birth" shows as a
+  // placeholder; the input stays tappable underneath.
   const dobField = register('dob', { required: 'Required' });
+  const dob = watch('dob');
+  const today = new Date().toISOString().slice(0, 10);
 
   return (
     <GlassAuthScreen
@@ -70,40 +75,49 @@ export default function Register() {
             {...register('lastName', { required: 'Required' })}
           />
 
-          {/* Date of birth */}
+          {/* Date of birth — same styling/height as the other auth fields
+              (inputCls). A real <input type="date"> so tapping opens the native
+              picker; its value text is hidden while empty so the "Date Of Birth"
+              overlay reads as a placeholder. */}
           <FieldWrap error={errors.dob}>
-            <input
-              {...dobField}
-              type="text"
-              placeholder="Date Of Birth"
-              max={new Date().toISOString().slice(0, 10)}
-              onFocus={(e) => {
-                e.currentTarget.type = 'date';
-                if (e.currentTarget.showPicker) e.currentTarget.showPicker();
-              }}
-              onBlur={(e) => {
-                if (!e.currentTarget.value) e.currentTarget.type = 'text';
-                dobField.onBlur(e);
-              }}
-              className={inputCls}
-            />
+            <div className="relative">
+              {!dob && (
+                <span className="pointer-events-none absolute inset-x-0 top-0 overflow-hidden whitespace-nowrap text-base text-white/70">
+                  Date Of Birth
+                </span>
+              )}
+              <input
+                {...dobField}
+                type="date"
+                max={today}
+                className={cn(inputCls, 'min-w-0', !dob && 'text-transparent')}
+              />
+            </div>
           </FieldWrap>
 
-          {/* Gender */}
+          {/* Gender — inputCls with appearance-none so the native <select>
+              chrome/centering is removed and its text lines up with the date
+              field on the same row. */}
           <FieldWrap error={errors.gender}>
-            <select
-              defaultValue=""
-              {...register('gender', { required: 'Required' })}
-              className={cn(inputCls, '[&>option]:text-black')}
-            >
-              <option value="" disabled>
-                Gender
-              </option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-              <option value="other">Other</option>
-              <option value="prefer_not_to_say">Prefer not to say</option>
-            </select>
+            <div className="relative">
+              <select
+                defaultValue=""
+                {...register('gender', { required: 'Required' })}
+                className={cn(inputCls, 'min-w-0 cursor-pointer appearance-none pr-6 [&>option]:text-black')}
+              >
+                <option value="" disabled>
+                  Gender
+                </option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+                <option value="prefer_not_to_say">Prefer not to say</option>
+              </select>
+              <ChevronDown
+                className="pointer-events-none absolute right-0 top-1 h-4 w-4 text-white/70"
+                aria-hidden
+              />
+            </div>
           </FieldWrap>
 
           <div className="col-span-2 sm:col-span-1">

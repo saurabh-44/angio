@@ -26,7 +26,10 @@ export const DialogContent = forwardRef(({ className, children, ...props }, ref)
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        'fixed left-[50%] top-[50%] z-50 grid w-[calc(100%-1.5rem)] max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto translate-x-[-50%] translate-y-[-50%] gap-4 border border-border/60 bg-card p-5 sm:p-6 shadow-soft rounded-2xl',
+        // Cap the height by the safe-area insets too, so a tall centered
+        // dialog never extends under the notch / Dynamic Island — otherwise its
+        // top (and the close X) can land under the Island and be untappable.
+        'fixed left-[50%] top-[50%] z-50 grid w-[calc(100%-1.5rem)] max-w-lg max-h-[calc(100dvh-2rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] overflow-y-auto translate-x-[-50%] translate-y-[-50%] gap-4 border border-border/60 bg-card p-5 sm:p-6 shadow-soft rounded-2xl',
         'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
         className,
       )}
