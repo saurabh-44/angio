@@ -4,7 +4,7 @@ import { Allocation } from '../../models/Allocation.js';
 import { Assignment } from '../../models/Assignment.js';
 import { Plant } from '../../models/Plant.js';
 import { MaintenanceLog } from '../../models/MaintenanceLog.js';
-import { co2KgForPlant } from '../co2/co2Service.js';
+import { co2KgForPlant, kgToTonnes } from '../co2/co2Service.js';
 import { HttpError } from '../../utils/httpError.js';
 
 // Sites a sponsor can fund right now. A site is "available" when it has
@@ -189,7 +189,7 @@ export async function getSiteOverview({ id, actor }) {
 
   // Plants on this site (species rate populated so CO₂ uses the right figure).
   const plants = await Plant.find({ site: site._id })
-    .select('publicCode name species status plantedAt plantedBy speciesRef allocation')
+    .select('publicCode name species status plantedAt plantedBy speciesRef allocation historical.co2Ton')
     .populate('plantedBy', 'name')
     .populate('speciesRef', 'co2PerYearKg')
     .sort({ plantedAt: -1 })
@@ -219,6 +219,7 @@ export async function getSiteOverview({ id, actor }) {
     plantedBy: p.plantedBy?.name ?? '—',
     lastWateredAt: lastWateredByPlant.get(String(p._id)) ?? null,
     co2Kg: Math.round(co2KgForPlant(p) * 10) / 10,
+    co2Tonnes: kgToTonnes(co2KgForPlant(p)),
   }));
 
   // Volunteers assigned to this site (distinct, latest first).
@@ -277,6 +278,7 @@ export async function getSiteOverview({ id, actor }) {
     site,
     stats: {
       co2Kg: Math.round(co2Kg * 10) / 10,
+      co2Tonnes: kgToTonnes(co2Kg),
       totalTrees,
       aliveTrees,
       volunteerCount: seenVol.size,

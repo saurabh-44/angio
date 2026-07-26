@@ -9,7 +9,7 @@ import { HttpError } from '../../utils/httpError.js';
 import { sendMail } from '../../config/mail.js';
 import { donationReceivedTemplate } from '../../mail/templates/donationReceived.js';
 import { remainingCapacityForSite } from '../sites/siteService.js';
-import { co2KgForPlant } from '../co2/co2Service.js';
+import { co2KgForPlant, kgToTonnes } from '../co2/co2Service.js';
 import { logger } from '../../utils/logger.js';
 
 // Step 1 of the sponsor flow. Creates a pending Donation row + a
@@ -261,7 +261,7 @@ async function decorateOrder(donation) {
   let co2Kg = 0;
   if (allocations.length) {
     const plants = await Plant.find({ allocation: { $in: allocations.map((a) => a._id) } })
-      .select('plantedAt status speciesRef')
+      .select('plantedAt status speciesRef historical.co2Ton')
       .populate('speciesRef', 'co2PerYearKg')
       .lean();
     planted = plants.length;
@@ -286,6 +286,7 @@ async function decorateOrder(donation) {
     planted,
     target,
     co2Kg: Math.round(co2Kg * 10) / 10,
+    co2Tonnes: kgToTonnes(co2Kg),
     site: firstSite
       ? { id: String(firstSite._id ?? firstSite), name: firstSite.name ?? null }
       : null,

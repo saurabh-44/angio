@@ -24,7 +24,7 @@ import { useAuth } from '@/lib/auth.jsx';
 import { useAdminOverview } from '@/queries/analytics.js';
 import { useSystemCo2 } from '@/queries/co2.js';
 import { useSites } from '@/queries/sites.js';
-import { formatAmount } from '@/lib/format.js';
+import { formatAmount, formatCo2Tonnes } from '@/lib/format.js';
 
 function dash(v) {
   return v == null ? '—' : String(v);
@@ -85,11 +85,11 @@ export default function AdminHome() {
           className="lg:col-span-3"
           icon={Cloud}
           tone="leaf"
-          value={co2.data?.summary?.co2Kg != null ? formatCo2(co2.data.summary.co2Kg) : '—'}
+          value={co2.data?.summary?.co2Tonnes != null ? formatCo2Tonnes(co2.data.summary.co2Tonnes) : '—'}
           label="CO₂ absorbed (est.)"
           sub={
-            co2.data?.summary?.annualRateKg
-              ? `${co2.data.summary.annualRateKg.toLocaleString()} kg/year`
+            co2.data?.summary?.annualRateTonnes
+              ? `${formatCo2Tonnes(co2.data.summary.annualRateTonnes)}/year`
               : undefined
           }
         />
@@ -192,11 +192,6 @@ export default function AdminHome() {
       </div>
     </>
   );
-}
-
-function formatCo2(kg) {
-  if (kg >= 1000) return `${(kg / 1000).toFixed(1)} t`;
-  return `${Math.round(kg)} kg`;
 }
 
 // Tiny month-over-month delta chip surfaced in the planted-trend

@@ -23,7 +23,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet.jsx';
 import { useSponsorOrders } from '@/queries/payments.js';
-import { formatAmount, formatDate } from '@/lib/format.js';
+import { formatAmount, formatCo2Tonnes, formatDate } from '@/lib/format.js';
 import { cn } from '@/lib/utils';
 import { BODY_FONT, HEADING_FONT } from '@/components/GlassAuthScreen.jsx';
 import { PageHeading } from '@/components/PageHeading.jsx';
@@ -159,7 +159,7 @@ export default function SponsorOrders() {
                   <span>{formatDate(o.date)}</span>
                   <span className="truncate">{shortId(o.id)}</span>
                   <span>{typeLabel(o)}</span>
-                  <span>{Math.round(o.co2Kg ?? 0)}Kg</span>
+                  <span>{formatCo2Tonnes(o.co2Tonnes)}</span>
                   <span className="flex justify-end text-[#001F00]">
                     <ChevronRight className="h-5 w-5" aria-hidden />
                   </span>
@@ -182,7 +182,7 @@ export default function SponsorOrders() {
                   <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-[#1E1E1E]/60">
                     <span>{formatDate(o.date)}</span>
                     <span>{shortId(o.id)}</span>
-                    <span>{Math.round(o.co2Kg ?? 0)}Kg CO₂</span>
+                    <span>{formatCo2Tonnes(o.co2Tonnes)} CO₂</span>
                   </div>
                 </div>
                 <ChevronRight className="h-5 w-5 shrink-0 text-[#0B5000]" aria-hidden />
@@ -228,7 +228,7 @@ function OrderReportSheet({ order, onClose }) {
                 <Cloud className="h-4 w-4" aria-hidden /> CO₂ absorbed
               </dt>
               <dd className="text-xl font-semibold text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>
-                {Math.round(order.co2Kg ?? 0)} kg
+                {formatCo2Tonnes(order.co2Tonnes)}
               </dd>
             </div>
           </dl>

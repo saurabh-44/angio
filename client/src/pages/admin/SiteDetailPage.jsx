@@ -7,7 +7,7 @@ import { useToast } from '@/components/ui/toast.jsx';
 import { useAuth } from '@/lib/auth.jsx';
 import { useSiteOverview } from '@/queries/sites.js';
 import { openAuthedPdf } from '@/lib/nativeFile.js';
-import { formatDate } from '@/lib/format.js';
+import { formatCo2Tonnes, formatDate } from '@/lib/format.js';
 import { cn } from '@/lib/utils';
 import { BODY_FONT, HEADING_FONT } from '@/components/GlassAuthScreen.jsx';
 import { PageHeading } from '@/components/PageHeading.jsx';
@@ -125,7 +125,7 @@ export default function SiteDetailPage() {
 
       {/* Stat cards */}
       <div className="mt-6 grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="CO₂ Absorbed" value={`${stats?.co2Kg ?? 0}Kg`} recordedOn={recordedOn} loading={isLoading} />
+        <StatCard label="CO₂ Absorbed" value={formatCo2Tonnes(stats?.co2Tonnes ?? 0)} recordedOn={recordedOn} loading={isLoading} />
         <StatCard label="Total Trees" value={stats?.totalTrees ?? 0} recordedOn={recordedOn} loading={isLoading} />
         <StatCard
           label="Tree Survival Rate"
@@ -155,7 +155,7 @@ export default function SiteDetailPage() {
           { label: 'Tree ID', render: (r) => `#${r.code}` },
           { label: 'Planted On', render: (r) => formatDate(r.plantedAt) },
           { label: 'Last Watered', render: (r) => (r.lastWateredAt ? formatDate(r.lastWateredAt) : '—') },
-          { label: 'CO₂ Absorption', render: (r) => `${r.co2Kg} Kg` },
+          { label: 'CO₂ Absorption', render: (r) => formatCo2Tonnes(r.co2Tonnes) },
           { label: 'Planted By', render: (r) => r.plantedBy },
         ]}
       />

@@ -26,9 +26,10 @@ export const NAV_BY_ROLE = {
     // Plants hub — each tree's location/map and weekly maintenance live in its detail.
     { to: '/admin/plants', label: 'Plants', icon: Leaf },
     { to: '/admin/assignments', label: 'Assignments', icon: Clipboard },
-    // Hidden per client request (not in SRS) — page + backend kept intact;
-    // uncomment to restore:
-    // { to: '/admin/species', label: 'Species', icon: TreePine },
+    // Species master data — drives the volunteer picker AND the per-species
+    // CO₂ rate used in impact estimates.
+    { to: '/admin/species', label: 'Species', icon: TreePine },
+    // Import hidden per client request — uncomment to restore:
     // { to: '/admin/import', label: 'Import', icon: FileSpreadsheet },
   ],
   site_owner: [

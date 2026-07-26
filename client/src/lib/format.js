@@ -56,3 +56,14 @@ export function formatDbh(cm) {
   if (!Number.isFinite(n)) return '—';
   return `${n.toFixed(1)} cm`;
 }
+
+// CO₂ in tonnes — the app's standard unit everywhere. Keeps enough
+// precision for young trees (small values) without noisy trailing digits.
+export function formatCo2Tonnes(t) {
+  if (t == null) return '—';
+  const n = Number(t);
+  if (!Number.isFinite(n)) return '—';
+  if (n === 0) return '0 t';
+  const decimals = n >= 1 ? 2 : n >= 0.01 ? 3 : 4;
+  return `${n.toFixed(decimals)} t`;
+}

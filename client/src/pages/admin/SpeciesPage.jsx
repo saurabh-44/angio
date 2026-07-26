@@ -30,7 +30,7 @@ import {
   useUpdateSpecies,
 } from '@/queries/species.js';
 import { ApiError } from '@/lib/api.js';
-import { formatDate } from '@/lib/format.js';
+import { formatCo2Tonnes, formatDate } from '@/lib/format.js';
 import { cn } from '@/lib/utils';
 import { BODY_FONT, HEADING_FONT } from '@/components/GlassAuthScreen.jsx';
 import { PageHeading } from '@/components/PageHeading.jsx';
@@ -163,7 +163,7 @@ export default function SpeciesPage() {
                       {s.scientificName || '—'}
                     </td>
                     <td className="py-4 pr-4 font-mono text-sm tabular-nums text-[#1E1E1E]">
-                      {s.co2PerYearKg != null ? `${s.co2PerYearKg} kg` : '—'}
+                      {s.co2PerYearKg != null ? formatCo2Tonnes(s.co2PerYearKg / 1000) : '—'}
                     </td>
                     <td className="py-4 pr-4">
                       <span
@@ -214,7 +214,7 @@ export default function SpeciesPage() {
                     </div>
                   )}
                   <div className="mt-1 text-xs text-[#1E1E1E]/60">
-                    {s.co2PerYearKg != null ? `${s.co2PerYearKg} kg CO₂/yr` : 'Default rate'} · Added{' '}
+                    {s.co2PerYearKg != null ? `${formatCo2Tonnes(s.co2PerYearKg / 1000)} CO₂/yr` : 'Default rate'} · Added{' '}
                     {formatDate(s.createdAt)}
                   </div>
                 </div>
@@ -267,19 +267,19 @@ function SpeciesFormFields({ register, errors, isActive, setIsActive, disabled }
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="species-co2" className="text-[#001F00]">CO₂ absorption (kg / year)</Label>
+        <Label htmlFor="species-co2" className="text-[#001F00]">CO₂ absorption (t / year)</Label>
         <input
           id="species-co2"
           type="number"
-          step="0.1"
+          step="0.001"
           min="0"
           className={FIELD}
-          placeholder="e.g. 22"
+          placeholder="e.g. 0.022"
           disabled={disabled}
-          {...register('co2PerYearKg', { valueAsNumber: true, min: 0 })}
+          {...register('co2PerYearTon', { valueAsNumber: true, min: 0 })}
         />
         <p className="text-xs text-[#1E1E1E]/50">
-          Leave blank to use the default rate of 22 kg/year.
+          Leave blank to use the default rate of 0.022 t/year.
         </p>
       </div>
 
@@ -372,7 +372,10 @@ function SpeciesFormDialog({ open, onOpenChange }) {
       await create.mutateAsync({
         name: values.name.trim(),
         scientificName: values.scientificName?.trim() || undefined,
-        co2PerYearKg: Number.isFinite(values.co2PerYearKg) ? values.co2PerYearKg : undefined,
+        // UI is in tonnes/year; the model stores kg/year (co2PerYearKg).
+        co2PerYearKg: Number.isFinite(values.co2PerYearTon)
+          ? Math.round(values.co2PerYearTon * 10000) / 10
+          : undefined,
         maxHeightCm: Number.isFinite(values.maxHeightCm) ? values.maxHeightCm : undefined,
         maxDbhCm: Number.isFinite(values.maxDbhCm) ? values.maxDbhCm : undefined,
         description: values.description?.trim() || undefined,
@@ -429,7 +432,8 @@ function SpeciesFormSheet({ species, onClose, onRequestDelete }) {
     () => ({
       name: species?.name ?? '',
       scientificName: species?.scientificName ?? '',
-      co2PerYearKg: species?.co2PerYearKg ?? '',
+      // Stored in kg/year; edited in tonnes/year.
+      co2PerYearTon: species?.co2PerYearKg != null ? species.co2PerYearKg / 1000 : '',
       maxHeightCm: species?.maxHeightCm ?? '',
       maxDbhCm: species?.maxDbhCm ?? '',
       description: species?.description ?? '',
@@ -460,10 +464,11 @@ function SpeciesFormSheet({ species, onClose, onRequestDelete }) {
         patch: {
           name: values.name.trim(),
           scientificName: values.scientificName?.trim() ?? '',
+          // UI is in tonnes/year; the model stores kg/year (co2PerYearKg).
           co2PerYearKg:
-            values.co2PerYearKg === '' || values.co2PerYearKg == null
+            values.co2PerYearTon === '' || values.co2PerYearTon == null
               ? undefined
-              : Number(values.co2PerYearKg),
+              : Math.round(Number(values.co2PerYearTon) * 10000) / 10,
           maxHeightCm:
             values.maxHeightCm === '' || values.maxHeightCm == null
               ? undefined

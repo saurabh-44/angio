@@ -84,6 +84,14 @@ export async function streamCertificate({ donorId, type, res }) {
   doc.end();
 }
 
+// CO₂ shown in tonnes on certificates — the app's standard unit. Enough
+// precision for young trees without noisy digits.
+function fmtTonnes(t) {
+  const n = Number(t) || 0;
+  const d = n >= 1 ? 2 : n >= 0.01 ? 3 : 4;
+  return `${n.toFixed(d)} t`;
+}
+
 function renderCertificate(doc, { type, donor, summary, totalDonated, siteNames, donations }) {
   const pageWidth = doc.page.width;
   const margin = 50;
@@ -160,7 +168,7 @@ function renderCertificate(doc, { type, donor, summary, totalDonated, siteNames,
     doc.fillColor(COLORS.primary)
       .font('Helvetica-Bold')
       .fontSize(40)
-      .text(`${summary.co2Kg.toLocaleString()} kg CO2`, margin, y, {
+      .text(`${fmtTonnes(summary.co2Tonnes)} CO2`, margin, y, {
         width: contentWidth,
         align: 'center',
       });
@@ -169,8 +177,8 @@ function renderCertificate(doc, { type, donor, summary, totalDonated, siteNames,
       .font('Helvetica')
       .fontSize(11)
       .text(
-        `Estimated using a conservative ${22} kg/tree/year sequestration rate. ` +
-        `Annualised rate for living trees: ${summary.annualRateKg.toLocaleString()} kg/year.`,
+        `Estimated from each tree's age and species rate, using measured survey data where available. ` +
+        `Annualised rate for living trees: ${fmtTonnes(summary.annualRateTonnes)}/year.`,
         margin,
         y,
         { width: contentWidth, align: 'center' },
@@ -188,7 +196,7 @@ function renderCertificate(doc, { type, donor, summary, totalDonated, siteNames,
     { label: 'Trees alive', value: String(summary.treesAlive) },
     {
       label: 'CO2 (estimated)',
-      value: `${summary.co2Kg.toLocaleString()} kg`,
+      value: fmtTonnes(summary.co2Tonnes),
     },
     {
       label: 'Total donated',

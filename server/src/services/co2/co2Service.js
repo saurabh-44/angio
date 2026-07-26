@@ -28,8 +28,19 @@ function ratePerYearFor(plant) {
 // Dead / removed plants stopped sequestering — credit nothing further.
 // `plant` may have `speciesRef` populated; if it does, that row's
 // `co2PerYearKg` overrides the default.
+//
+// Historical (bulk-imported) trees carry a REAL surveyed CO₂ figure from the
+// source data (`historical.co2Ton`, in tonnes). For those we report the
+// measured value directly instead of the generic time-based estimate — so
+// the number a donor sees is the actual survey result. (Requires the query
+// to select `historical.co2Ton`.)
 export function co2KgForPlant(plant, asOf = new Date()) {
-  if (!plant || plant.status !== 'alive') return 0;
+  if (!plant) return 0;
+  const measuredTon = plant.historical?.co2Ton;
+  if (measuredTon != null && Number.isFinite(measuredTon)) {
+    return measuredTon * 1000; // stored in tonnes; this fn works in kg
+  }
+  if (plant.status !== 'alive') return 0;
   if (!plant.plantedAt) return 0;
   const ms = asOf.getTime() - new Date(plant.plantedAt).getTime();
   if (ms <= 0) return 0;
@@ -37,10 +48,16 @@ export function co2KgForPlant(plant, asOf = new Date()) {
   return Math.max(0, years * ratePerYearFor(plant));
 }
 
+// kg → tonnes, kept precise enough for small (young-tree) values so they
+// don't round to zero. Tonnes is the unit shown across the app.
+export function kgToTonnes(kg) {
+  return Math.round(kg * 1000) / 1_000_000;
+}
+
 // Donor-facing summary: counts + total CO₂ in kg and tonnes.
 export async function summaryForDonor({ donorId }) {
   const plants = await Plant.find({ donor: donorId })
-    .select('plantedAt status speciesRef')
+    .select('plantedAt status speciesRef historical.co2Ton')
     .populate('speciesRef', 'co2PerYearKg')
     .lean();
   return aggregate(plants);
@@ -48,7 +65,7 @@ export async function summaryForDonor({ donorId }) {
 
 export async function summaryForSystem() {
   const plants = await Plant.find({})
-    .select('plantedAt status speciesRef')
+    .select('plantedAt status speciesRef historical.co2Ton')
     .populate('speciesRef', 'co2PerYearKg')
     .lean();
   return aggregate(plants);
@@ -69,8 +86,9 @@ function aggregate(plants) {
     treesAlive: alive,
     treesTotal: plants.length,
     co2Kg: Math.round(kg * 10) / 10,
-    co2Tonnes: Math.round(kg) / 1000,
+    co2Tonnes: kgToTonnes(kg),
     annualRateKg: Math.round(annualKg * 10) / 10,
+    annualRateTonnes: kgToTonnes(annualKg),
   };
 }
 

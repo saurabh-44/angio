@@ -6,7 +6,7 @@ import { usePlants } from '@/queries/plants.js';
 import { useMaintenance } from '@/queries/maintenance.js';
 import { useDonations } from '@/queries/donations.js';
 import { useDonorCo2 } from '@/queries/co2.js';
-import { formatAmount } from '@/lib/format.js';
+import { formatAmount, formatCo2Tonnes } from '@/lib/format.js';
 import { cn } from '@/lib/utils';
 import { BODY_FONT, HEADING_FONT } from '@/components/GlassAuthScreen.jsx';
 import { PageHeading } from '@/components/PageHeading.jsx';
@@ -15,10 +15,7 @@ import { PageHeading } from '@/components/PageHeading.jsx';
 // — the same plants / maintenance / donations / CO₂ queries feed the numbers,
 // only the presentation is new.
 function co2Display(summary) {
-  const kg = summary?.co2Kg ?? null;
-  if (kg == null) return '—';
-  if (kg >= 1000) return `${(kg / 1000).toFixed(1)}t`;
-  return `${Math.round(kg)}Kg`;
+  return formatCo2Tonnes(summary?.co2Tonnes);
 }
 
 // One stat card: label up top, big number + sub pinned to the bottom.

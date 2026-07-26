@@ -15,9 +15,26 @@ import {
 import { Skeleton } from '@/components/ui/skeleton.jsx';
 import EmptyState from '@/components/EmptyState.jsx';
 import PlantLocationMap from '@/components/PlantLocationMap.jsx';
-import { usePlant } from '@/queries/plants.js';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select.jsx';
+import { useToast } from '@/components/ui/toast.jsx';
+import { usePlant, useUpdatePlant } from '@/queries/plants.js';
 import { useMaintenance } from '@/queries/maintenance.js';
-import { formatDate, formatDbh, formatGeo, formatHeight, formatRelative } from '@/lib/format.js';
+import { useSpeciesList } from '@/queries/species.js';
+import { ApiError } from '@/lib/api.js';
+import {
+  formatCo2Tonnes,
+  formatDate,
+  formatDbh,
+  formatGeo,
+  formatHeight,
+  formatRelative,
+} from '@/lib/format.js';
 import { cn } from '@/lib/utils';
 import { BODY_FONT, HEADING_FONT } from '@/components/GlassAuthScreen.jsx';
 import { PageHeading } from '@/components/PageHeading.jsx';
@@ -67,6 +84,70 @@ function DetailCard({ icon: Icon, label, children }) {
         {label}
       </div>
       <div className="mt-1 text-sm text-[#001F00]">{children}</div>
+    </div>
+  );
+}
+
+// Assign / change the tree's species. Picking one sets `speciesRef`, which
+// is what the CO₂ service reads (a species' `co2PerYearKg`) — so this is the
+// link that makes carbon estimates accurate for a tree (including the
+// bulk-imported historical ones). Available to admin + the site's owner;
+// the backend enforces the permission.
+function SpeciesEditor({ plant }) {
+  const { data } = useSpeciesList({ isActive: true, limit: 200 });
+  const update = useUpdatePlant();
+  const { success, error: toastError } = useToast();
+  const options = data?.items ?? [];
+  const currentId = plant.speciesRef?.id ?? plant.speciesRef?._id ?? '';
+  const currentCo2 = plant.speciesRef?.co2PerYearKg;
+
+  async function pick(id) {
+    const sp = options.find((s) => (s.id ?? s._id) === id);
+    if (!sp) return;
+    try {
+      await update.mutateAsync({
+        id: plant.id ?? plant._id,
+        patch: { speciesRef: id, species: sp.name },
+      });
+      success('Species updated', `Now recorded as ${sp.name}.`);
+    } catch (err) {
+      toastError("Couldn't update species", err instanceof ApiError ? err.message : 'Try again.');
+    }
+  }
+
+  return (
+    <div className="rounded-[10px] border border-[#E2E8F0] p-3.5">
+      <div className="flex items-center gap-1.5 text-xs text-[#1E1E1E]/50">
+        <Leaf className="h-3.5 w-3.5" aria-hidden /> Species
+      </div>
+      <div className="mt-1.5">
+        <Select value={currentId || undefined} onValueChange={pick} disabled={update.isPending}>
+          <SelectTrigger className="h-auto rounded-[10px] border-[#E2E8F0] px-3 py-2 text-sm focus:ring-0 focus:ring-offset-0">
+            <SelectValue placeholder={plant.species ?? 'Set a species'} />
+          </SelectTrigger>
+          <SelectContent>
+            {options.length === 0 ? (
+              <div className="px-3 py-2 text-sm text-[#1E1E1E]/50">
+                No species yet — add them on the Species page.
+              </div>
+            ) : (
+              options.map((s) => (
+                <SelectItem key={s.id ?? s._id} value={s.id ?? s._id}>
+                  {s.name}
+                  {s.co2PerYearKg != null && (
+                    <span className="text-[#1E1E1E]/50"> · {formatCo2Tonnes(s.co2PerYearKg / 1000)} CO₂/yr</span>
+                  )}
+                </SelectItem>
+              ))
+            )}
+          </SelectContent>
+        </Select>
+      </div>
+      <p className="mt-1.5 text-xs text-[#1E1E1E]/50">
+        {currentCo2 != null
+          ? `CO₂ estimates use ${formatCo2Tonnes(currentCo2 / 1000)}/year for this species.`
+          : 'CO₂ estimates use the default 0.022 t/year. Set a per-species rate on the Species page.'}
+      </p>
     </div>
   );
 }
@@ -177,8 +258,9 @@ export default function PlantDetailPage() {
                 )}
               </div>
 
+              <SpeciesEditor plant={plant} />
+
               <div className="grid grid-cols-2 gap-3">
-                <DetailCard icon={Leaf} label="Species">{plant.species ?? 'Unspecified'}</DetailCard>
                 <DetailCard icon={Sprout} label="Age">{ageFromPlantedAt(plant.plantedAt)}</DetailCard>
                 {plant.heightCm != null && (
                   <DetailCard icon={Ruler} label="Height">{formatHeight(plant.heightCm)}</DetailCard>
