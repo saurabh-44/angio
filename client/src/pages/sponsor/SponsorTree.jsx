@@ -505,7 +505,11 @@ function TreeDetailStep({
       <div className="mt-6 grid grid-cols-1 gap-6 lg:mt-10 lg:grid-cols-2 lg:gap-10">
         {/* Left — form */}
         <div className="flex max-w-[520px] flex-col gap-5 lg:gap-8">
-          <Select value={siteId} onValueChange={setSiteId} disabled={sitesLoading}>
+          {/* Site preference is intentionally hidden — sponsors just order a
+              number of trees and the NGO admin assigns the site afterwards.
+              To restore self-service site choice, uncomment this block (the
+              backend already accepts an optional `site`). */}
+          {/* <Select value={siteId} onValueChange={setSiteId} disabled={sitesLoading}>
             <SelectTrigger className="h-auto rounded-[10px] border-[#B4B4B4] px-5 py-3 text-base text-[#1E1E1E] transition-colors focus:border-[#0B5000] focus:ring-0 focus:ring-offset-0 lg:py-4">
               <SelectValue placeholder={sitesLoading ? 'Loading sites…' : 'Select Site (optional)'} />
             </SelectTrigger>
@@ -523,7 +527,7 @@ function TreeDetailStep({
                 </SelectItem>
               ))}
             </SelectContent>
-          </Select>
+          </Select> */}
 
           {/* Tree count */}
           <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between lg:gap-4">

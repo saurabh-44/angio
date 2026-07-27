@@ -20,34 +20,39 @@ export async function plantReadFilter(actor) {
   throw HttpError.forbidden('You do not have permission to view plants');
 }
 
-// Volunteer / site_owner / ngo_admin can record a planting. The allocation
-// pins the plant to a donor + site, so we re-validate that the allocation
-// actually belongs to the requested site.
+// Volunteer / site_owner / ngo_admin can record a planting. Trees are
+// recorded UNASSIGNED (no sponsor/order) — a site incharge assigns them to a
+// sponsor's order later via attachPlantsToAllocation. An `allocation` may
+// still be passed (back-compat) to pin the tree to a donor at create time.
 export async function createPlant({ input, actor }) {
   if (!['volunteer', 'site_owner', 'ngo_admin'].includes(actor.role)) {
     throw HttpError.forbidden('You do not have permission to record plantings');
   }
 
-  const [site, allocation] = await Promise.all([
-    Site.findById(input.site).select('_id owner').lean(),
-    Allocation.findById(input.allocation).select('_id site donor targetPlants').lean(),
-  ]);
+  const site = await Site.findById(input.site).select('_id owner').lean();
   if (!site) throw HttpError.badRequest('Site not found');
-  if (!allocation) throw HttpError.badRequest('Allocation not found');
-  if (String(allocation.site) !== String(input.site)) {
-    throw HttpError.badRequest('Allocation does not belong to the selected site');
-  }
 
   // Site owner can only plant on their own site.
   if (actor.role === 'site_owner' && String(site.owner) !== actor.userId) {
     throw HttpError.forbidden('You can only record plantings on your own site');
   }
 
-  // Don't overplant past the allocation's target (a soft check — admin
-  // can still bump targetPlants if needed).
-  const planted = await Plant.countDocuments({ allocation: allocation._id });
-  if (planted >= allocation.targetPlants) {
-    throw HttpError.badRequest('This allocation has already met its target plant count');
+  // Optional: pin the tree to an order at create time (not used by the
+  // field app anymore — orders are fulfilled via "assign existing trees").
+  let allocation = null;
+  if (input.allocation) {
+    allocation = await Allocation.findById(input.allocation)
+      .select('_id site donor targetPlants')
+      .lean();
+    if (!allocation) throw HttpError.badRequest('Allocation not found');
+    if (String(allocation.site) !== String(input.site)) {
+      throw HttpError.badRequest('Allocation does not belong to the selected site');
+    }
+    // Don't overplant past the allocation's target (a soft check).
+    const planted = await Plant.countDocuments({ allocation: allocation._id });
+    if (planted >= allocation.targetPlants) {
+      throw HttpError.badRequest('This allocation has already met its target plant count');
+    }
   }
 
   // Retry on the (vanishingly unlikely) publicCode unique-index
@@ -59,8 +64,8 @@ export async function createPlant({ input, actor }) {
     try {
       plant = await Plant.create({
         site: input.site,
-        allocation: input.allocation,
-        donor: allocation.donor,
+        allocation: allocation?._id,
+        donor: allocation?.donor,
         name: input.name,
         species: input.species,
         speciesRef: input.speciesRef,

@@ -19,7 +19,10 @@ const photo = z.object({
 
 export const createPlantSchema = z.object({
   site: objectId,
-  allocation: objectId,
+  // Optional: trees are recorded unassigned and linked to a sponsor's order
+  // later by the site incharge (attach flow). May still be sent to pin the
+  // tree to an order at create time.
+  allocation: objectId.optional(),
   // Optional — server fills a default from the species when left blank.
   name: z.string().trim().max(120).optional(),
   species: z.string().trim().max(120).optional(),

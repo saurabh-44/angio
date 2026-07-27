@@ -42,10 +42,9 @@ import {
   SelectValue,
 } from '@/components/ui/select.jsx';
 import { useToast } from '@/components/ui/toast.jsx';
+import AttachTreesPanel from '@/components/AttachTreesPanel.jsx';
 import {
   useAllocations,
-  useAttachablePlants,
-  useAttachPlants,
   useCreateAllocation,
   useCreateDonation,
   useDeleteAllocation,
@@ -56,7 +55,7 @@ import { useSites } from '@/queries/sites.js';
 import { useSponsorshipInfo } from '@/queries/payments.js';
 import { useUsers } from '@/queries/users.js';
 import { ApiError } from '@/lib/api.js';
-import { formatAmount, formatDate, formatGeo } from '@/lib/format.js';
+import { formatAmount, formatDate } from '@/lib/format.js';
 import { cn } from '@/lib/utils';
 import { BODY_FONT, HEADING_FONT } from '@/components/GlassAuthScreen.jsx';
 import { PageHeading } from '@/components/PageHeading.jsx';
@@ -110,12 +109,14 @@ function MethodPill({ method }) {
 export default function DonationsPage() {
   const [searchParams] = useSearchParams();
   const [donorFilter, setDonorFilter] = useState(searchParams.get('donor') ?? '');
+  const [assignment, setAssignment] = useState('');
   const [page, setPage] = useState(1);
   const [createOpen, setCreateOpen] = useState(false);
   const [openDonation, setOpenDonation] = useState(null);
 
   const { data, isLoading, isError, refetch } = useDonations({
     donor: donorFilter || undefined,
+    assignment: assignment || undefined,
     page,
     limit: LIMIT,
   });
@@ -135,7 +136,7 @@ export default function DonationsPage() {
         </p>
       </PageHeading>
 
-      {/* Sponsor filter + Export + Record donation */}
+      {/* Sponsor filter + assigned/unassigned + Export + Record donation */}
       <div className="mt-8 flex flex-wrap items-center gap-3">
         <DonorFilter
           value={donorFilter}
@@ -144,6 +145,31 @@ export default function DonationsPage() {
             setPage(1);
           }}
         />
+        {/* Site-assignment filter: unassigned = order placed with no site yet. */}
+        <div className="inline-flex items-center gap-1 rounded-[10px] border border-[#E2E8F0] p-1">
+          {[
+            { v: '', label: 'All' },
+            { v: 'assigned', label: 'Assigned' },
+            { v: 'unassigned', label: 'Unassigned' },
+          ].map((opt) => (
+            <button
+              key={opt.v || 'all'}
+              type="button"
+              onClick={() => {
+                setAssignment(opt.v);
+                setPage(1);
+              }}
+              className={cn(
+                'rounded-[8px] px-4 py-2 text-sm font-medium transition-colors',
+                assignment === opt.v
+                  ? 'bg-[#0B5000] text-white'
+                  : 'text-[#1E1E1E]/60 hover:bg-[#F6FAF6] hover:text-[#001F00]',
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
         <div className="ml-auto flex items-center gap-3">
           <ExportButton
             href={`/api/excel/export/donations.xlsx${donorFilter ? `?donor=${donorFilter}` : ''}`}
@@ -753,121 +779,6 @@ function AllocationRow({ allocation }) {
 // Picker of existing, unsponsored trees on the allocation's site. The
 // server caps how many can be assigned (the order's remaining count) and
 // re-validates eligibility, so this is a convenience layer only.
-function AttachTreesPanel({ allocationId, onDone }) {
-  const { data, isLoading } = useAttachablePlants(allocationId);
-  const attach = useAttachPlants();
-  const { success, error: toastError } = useToast();
-  const [selected, setSelected] = useState(() => new Set());
-
-  const remaining = data?.remaining ?? 0;
-  const candidates = data?.candidates ?? [];
-
-  function toggle(id) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else if (next.size < remaining) next.add(id); // never select past the cap
-      return next;
-    });
-  }
-  function fill() {
-    setSelected(new Set(candidates.slice(0, remaining).map((c) => c.id ?? c._id)));
-  }
-  async function submit() {
-    try {
-      const res = await attach.mutateAsync({ allocationId, plantIds: [...selected] });
-      success('Trees assigned', `${res.attached} existing tree${res.attached === 1 ? '' : 's'} linked to this order.`);
-      setSelected(new Set());
-      onDone?.();
-    } catch (err) {
-      toastError("Couldn't assign trees", err instanceof ApiError ? err.message : 'Try again.');
-    }
-  }
-
-  if (isLoading) return <Skeleton className="mt-3 h-24 w-full rounded-[10px]" />;
-
-  if (remaining === 0) {
-    return (
-      <p className="mt-3 rounded-[10px] bg-[#F6FAF6] px-3 py-2 text-xs text-[#1E1E1E]/60">
-        This order is fully planted — nothing left to assign.
-      </p>
-    );
-  }
-  if (candidates.length === 0) {
-    return (
-      <p className="mt-3 rounded-[10px] bg-[#F6FAF6] px-3 py-2 text-xs text-[#1E1E1E]/60">
-        No unsponsored trees are available on this site to assign.
-      </p>
-    );
-  }
-
-  const cap = Math.min(remaining, candidates.length);
-  return (
-    <div className="mt-3 space-y-2.5">
-      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[#1E1E1E]/60">
-        <span>
-          {data.planted} of {data.targetPlants} planted · <strong className="text-[#0B5000]">{remaining} remaining</strong> ·{' '}
-          {data.available} available
-        </span>
-        <button
-          type="button"
-          onClick={fill}
-          className="font-medium text-[#0B5000] underline-offset-2 hover:underline"
-        >
-          Select {cap}
-        </button>
-      </div>
-
-      <div className="max-h-56 space-y-1 overflow-auto rounded-[10px] border border-[#E2E8F0] p-1.5">
-        {candidates.map((c) => {
-          const id = c.id ?? c._id;
-          const checked = selected.has(id);
-          const disabled = !checked && selected.size >= remaining;
-          return (
-            <label
-              key={id}
-              className={cn(
-                'flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors',
-                checked ? 'bg-[#0B5000]/10' : 'hover:bg-[#F6FAF6]',
-                disabled && 'cursor-not-allowed opacity-45',
-              )}
-            >
-              <input
-                type="checkbox"
-                checked={checked}
-                disabled={disabled}
-                onChange={() => toggle(id)}
-                className="h-4 w-4 shrink-0 accent-[#0B5000]"
-              />
-              <span className="min-w-0 flex-1 truncate font-medium text-[#001F00]">
-                {c.name || c.species || 'Tree'}
-              </span>
-              <span className="shrink-0 font-mono text-[11px] text-[#1E1E1E]/45">
-                {c.geo ? formatGeo(c.geo) : '—'}
-              </span>
-            </label>
-          );
-        })}
-      </div>
-
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-xs text-[#1E1E1E]/50">
-          {selected.size} selected{selected.size >= remaining ? ' (max)' : ''}
-        </span>
-        <Button
-          type="button"
-          size="sm"
-          onClick={submit}
-          disabled={selected.size === 0 || attach.isPending}
-        >
-          {attach.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-          Assign {selected.size || ''} tree{selected.size === 1 ? '' : 's'}
-        </Button>
-      </div>
-    </div>
-  );
-}
-
 function AddAllocationForm({ donation, remainingTrees, ratePaid, remainingMoney }) {
   const create = useCreateAllocation();
   const { success, error: toastError } = useToast();

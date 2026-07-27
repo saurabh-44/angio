@@ -1,5 +1,6 @@
 import { Donation } from '../../models/Donation.js';
 import { Allocation } from '../../models/Allocation.js';
+import { Plant } from '../../models/Plant.js';
 import { Site } from '../../models/Site.js';
 import { User } from '../../models/User.js';
 import { HttpError } from '../../utils/httpError.js';
@@ -49,10 +50,19 @@ export async function createDonation({ input, actor }) {
   return donation.toObject();
 }
 
-export async function listDonations({ donor, status, page, limit, actor }) {
+export async function listDonations({ donor, status, assignment, page, limit, actor }) {
   const filter = { ...donorScopeFilter(actor) };
   if (donor && actor.role === 'ngo_admin') filter.donor = donor;
   if (status) filter.status = status;
+  // Assigned = the donation has at least one allocation to a site; unassigned
+  // = none yet (the order still needs a site). Resolve the set of allocated
+  // donation ids and constrain by membership.
+  if (assignment === 'assigned' || assignment === 'unassigned') {
+    const allocatedDonationIds = await Allocation.distinct('donation');
+    filter._id = assignment === 'assigned'
+      ? { $in: allocatedDonationIds }
+      : { $nin: allocatedDonationIds };
+  }
   const skip = (page - 1) * limit;
   const [items, total] = await Promise.all([
     Donation.find(filter)
@@ -203,6 +213,23 @@ export async function listAllocations({ donation, donor, site, project, page, li
       .lean(),
     Allocation.countDocuments(filter),
   ]);
+
+  // Decorate each allocation with how many trees are assigned to it so far,
+  // so callers can show order progress + a pending/completed status without
+  // an extra round-trip. `planted >= targetPlants` ⇒ the order is fulfilled.
+  if (items.length) {
+    const agg = await Plant.aggregate([
+      { $match: { allocation: { $in: items.map((a) => a._id) } } },
+      { $group: { _id: '$allocation', n: { $sum: 1 } } },
+    ]);
+    const plantedByAlloc = new Map(agg.map((g) => [String(g._id), g.n]));
+    for (const a of items) {
+      a.planted = plantedByAlloc.get(String(a._id)) ?? 0;
+      a.remaining = Math.max(0, (a.targetPlants ?? 0) - a.planted);
+      a.fulfilled = a.planted >= (a.targetPlants ?? 0);
+    }
+  }
+
   return { items, total, page, limit };
 }
 

@@ -16,7 +16,6 @@ import {
 } from '@/components/ui/select.jsx';
 import { useToast } from '@/components/ui/toast.jsx';
 import { useAssignments } from '@/queries/assignments.js';
-import { useAllocations } from '@/queries/donations.js';
 import { useCreatePlant } from '@/queries/plants.js';
 import { useSpeciesList } from '@/queries/species.js';
 import { useSites } from '@/queries/sites.js';
@@ -41,7 +40,8 @@ function Header() {
         Record a planting
       </h1>
       <p className="mt-1 text-base text-[#1E1E1E]/50">
-        Capture the location, snap a photo, and submit — the sponsor will see it right away.
+        Capture the location, snap a photo, and submit. Your site incharge links trees to sponsor
+        orders afterwards.
       </p>
     </PageHeading>
   );
@@ -78,7 +78,6 @@ export default function RecordPlanting() {
   const loadingSites = isOwner ? loadingOwnedSites : loadingAssignments;
 
   const [siteId, setSiteId] = useState(location.state?.siteId ?? '');
-  const [allocationId, setAllocationId] = useState('');
   const [speciesRef, setSpeciesRef] = useState('');
   const [species, setSpecies] = useState('');
   const [name, setName] = useState('');
@@ -91,15 +90,8 @@ export default function RecordPlanting() {
   const { data: speciesData } = useSpeciesList({ limit: 200, isActive: true });
   const speciesOptions = speciesData?.items ?? [];
 
-  const { data: allocsData, isLoading: loadingAllocs } = useAllocations({
-    site: siteId || undefined,
-    enabled: !!siteId,
-    limit: 100,
-  });
-  const allocations = allocsData?.items ?? [];
-
   const create = useCreatePlant();
-  const ready = siteId && allocationId && geo.lat != null && geo.lng != null && photo;
+  const ready = siteId && geo.lat != null && geo.lng != null && photo;
 
   async function submit(e) {
     e.preventDefault();
@@ -109,7 +101,6 @@ export default function RecordPlanting() {
       const speciesName = picked ? picked.name : species.trim();
       await create.mutateAsync({
         site: siteId,
-        allocation: allocationId,
         name: name.trim() || undefined,
         species: speciesName || undefined,
         speciesRef: picked ? (picked.id ?? picked._id) : undefined,
@@ -119,7 +110,7 @@ export default function RecordPlanting() {
         geo,
         plantingPhoto: photo,
       });
-      success('Tree recorded!', 'Thanks for your work — the sponsor will see it shortly.');
+      success('Tree recorded!', 'Thanks for your work — it’s now on the site record.');
       navigate(isOwner ? '/site' : '/volunteer');
     } catch (err) {
       toastError("Couldn't save the planting", err instanceof ApiError ? err.message : 'Try again.');
@@ -145,7 +136,7 @@ export default function RecordPlanting() {
             title={isOwner ? 'No sites to plant on yet' : 'No planting sites assigned yet'}
             description={
               isOwner
-                ? 'Create a site and record a sponsor order on it before recording plantings.'
+                ? 'Create a site first, then record the trees planted on it.'
                 : 'Your NGO or site owner needs to add you to a site first.'
             }
           />
@@ -160,7 +151,7 @@ export default function RecordPlanting() {
 
       <form onSubmit={submit} className="mt-6 max-w-2xl space-y-5">
         <Section step="1" title="Where are you planting?">
-          <Select value={siteId} onValueChange={(v) => { setSiteId(v); setAllocationId(''); }}>
+          <Select value={siteId} onValueChange={setSiteId}>
             <SelectTrigger><SelectValue placeholder="Pick a site" /></SelectTrigger>
             <SelectContent>
               {sites.map((s) => (
@@ -171,30 +162,7 @@ export default function RecordPlanting() {
         </Section>
 
         {siteId && (
-          <Section step="2" title="Which sponsor's funding is this for?">
-            {loadingAllocs ? (
-              <Skeleton className="h-11 w-full" />
-            ) : allocations.length === 0 ? (
-              <p className="rounded-[10px] border border-[#E2E8F0] bg-[#F6FAF6] px-4 py-3 text-sm text-[#1E1E1E]/60">
-                No active allocations on this site yet. Ask the NGO admin to allocate funding.
-              </p>
-            ) : (
-              <Select value={allocationId} onValueChange={setAllocationId}>
-                <SelectTrigger><SelectValue placeholder="Pick an allocation" /></SelectTrigger>
-                <SelectContent>
-                  {allocations.map((a) => (
-                    <SelectItem key={a.id ?? a._id} value={a.id ?? a._id}>
-                      {a.donor?.name ?? 'Sponsor'} — target {a.targetPlants} trees
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </Section>
-        )}
-
-        {allocationId && (
-          <Section step="3" title="What did you plant?">
+          <Section step="2" title="What did you plant?">
             <div className="mb-3 space-y-1.5">
               <Label htmlFor="plant-name" className="text-xs text-[#1E1E1E]/60">
                 Tree name (optional)
@@ -301,14 +269,14 @@ export default function RecordPlanting() {
           </Section>
         )}
 
-        {allocationId && (
-          <Section step="4" title="GPS location">
+        {siteId && (
+          <Section step="3" title="GPS location">
             <GpsCapture value={geo} onChange={setGeo} disabled={create.isPending} />
           </Section>
         )}
 
-        {allocationId && geo.lat != null && (
-          <Section step="5" title="Planting photo">
+        {siteId && geo.lat != null && (
+          <Section step="4" title="Planting photo">
             <PhotoCapture
               purpose="plant"
               siteId={siteId}

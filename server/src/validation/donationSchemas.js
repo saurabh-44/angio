@@ -35,6 +35,9 @@ export const updateDonationSchema = z.object({
 export const listDonationsQuerySchema = z.object({
   donor: objectId.optional(),
   status: z.enum(DONATION_STATUSES).optional(),
+  // Filter by whether the donation has been allocated to a site yet.
+  // 'assigned' = has ≥1 allocation; 'unassigned' = none (order needs a site).
+  assignment: z.enum(['assigned', 'unassigned']).optional(),
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(500).default(20),
 });
