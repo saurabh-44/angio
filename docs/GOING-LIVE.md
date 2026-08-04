@@ -121,6 +121,18 @@ Per the project proposal — collect these before handoff:
 
 ---
 
+## Historical / existing-tree seed (one-time, optional)
+
+If the NGO has pre-app plantation records to import (a survey spreadsheet):
+
+- [ ] Regenerate the committed data from the spreadsheet: `node server/scripts/generateHistoricalJson.js "<path/to/DataBase.xlsx>"` → writes `server/src/data/historicalPlants.json`
+- [ ] Confirm the seed call is **enabled** in `server/src/server.js` (`await seedHistoricalPlants();`) for the first production deploy — and that a `PRIMARY_NGO_ADMIN_*` exists (the seed attributes the trees to an admin)
+- [ ] Deploy → on boot the seed auto-creates an **"Unassigned — Historical Import"** holding site and inserts the trees (idempotent by source-row id, non-fatal — it won't block startup)
+- [ ] In **Admin → Plants**, filter by the holding site and **move** the trees to their real sites; set the species' CO₂ rate in **Admin → Species**
+- [ ] **Comment out** the seed call in `server.js` and redeploy (data is already seeded; re-enabling later is harmless since it's idempotent)
+
+---
+
 ## Security
 
 - [ ] `COOKIE_SECURE=true` confirmed in `server/.env`

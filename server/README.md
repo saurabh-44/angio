@@ -1,6 +1,6 @@
 # Environ — Server
 
-Backend for the NGO tree-planting transparency app. Donors pay the NGO offline, the NGO allocates the donation across one or more sites and assigns volunteers, volunteers upload geotagged planting photos and weekly maintenance photos, and donors get a verifiable view of their funded trees.
+Backend for the NGO tree-planting transparency app. Sponsors order trees (offline via the admin, or online via Razorpay); the NGO admin assigns each order to a site; volunteers and the site incharge record geo-tagged, photographed plantings as **unassigned** trees; the incharge assigns existing unassigned trees to orders; and sponsors get a verifiable view of the trees fulfilling their order — map, photos, weekly maintenance, and CO₂ (in tonnes).
 
 ## Stack
 
@@ -27,21 +27,20 @@ If `RESEND_API_KEY` and `MAIL_HOST` are both empty, every email (OTP, temp passw
 
 | Role | What they can do |
 |------|------------------|
-| `ngo_admin` | Top role. Create / update / remove any user, site, donation, allocation, plant, assignment. The seeded `isPrimary` admin is additionally the only one who can create other `ngo_admin` accounts. |
-| `donor` | Read-only on their own donations, allocations, plants, and weekly maintenance logs. They never see another donor's data. |
-| `site_owner` | Manages their own site(s): assigns volunteers, records plantings, can update plants and add maintenance logs on their own sites. They never see another site owner's data. |
-| `volunteer` | Records plantings (with GPS + photo) and weekly maintenance photos on the sites they're assigned to. Sees only their own work. |
+| `ngo_admin` | Top role. Create / update / remove any user, site, donation, allocation, plant, assignment, species. Records donations (with a site → auto-allocated, or unassigned). Assigns unassigned orders to sites; filters donations by assigned/unassigned. Moves unassigned trees between sites. The seeded `isPrimary` admin is additionally the only one who can create other `ngo_admin` accounts. |
+| `sponsor` (the donor role) | Orders a number of trees (no site — the admin assigns it). Read-only after that on the trees fulfilling their order + weekly maintenance + CO₂. Never sees another sponsor's data. |
+| `site_owner` (site incharge) | Manages their own site(s): assigns volunteers, records **unassigned** plantings + watering, updates plants. **Sees order requests on their sites and assigns unassigned trees to fulfil them** (pending → completed). Never sees another owner's data. |
+| `volunteer` | Records **unassigned** plantings (device GPS + photo) and weekly maintenance on assigned sites. **Cannot** assign trees to orders. Sees only their own work. |
 
-`ngo_admin` and `site_owner` go through password → emailed OTP at login. `donor` and `volunteer` log in with password only (still with lockout) so they don't get blocked by OTP friction in the field. Password reset is OTP-based for everyone.
+**Every role** logs in with password → emailed 6-digit OTP (`OTP_LOGIN_ROLES` covers all four). Password reset is OTP-based for everyone. Login lockout (5 wrong passwords → 15 min) applies to all.
 
 ## Auth flow
 
 ```
 POST /api/auth/login                   { email, password }
-  → ngo_admin / site_owner            → { requiresOtp: true }   (OTP emailed)
-  → donor / volunteer                 → { requiresOtp: false, user }   (cookies set)
+  → all roles                         → { requiresOtp: true }   (6-digit OTP emailed)
 
-POST /api/auth/login/verify            { email, otp }           (OTP roles only)
+POST /api/auth/login/verify            { email, otp }
   → { user }   (cookies set)
 
 POST /api/auth/forgot-password         { email }                → { ok: true }   (OTP emailed if user exists)
@@ -60,18 +59,23 @@ Sessions use httpOnly cookies (`angio_access`, `angio_refresh`). The frontend ne
 
 ## Endpoint overview
 
-| Path | NGO Admin | Site Owner | Donor | Volunteer |
-|------|-----------|-----------|-------|-----------|
-| `GET/POST /api/users` | all | — | — | — |
+| Path | NGO Admin | Site Owner | Sponsor | Volunteer |
+|------|-----------|-----------|---------|-----------|
+| `GET/POST /api/users` | all | volunteers (own pool) | — | — |
 | `GET/POST /api/sites` | all | own only (R) | — | — |
-| `GET/POST /api/donations` | all | — | own (R) | — |
-| `GET/POST /api/allocations` | all | on own sites (R) | own (R) | — |
-| `POST /api/plants`, `GET /api/plants` | all | on own sites | own (R) | own plantings |
-| `POST /api/maintenance`, `GET /api/maintenance` | all | on own sites | own (R) | own |
+| `GET/POST /api/donations` (`?assignment=assigned\|unassigned`) | all | — | own (R) | — |
+| `GET/POST /api/allocations` (returns `planted`/`remaining`/`fulfilled`) | all | on own sites (R) | own (R) | — |
+| `GET /api/allocations/:id/attachable-plants`, `POST …/attach-plants` | ✓ | own sites | — | **—** |
+| `POST /api/plants` (allocation optional → unassigned), `GET /api/plants` | all | on own sites | own (R) | own plantings |
+| `POST /api/plants/move-site` (unassigned trees only) | ✓ | — | — | — |
+| `PATCH /api/plants/:id` (incl. `speciesRef`) | all | own sites | — | own |
+| `POST /api/maintenance` (geo optional server-side; the field app sends it), `GET /api/maintenance` | all | on own sites | own (R) | own |
+| `GET/POST /api/species` (per-species CO₂ rate) | all (W) | R | — | R |
+| `GET /api/co2/*` · `GET /api/certificates/*` (tonnes) | ✓ | — | own | — |
 | `POST /api/assignments` | all | for own sites | — | own (R) |
 | `POST /api/uploads/signature` | ✓ | ✓ | — | ✓ |
 
-Every list endpoint supports `?page=&limit=` and a few entity-specific filters (`?role=`, `?site=`, `?donor=`, etc.).
+Every list endpoint supports `?page=&limit=` and a few entity-specific filters (`?role=`, `?site=`, `?donor=`, `?status=`, `?assignment=`, etc.).
 
 ## Photo upload flow
 
@@ -125,25 +129,36 @@ curl -b /tmp/cookies.txt -c /tmp/cookies.txt -H 'content-type: application/json'
 src/
 ├── app.js · server.js
 ├── config/       env · db · cloudinary · mail
+├── data/         historicalPlants.json (committed one-time seed data)
 ├── models/       User · Site · Donation · Allocation · Plant · MaintenanceLog
-│                 Assignment · OtpRequest · JwtBlacklist · plugins/softDelete
+│                 Assignment · Species · Project · OtpRequest · PendingSignup
+│                 JwtBlacklist · plugins/{softDelete, jsonTransform}
 ├── services/
-│   ├── auth/    authService · tokens · cookies · otpService · loginLockout · seedNgoAdmin
+│   ├── auth/    authService · tokens · cookies · otpService · loginLockout · seedNgoAdmin · seedDevUsers
 │   ├── users/   passwordService · userService
 │   ├── sites/   siteService
-│   ├── donations/ donationService (donations + allocations)
-│   ├── plants/  plantService (plants + maintenance)
+│   ├── donations/ donationService (donations + allocations, incl. assignment filter + order progress)
+│   ├── plants/  plantService (plants + maintenance + attach-to-order + move-site)
+│   │            seedHistoricalPlants · backfillCodes · qrService · bulkQrService
+│   ├── co2/     co2Service (tonnes; measured value for historical trees)
+│   ├── species/ speciesService      ├── projects/ projectService
+│   ├── certificates/ · analytics/ · excel/ · payments/ (Razorpay)  — each its own folder
 │   └── assignments/ assignmentService
 ├── middleware/  auth (requireAuth, requireRole, blockIfForcedPasswordChange)
 │                validate · rateLimit · errorHandler
 ├── controllers/ one per resource
-├── routes/      auth · users · sites · donations · allocations · plants
-│                maintenance · assignments · uploads · health
+├── routes/      auth · users · sites · donations · allocations · plants · maintenance
+│                assignments · species · co2 · certificates · analytics · excel
+│                payments · projects · uploads · publicTrees · health
 ├── mail/templates/ loginOtp · passwordResetOtp · passwordChanged · accountCreated
 ├── validation/  zod schemas per resource
 └── utils/       httpError · asyncHandler · logger
 ```
 
-## Frontend (next)
+## One-time historical seed
 
-The React frontend lives under `client/` and is built next. It will hit these endpoints with `credentials: 'include'`.
+`services/plants/seedHistoricalPlants.js` seeds the NGO's pre-app trees from `src/data/historicalPlants.json` on boot — idempotent (global by `historical.sourceRowId`), non-fatal, and it auto-creates a holding site (no pre-existing site needed). The call in `server.js` is **commented out** once production is seeded. Regenerate the JSON from a new spreadsheet with `node scripts/generateHistoricalJson.js`.
+
+## Frontend
+
+The React frontend lives under `client/` (built and deployed). It hits these endpoints with `credentials: 'include'` on web, or `Authorization: Bearer` on the Capacitor native build.

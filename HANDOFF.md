@@ -2,11 +2,25 @@
 
 > Read this top-to-bottom in a fresh Claude session before touching code. The repo's README is the product story; this file is the build-state, conventions, and gotchas log.
 
-**Last updated:** 2026-06-23
+**Last updated:** 2026-07-27
 **Branch:** main
-**Status:** Dev-complete; native mobile build, Docker deploy, web client hosting, and CI/CD all in place.
+**Status:** In production. Native mobile build, Docker deploy, web hosting, CI/CD all in place. A round of order-flow + data changes shipped on top (see "Recent changes" below).
 
 **Docs:** [DEPLOYMENT.md](docs/DEPLOYMENT.md) · [ARCHITECTURE.md](docs/ARCHITECTURE.md) · [ENV.md](docs/ENV.md)
+
+---
+
+## 0. Recent changes (read first)
+
+The domain flow shifted since the original build. **Planting is now decoupled from orders:**
+
+- **Volunteers & incharge record trees UNASSIGNED** (no sponsor/allocation) — `createPlant`'s `allocation` is optional; the "which sponsor's funding" step is gone. Live GPS is **required, device-only** (no manual lat/lng) on both planting and watering.
+- **Sponsors order a number of trees with NO site** (site-picker on `/sponsor/sponsor` is commented out). The **NGO admin assigns the site** afterwards.
+- **The site incharge fulfils orders**: their dashboard lists **order requests** (Pending / Completed) on their sites and lets them **assign existing unassigned trees** to an order (`AttachTreesPanel` → `/api/allocations/:id/attach-plants`). Volunteers **cannot** fulfil. `listAllocations` now returns `planted`/`remaining`/`fulfilled`.
+- **Admin Donations** has an **Assigned / Unassigned** filter (`?assignment=`).
+- **Species** admin page is live (`/admin/species`) with per-species CO₂ rate; a tree's species is (re)assignable on the plant detail page.
+- **CO₂ is in tonnes everywhere**; historical trees report their **measured** survey CO₂, others use age × species-rate.
+- **Historical (pre-app) trees** are seeded from `server/src/data/historicalPlants.json` via `seedHistoricalPlants.js` (idempotent, non-fatal, auto-creates a holding site). Model relaxations: `Plant.donor/allocation/geo/plantingPhoto` optional + `origin`/`historical` fields; `MaintenanceLog.donor/geo` optional. **The seed call in `server.js` is commented out** — prod is already seeded.
 
 ---
 
@@ -21,7 +35,7 @@ A MERN web app for a small NGO that plants trees on behalf of donors. Four roles
 
 **Scale target:** <100 active users, single NGO (no multi-tenancy).
 
-**Roles:** `ngo_admin`, `site_owner`, `donor`, `volunteer`.
+**Roles:** `ngo_admin`, `site_owner` (a.k.a. "site incharge" in the UI), `sponsor` (the donor role; labelled "Sponsor" in the UI), `volunteer`.
 
 ---
 

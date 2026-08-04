@@ -34,50 +34,59 @@ A single web app that ties every donated rupee to a specific tree, in a specific
 
 | Role | What they see and do |
 |---|---|
-| **NGO admin** | Top-level. Creates user accounts. Records donations. Allocates each donation across one or more sites. Sees every plant, log, and assignment in the system. The seeded "primary" admin is the only account that can create other NGO admins. |
-| **Site owner** | Owns a plot of empty land. Adds volunteers to their own pool. Assigns volunteers to their sites. Sees plants and maintenance logs on their own sites only — never another owner's. |
-| **Volunteer** | Receives field assignments. Records each planting (site, allocation, species, GPS, photo). Records weekly watering (plant, photo, note). Sees only their own assignments and submissions. |
-| **Donor** | Read-only. Sees only trees their money funded — on a Google Map, in a photo gallery, with full maintenance history per tree. Sees total donated and per-donation breakdown. |
+| **NGO admin** | Top-level. Creates user accounts. Records donations — **with a site (auto-allocated) or without one (unassigned)**. Allocates unassigned donations to sites. Manages the **Species** master data + per-species CO₂ rates. Filters donations by **Assigned / Unassigned**. Sees every plant, log, order, and assignment. The seeded "primary" admin is the only account that can create other NGO admins. |
+| **Site incharge (a.k.a. site owner)** | Owns a plot of empty land. Adds volunteers to their own pool and assigns them to sites. **Records plantings and watering on their own sites** (like a volunteer, plus more powers). **Sees order requests on their sites and assigns unassigned trees to fulfil them** (pending → completed). Can move unassigned trees between sites. Sees plants + logs on their own sites only. |
+| **Volunteer** | Receives field assignments. Records each planting (site → species → GPS → photo) as an **unassigned** tree — **cannot pick a sponsor or fulfil an order**. Records weekly watering (plant, GPS, photo, note). Sees only their own assignments and submissions. |
+| **Sponsor (donor)** | Places an order for **a number of trees — the NGO admin assigns the site afterwards** (no site-picker). Read-only after that: sees the trees linked to their order on a Google Map, in a photo gallery, with full weekly maintenance history and estimated CO₂ (in **tonnes**). |
 
 **The trust chain, end-to-end:**
 
 ```
-Donor          Donation        Allocation              Plant                   Maintenance log
-  │              │               │                       │                          │
-  ├──pays the─→  │               │                       │                          │
-  │              ├─NGO admin─→   │                       │                          │
-  │              │   allocates   │                       │                          │
-  │              │               ├─volunteer plants─→    │                          │
-  │              │               │   with GPS + photo    │                          │
-  │              │               │                       ├─volunteer waters─→       │
-  │              │               │                       │   every week with photo  │
-  │              │               │                       │                          │
-  ↓              ↓               ↓                       ↓                          ↓
-  Visible to donor on /donor/ — every step is auditable, photographed, and time-stamped.
+Sponsor        Order (Donation)   Site + Allocation      Plant                    Maintenance log
+  │              │                  (admin assigns)        │                          │
+  ├─orders N ─→  │                                         │                          │
+  │  trees       ├─NGO admin ────→                         │                          │
+  │              │  assigns site   ┌ volunteer/incharge ─→ │  (recorded UNASSIGNED)   │
+  │              │                 │  plants w/ GPS+photo   │                          │
+  │              │                 └ incharge assigns ────→ │  (now linked to order)   │
+  │              │                    trees to the order    ├ incharge/volunteer ──→   │
+  │              │                                          │  waters weekly w/ photo  │
+  ↓              ↓                                          ↓                          ↓
+  Visible to the sponsor on /sponsor/ — every step is auditable, photographed, and time-stamped.
 ```
 
-The donor doesn't pick sites; the NGO admin does. But the donor sees exactly which sites their money covered, with the per-site target plant count and amount allocated, and then every actual tree as it goes in the ground.
+The sponsor doesn't pick a site — they just order a number of trees, and the **NGO admin assigns the site** afterwards. Trees are recorded **unassigned** in the field (by volunteers or the incharge); the **site incharge** then links existing unassigned trees to the sponsor's order. The sponsor then sees exactly those trees, with the site, target count, and every actual tree as it goes in the ground.
 
 ---
 
-## How allocations work (the donation-to-sites bridge)
+## How orders, allocations & fulfilment work
 
-Each `Donation` from a donor splits into one or more `Allocation` rows. Each allocation pins a slice of the donation to a specific site with a target plant count:
+A sponsor's **order** is a `Donation`. When the NGO admin records it (or a sponsor pays online) it may or may not carry a site:
+
+- **With a site** → an `Allocation` is auto-created, pinning a target plant count to that site. The order is **Assigned**.
+- **Without a site** → the donation is **Unassigned**; it shows in the admin's *Unassigned* filter until the admin allocates it to a site.
+
+Crucially, **trees are no longer planted "under" an order.** Volunteers and the incharge record trees **unassigned** (no donor, no allocation). Fulfilment is a separate step done by the **site incharge** (or admin):
 
 ```
-Donation: Ananya Rao paid ₹10,000 on 2026-06-08 (UPI)
-├── Allocation #1 → Site A (target 50 trees, ₹6,000)
-└── Allocation #2 → Site B (target 30 trees, ₹4,000)
-                                 ↑
-        Volunteers plant trees on Site A "under Allocation #1"
-        — each Plant record stores the allocation it belongs to.
-        Plant.donor is denormalised from the allocation, so donor
-        reads are fast even with 50,000 plants in the system.
+Order: Ananya Rao ordered 5 trees  ─→ admin assigns Site A ─→ Allocation (target 5)
+                                                                  │
+   Site A already has unassigned trees (planted by volunteers/incharge)
+                                                                  │
+   Incharge opens the order on their dashboard → "Assign trees" →
+   picks 5 unassigned trees on Site A → each Plant's donor + allocation
+   are set → the order flips from Pending to Completed.
 ```
 
-When a volunteer opens `/volunteer/plant` and picks a site they're assigned to, the form asks them to pick *which donor's funding* this tree is being planted under. That's the link that makes `/donor/trees` show only the trees a specific donor's money paid for.
+`Plant.donor` is denormalised from the allocation at assignment time, so donor reads stay fast even at scale. One tree belongs to at most **one** order; a tree can also stay **unassigned indefinitely** (e.g. the NGO's bulk-imported historical trees). This split lets the field team plant freely and lets the incharge match real trees to real orders — the sponsor still ends up seeing exactly the trees fulfilling their order.
 
-A site can be referenced by many allocations from many donors — that's the common case. One tree belongs to exactly one allocation.
+---
+
+## Species, CO₂ estimates & historical trees
+
+- **Species master data** (`/admin/species`) drives the volunteer's species picker **and** a per-species CO₂ absorption rate. Each tree links to a `Species` via `speciesRef`; set a species' rate (entered in **tonnes/year** in the UI, stored as kg internally) and every tree of that species gets an accurate estimate. An admin can also (re)assign a tree's species from the plant detail page.
+- **CO₂ is reported in tonnes everywhere** — admin dashboard, site stats, orders, and the sponsor certificate PDF. A tree estimates carbon from *age × species rate* (default ~22 kg/yr) — **except bulk-imported historical trees**, which carry a real surveyed figure and report that **measured** value instead.
+- **Historical (pre-app) trees.** The NGO's existing plantation records (a survey spreadsheet) are imported as `Plant`s with `origin: 'historical'` — no sponsor, no photo — preserving their full survey measurements (survival, health, canopy, RCD, AGB/BGB, CO₂ tonnes) in a `historical` sub-document. They're seeded into a neutral holding site; an admin then **moves** them to real sites and the incharge **assigns** them to sponsor orders as they come in. To support this, `Plant.donor`, `allocation`, `geo`, and `plantingPhoto` are all **optional** at the model level (the live planting API still requires geo + photo via Zod). The one-time seed runs on boot from a committed JSON file and is idempotent + non-fatal; comment it out once production is seeded.
 
 ---
 
@@ -92,8 +101,11 @@ A site can be referenced by many allocations from many donors — that's the com
 | Record donations | ✓ | — | — | — |
 | Allocate donations to sites | ✓ | — | — | — |
 | Assign volunteers to sites | ✓ | own sites only | — | — |
-| Record plantings | ✓ | own sites | own assignments | — |
+| Record plantings (unassigned trees) | ✓ | own sites | own assignments | — |
 | Record weekly maintenance | ✓ | own sites | own assignments | — |
+| **Assign existing trees to an order** | ✓ | own sites | **—** | — |
+| **Move unassigned trees between sites** | ✓ | — | — | — |
+| **Manage species + CO₂ rates** | ✓ | — | — | — |
 | View plants | all | on own sites | own | own only |
 | View maintenance logs | all | on own sites | own | own only |
 | View map of trees | all | own sites | own | own only |
@@ -124,7 +136,7 @@ Everything is enforced **server-side** — the UI hides actions the user can't p
 This is the hardest UX on the platform — volunteers are using phones in the field, on patchy connections, while standing in front of a sapling.
 
 - **Step-by-step wizard** on `/volunteer/plant` and `/volunteer/maintenance`. Each step is gated by the previous so a volunteer in the field can't accidentally skip GPS or photo.
-- **GPS capture** via the browser Geolocation API with `enableHighAccuracy: true`. Big "Capture my location" button, plus manual lat/lng inputs for when GPS is unreliable.
+- **GPS capture** via the browser Geolocation API with `enableHighAccuracy: true` — **required and device-only**. There is deliberately **no manual lat/lng entry**, so a planting's coordinates always reflect where the volunteer physically stood. Both planting **and** weekly watering capture live GPS; the photo step is gated behind it. Permission-denied / unavailable / timeout each get an actionable message.
 - **Camera capture**: `<input type="file" capture="environment">` opens the rear camera directly on phones, not a file picker.
 - **Cloudinary signed direct upload**: the volunteer's phone uploads the photo bytes **straight to api.cloudinary.com** — Node never proxies them. Backend just signs the request with `folder` + `public_id` pinned so the client can't redirect uploads.
 - **Big sticky-bottom submit** with clear ready/not-ready states. Lock-screen-friendly tap targets (44px+).
@@ -145,9 +157,10 @@ This is the hardest UX on the platform — volunteers are using phones in the fi
 ┌────────────────────────────────────────────────────────────────────┐
 │                          Node 20 + Express                         │
 │                                                                    │
-│   /api/auth  /api/users  /api/sites  /api/donations                │
-│   /api/allocations  /api/plants  /api/maintenance                  │
-│   /api/assignments  /api/uploads  /api/health                      │
+│   /api/auth  /api/users  /api/sites  /api/donations  /api/species  │
+│   /api/allocations (+ /:id/attach-plants)  /api/plants (+ move-site)│
+│   /api/maintenance  /api/co2  /api/certificates  /api/analytics    │
+│   /api/assignments  /api/uploads  /api/excel  /api/payments  /health│
 │                                                                    │
 │   Zod-validated input · JWT cookie auth · Mongoose models          │
 │              ┃                                ┃                    │
@@ -271,11 +284,13 @@ The verification flow we walk after major changes:
 2. **Admin creates** a donor (`donor1@angio.test`), a site owner (real email), and at least one volunteer.
 3. **Admin creates a Site** with the site owner assigned as owner.
 4. **Admin records a Donation** for the donor, opens it, **allocates** funds across one or more sites with target tree counts.
-5. **Site owner signs in** (real OTP), adds another volunteer to their own pool, assigns them to their site.
+5. **Site incharge signs in** (real OTP), adds another volunteer to their own pool, assigns them to their site.
 6. **Volunteer signs in** on a phone via ngrok (OTP from console).
-   - `/volunteer/plant` → site → allocation → species → GPS capture → camera photo → submit.
-   - `/volunteer/maintenance` (a week later) → pick the plant → fresh photo → submit.
-7. **Donor signs in** → `/donor` shows the funded tree on the recently-planted strip, `/donor/map` drops a pin on the Google Map, `/donor/trees` shows the photo card, `/donor/maintenance` shows the weekly photo.
+   - `/volunteer/plant` → site → species → **live GPS** → camera photo → submit. The tree is recorded **unassigned**.
+   - `/volunteer/maintenance` (a week later) → pick the plant → live GPS → fresh photo → submit.
+7. **Sponsor orders** N trees (no site). **Admin assigns a site** to the order (Donations → allocate).
+8. **Incharge fulfils the order** from their dashboard → "Assign trees" → picks unassigned trees on the site → order flips to **Completed**.
+9. **Sponsor signs in** → `/sponsor` shows the tree on the recently-planted strip + CO₂ (tonnes), `/sponsor/map` drops a pin, `/sponsor/trees` shows the photo card, and each tree's weekly maintenance.
 
 If any step breaks, the response JSON has a typed `error.code` + `error.message`; the browser console + the `[server]` log together pinpoint it.
 
@@ -295,8 +310,10 @@ Angio/
 │       ├── app.js · server.js
 │       ├── config/         env · db · cloudinary · mail
 │       ├── models/         User · Site · Donation · Allocation · Plant
-│       │                   MaintenanceLog · Assignment · OtpRequest
-│       │                   JwtBlacklist · plugins/{softDelete, jsonTransform}
+│       │                   MaintenanceLog · Assignment · Species · Project
+│       │                   OtpRequest · PendingSignup · JwtBlacklist
+│       │                   plugins/{softDelete, jsonTransform}
+│       ├── data/           historicalPlants.json (committed seed data)
 │       ├── services/       auth · users · sites · donations · plants · assignments
 │       ├── middleware/     auth (requireAuth, requireRole) · validate · rateLimit · errorHandler
 │       ├── controllers/    one per resource
@@ -318,19 +335,20 @@ Angio/
         ├── pages/
         │   ├── Landing.jsx         ← public marketing root, Framer Motion
         │   ├── auth/               Login · OtpVerify · Forgot · Reset · ChangePassword
-        │   ├── admin/              Home, Users, Sites, Donations, Plants, Maintenance, Assignments
-        │   ├── site/               SiteHome (reuses admin pages with role-aware UI)
-        │   ├── donor/              DonorHome · Trees · Map · Maintenance · Donations
+        │   ├── admin/              Home · Users · Sites · SiteDetail · Donations · Plants · PlantDetail · Species · Maintenance · Assignments
+        │   ├── site/               SiteHome (order requests + assign trees) · other pages reuse admin, role-scoped
+        │   ├── sponsor/            SponsorHome · Trees · Map · Maintenance · Donations · Orders · Tree(order wizard) · Profile
         │   └── volunteer/          Home · Assignments · RecordPlanting · RecordMaintenance
         ├── components/
         │   ├── ui/                 shadcn primitives
         │   ├── AppLayout.jsx · Sidebar · TopBar · UserMenu
         │   ├── AuthShell.jsx · OtpInput.jsx
         │   ├── PageHeader · StatTile · EmptyState · Pagination · ConfirmDialog · RoleBadge
-        │   ├── PlantCard · PlantStatusBadge · PlantDetailSheet
-        │   ├── MapView                ← Google Maps + fallback list
+        │   ├── PlantCard · PlantStatusBadge · SponsorTreeDetail
+        │   ├── AttachTreesPanel       ← assign unassigned trees to an order (admin + incharge)
+        │   ├── PlantLocationMap       ← per-tree Google Map + fallback
         │   ├── PhotoCapture           ← Cloudinary direct upload widget
-        │   └── GpsCapture             ← Geolocation API widget
+        │   └── GpsCapture             ← device-only Geolocation widget (no manual entry)
         ├── queries/                  TanStack hooks per resource
         └── lib/                      api · auth · queryClient · format · utils · passwordStrength
 ```

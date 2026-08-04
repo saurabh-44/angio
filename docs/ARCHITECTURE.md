@@ -77,8 +77,18 @@ Token lifecycle (native):
 - Bulk QR sheet: `server/src/services/plants/bulkQrService.js` generates an A4 PDF (3×5 grid) with pdfkit. `margin: 0` is required to avoid phantom extra pages — a known pdfkit quirk.
 - `CLIENT_ORIGIN` must be set to `https://environ.example.com` (the hosted web client) so that QR scan links open the public tree page in any browser, without requiring the native app.
 
+### Orders, planting & fulfilment
+- Trees are recorded **unassigned** — `createPlant` no longer requires an `allocation` (`Plant.donor`/`allocation` are optional). Volunteers and the incharge just record site → species → GPS → photo.
+- A sponsor order is a `Donation`. With a site it auto-creates an `Allocation` (**assigned**); without one it stays **unassigned** — admin filters via `GET /api/donations?assignment=assigned|unassigned`.
+- The site incharge fulfils an order with `POST /api/allocations/:id/attach-plants` (candidates from `GET /:id/attachable-plants`), linking existing unassigned trees on the site to the order (sets `donor` + `allocation`). Only admin + the site's owner may do this — **volunteers can't**. `listAllocations` returns `planted`/`remaining`/`fulfilled` per order so the incharge dashboard shows Pending vs Completed.
+- Admin can re-home unassigned trees between sites via `POST /api/plants/move-site` (admin-only; syncs the denormalised `site` on maintenance logs).
+
+### Historical plant seed (one-time)
+- `server/src/services/plants/seedHistoricalPlants.js` seeds the NGO's pre-app trees from committed JSON (`src/data/historicalPlants.json`) on boot: idempotent (global by `historical.sourceRowId`, so it's move-safe), non-fatal, and it auto-creates a neutral holding site (no pre-existing site required). Comment out the call in `server.js` once production is seeded.
+
 ### CO₂ estimation
-- `server/src/services/co2/co2Service.js` uses a linear per-year estimate per plant, weighted by species absorption rate when a `speciesRef` is present.
+- `server/src/services/co2/co2Service.js` estimates carbon per plant from *age × species rate* (`speciesRef.co2PerYearKg`, default ~22 kg/yr). **Historical** trees carry a real surveyed figure (`plant.historical.co2Ton`) and report that **measured** value instead of the estimate.
+- CO₂ is surfaced in **tonnes** everywhere (admin dashboard, site stats, orders, sponsor certificate PDF). `kgToTonnes()` does the conversion; species rates are entered in tonnes/year in the UI but stored as kg (`co2PerYearKg`).
 
 ### Payments — Razorpay
 1. Client calls `POST /api/payments/order` → server creates a Razorpay order and returns `order_id`.
