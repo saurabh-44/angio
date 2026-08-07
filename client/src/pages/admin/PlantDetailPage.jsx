@@ -15,6 +15,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton.jsx';
 import EmptyState from '@/components/EmptyState.jsx';
 import PlantLocationMap from '@/components/PlantLocationMap.jsx';
+import PhotoCapture from '@/components/PhotoCapture.jsx';
 import {
   Select,
   SelectContent,
@@ -152,6 +153,80 @@ function SpeciesEditor({ plant }) {
   );
 }
 
+// Planting photo — display + upload/replace. Historical (bulk-imported) trees
+// come in without a photo; an admin or the site incharge can add one here
+// after the fact. Uploads go straight to Cloudinary (signed), then the
+// returned { url, publicId } is persisted onto the plant.
+function PlantPhotoEditor({ plant }) {
+  const update = useUpdatePlant();
+  const { success, error: toastError } = useToast();
+  const [editing, setEditing] = useState(false);
+  const siteId = plant.site?.id ?? plant.site?._id;
+  const hasPhoto = !!plant.plantingPhoto?.url;
+
+  async function onUploaded(uploaded) {
+    // uploaded = { url, publicId } from the Cloudinary signed upload
+    try {
+      await update.mutateAsync({
+        id: plant.id ?? plant._id,
+        patch: { plantingPhoto: { url: uploaded.url, publicId: uploaded.publicId } },
+      });
+      success('Photo saved', 'This tree now shows a planting photo.');
+      setEditing(false);
+    } catch (err) {
+      toastError("Couldn't save the photo", err instanceof ApiError ? err.message : 'Try again.');
+    }
+  }
+
+  // Has a photo and not replacing → show it with a "Replace" affordance.
+  if (hasPhoto && !editing) {
+    return (
+      <div className="space-y-2">
+        <div className="overflow-hidden rounded-[10px] border border-[#E2E8F0]">
+          <img src={plant.plantingPhoto.url} alt="Planting" className="aspect-video w-full object-cover" />
+        </div>
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-[#0B5000] transition-colors hover:text-[#094200]"
+        >
+          <Camera className="h-3.5 w-3.5" aria-hidden /> Replace photo
+        </button>
+      </div>
+    );
+  }
+
+  // No photo (or replacing) → upload widget. Needs a site to sign the upload.
+  return (
+    <div className="space-y-2 rounded-[10px] border border-dashed border-[#E2E8F0] p-4">
+      <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-widest text-[#0B5000]">
+        <Camera className="h-3.5 w-3.5" aria-hidden /> Planting photo
+      </div>
+      {!siteId ? (
+        <p className="text-sm text-[#1E1E1E]/60">
+          This tree isn't on a site yet — assign it to a site first, then add a photo.
+        </p>
+      ) : (
+        <>
+          <p className="text-sm text-[#1E1E1E]/60">
+            {hasPhoto ? 'Upload a new photo to replace the current one.' : 'This tree has no photo yet. Upload one from your device.'}
+          </p>
+          <PhotoCapture purpose="plant" siteId={siteId} onUploaded={onUploaded} onCleared={() => {}} />
+          {hasPhoto && (
+            <button
+              type="button"
+              onClick={() => setEditing(false)}
+              className="text-xs text-[#1E1E1E]/50 hover:text-[#001F00]"
+            >
+              Cancel
+            </button>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 // Full plant detail page (replaces the cramped side drawer): big planting
 // photo, location map, facts, QR, and the full weekly-maintenance gallery.
 export default function PlantDetailPage() {
@@ -215,15 +290,7 @@ export default function PlantDetailPage() {
           <div className="mt-7 grid items-start gap-6 lg:grid-cols-[1.4fr_1fr]">
             {/* Left: photo + map */}
             <div className="space-y-6">
-              {plant.plantingPhoto?.url && (
-                <div className="overflow-hidden rounded-[10px] border border-[#E2E8F0]">
-                  <img
-                    src={plant.plantingPhoto.url}
-                    alt="Planting"
-                    className="aspect-video w-full object-cover"
-                  />
-                </div>
-              )}
+              <PlantPhotoEditor plant={plant} />
               {plant.geo?.lat != null && (
                 <div className="space-y-2">
                   <PlantLocationMap geo={plant.geo} status={plant.status} />

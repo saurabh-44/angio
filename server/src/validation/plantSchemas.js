@@ -47,6 +47,9 @@ export const updatePlantSchema = z.object({
   growthStage: z.enum(PLANT_GROWTH_STAGES).optional(),
   dryBiomassKg: z.number().min(0).max(100000).nullable().optional(),
   notes: z.string().trim().max(2000).optional(),
+  // Lets an admin / site incharge attach or replace a tree's planting photo
+  // after the fact — e.g. adding photos to bulk-imported historical trees.
+  plantingPhoto: photo.optional(),
 });
 
 export const listPlantsQuerySchema = z.object({
