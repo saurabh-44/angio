@@ -41,18 +41,31 @@ export async function startLogin({ identifier, password }) {
   }
   await resetLoginAttempts(User, user._id);
 
-  // A phone identifier has no '@'. Sponsors/volunteers signing in by phone
-  // skip the OTP; every other case (admins, site owners, or any email
-  // login) still completes the email OTP step.
-  const loggedInByPhone = !id.includes('@');
-  const phoneBypass = loggedInByPhone && PHONE_NO_OTP_ROLES.has(user.role);
-
-  if (OTP_LOGIN_ROLES.has(user.role) && !phoneBypass) {
-    // The OTP always goes to the account's email — even if the visitor
-    // signed in with their phone — so we return it for the verify step.
-    await sendOtp({ email: user.email, purpose: 'login' });
-    return { requiresOtp: true, email: user.email };
-  }
+  // ──────────────────────────────────────────────────────────────────────
+  // OTP-ON-LOGIN DISABLED (client request): every role signs in with
+  // email/phone + password only — no login OTP is emailed. The lockout /
+  // wrong-password checks above still run, so a bad password is still
+  // rejected. Password RESET (startPasswordReset / completePasswordReset)
+  // and sponsor self-registration (startSignup) STILL use email OTP — those
+  // are untouched. The /login/verify endpoint + completeLoginWithOtp() are
+  // left intact and functional; they're simply not reached by normal login.
+  //
+  // TO RESTORE OTP-ON-LOGIN: un-comment the block below. Nothing else needs
+  // to change (the controller already handles requiresOtp:true|false).
+  //
+  // // A phone identifier has no '@'. Sponsors/volunteers signing in by phone
+  // // skip the OTP; every other case (admins, site owners, or any email
+  // // login) still completes the email OTP step.
+  // const loggedInByPhone = !id.includes('@');
+  // const phoneBypass = loggedInByPhone && PHONE_NO_OTP_ROLES.has(user.role);
+  //
+  // if (OTP_LOGIN_ROLES.has(user.role) && !phoneBypass) {
+  //   // The OTP always goes to the account's email — even if the visitor
+  //   // signed in with their phone — so we return it for the verify step.
+  //   await sendOtp({ email: user.email, purpose: 'login' });
+  //   return { requiresOtp: true, email: user.email };
+  // }
+  // ──────────────────────────────────────────────────────────────────────
 
   // Direct sign-in (password only) — caller mints cookies for this user.
   await User.updateOne({ _id: user._id }, { $set: { lastLoginAt: new Date() } });
