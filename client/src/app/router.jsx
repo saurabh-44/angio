@@ -177,6 +177,10 @@ export default function AppRouter() {
         >
           <Route index element={<VolunteerHome />} />
           <Route path="assignments" element={<VolunteerAssignments />} />
+          {/* The volunteer's own planted trees (list scoped server-side),
+              reusing the shared Plants hub + detail. */}
+          <Route path="plants" element={<PlantsPage />} />
+          <Route path="plants/:id" element={<PlantDetailPage />} />
           <Route path="plant" element={<RecordPlanting />} />
           <Route path="maintenance" element={<RecordMaintenance />} />
         </Route>

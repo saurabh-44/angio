@@ -7,6 +7,7 @@ import {
   ExternalLink,
   Eye,
   Leaf,
+  Loader2,
   MapPin,
   QrCode,
   Ruler,
@@ -24,9 +25,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select.jsx';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet.jsx';
+import { Input } from '@/components/ui/input.jsx';
+import { Label } from '@/components/ui/label.jsx';
+import { Button } from '@/components/ui/button.jsx';
+import { HEALTH_OPTIONS } from '@/components/HealthBadge.jsx';
 import { useToast } from '@/components/ui/toast.jsx';
 import { usePlant, useUpdatePlant } from '@/queries/plants.js';
-import { useMaintenance } from '@/queries/maintenance.js';
+import { useMaintenance, useCreateMaintenance } from '@/queries/maintenance.js';
 import { useSpeciesList } from '@/queries/species.js';
 import { ApiError } from '@/lib/api.js';
 import {
@@ -46,11 +58,13 @@ const PLANT_STATUS = {
   dead: 'bg-red-100 text-red-700',
   removed: 'bg-[#E2E8F0] text-[#1E1E1E]',
 };
+// Keys must match the HEALTH_STATUSES enum ('healthy' | 'stressed' |
+// 'diseased' | 'dying'); anything unmatched falls back to a neutral pill.
 const HEALTH = {
   healthy: 'bg-[#0B5000]/10 text-[#0B5000]',
-  at_risk: 'bg-amber-100 text-amber-700',
+  stressed: 'bg-amber-100 text-amber-700',
   diseased: 'bg-red-100 text-red-700',
-  dead: 'bg-red-100 text-red-700',
+  dying: 'bg-red-100 text-red-700',
 };
 
 function humanize(s) {
@@ -228,6 +242,138 @@ function PlantPhotoEditor({ plant }) {
   );
 }
 
+// Status + record-watering actions. Shown to the roles that reach this page
+// (admin · site incharge · volunteer on their own plants). The backend
+// enforces the exact permission on each update / maintenance call, so this
+// is just the UI affordance.
+function ManagePanel({ plant }) {
+  const update = useUpdatePlant();
+  const { success, error: toastError } = useToast();
+  const [recording, setRecording] = useState(false);
+
+  async function changeStatus(next) {
+    if (next === plant.status) return;
+    try {
+      await update.mutateAsync({ id: plant.id ?? plant._id, patch: { status: next } });
+      success('Status updated', `This tree is now marked ${next}.`);
+    } catch (err) {
+      toastError("Couldn't update status", err instanceof ApiError ? err.message : 'Try again.');
+    }
+  }
+
+  return (
+    <div className="space-y-3 rounded-[10px] border border-[#E2E8F0] p-3.5">
+      <div className="text-xs font-medium uppercase tracking-widest text-[#0B5000]">Manage</div>
+      <div className="space-y-1.5">
+        <Label className="text-xs text-[#1E1E1E]/60">Status</Label>
+        <Select value={plant.status} onValueChange={changeStatus} disabled={update.isPending}>
+          <SelectTrigger className="h-auto rounded-[10px] border-[#E2E8F0] px-3 py-2 text-sm focus:ring-0 focus:ring-offset-0">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="alive">Alive</SelectItem>
+            <SelectItem value="dead">Dead</SelectItem>
+            <SelectItem value="removed">Removed</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      {plant.status === 'alive' ? (
+        <Button type="button" variant="outline" className="w-full" onClick={() => setRecording(true)}>
+          <Camera className="h-4 w-4" /> Record watering
+        </Button>
+      ) : (
+        <p className="text-xs text-[#1E1E1E]/50">
+          Watering can only be recorded for a living tree.
+        </p>
+      )}
+      <RecordMaintenanceSheet plant={plant} open={recording} onClose={() => setRecording(false)} />
+    </div>
+  );
+}
+
+// Inline weekly-watering form for a single tree — used from the plant detail
+// so an admin / incharge / volunteer can log maintenance directly. Photo is
+// required (Cloudinary signed upload); measurements + note are optional.
+function RecordMaintenanceSheet({ plant, open, onClose }) {
+  const create = useCreateMaintenance();
+  const { success, error: toastError } = useToast();
+  const [photo, setPhoto] = useState(null);
+  const [note, setNote] = useState('');
+  const [heightCm, setHeightCm] = useState('');
+  const [dbhCm, setDbhCm] = useState('');
+  const [healthStatus, setHealthStatus] = useState('');
+  const id = plant.id ?? plant._id;
+
+  function reset() {
+    setPhoto(null);
+    setNote('');
+    setHeightCm('');
+    setDbhCm('');
+    setHealthStatus('');
+  }
+
+  async function submit() {
+    const body = { plant: id, photo };
+    if (note.trim()) body.note = note.trim();
+    if (heightCm !== '') body.heightCm = Number(heightCm);
+    if (dbhCm !== '') body.dbhCm = Number(dbhCm);
+    if (healthStatus) body.healthStatus = healthStatus;
+    try {
+      await create.mutateAsync(body);
+      success('Watering logged', 'Added to this tree’s maintenance history.');
+      reset();
+      onClose();
+    } catch (err) {
+      toastError("Couldn't save the log", err instanceof ApiError ? err.message : 'Try again.');
+    }
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={(o) => { if (!o) { reset(); onClose(); } }}>
+      <SheetContent side="right" className="flex flex-col sm:max-w-md" style={{ fontFamily: BODY_FONT }}>
+        <SheetHeader>
+          <SheetTitle className="text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>Record watering</SheetTitle>
+          <SheetDescription className="text-[#1E1E1E]/50">
+            {plant.name ?? plant.species ?? 'This tree'} — add a photo, plus any measurements.
+          </SheetDescription>
+        </SheetHeader>
+        <div className="mt-6 flex-1 space-y-4 overflow-y-auto pr-1">
+          <PhotoCapture purpose="maintenance" plantId={id} onUploaded={setPhoto} onCleared={() => setPhoto(null)} />
+          <div className="space-y-1.5">
+            <Label htmlFor="m-note" className="text-xs text-[#1E1E1E]/60">Note (optional)</Label>
+            <Input id="m-note" value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. soil dry, mulch refreshed" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="m-h" className="text-xs text-[#1E1E1E]/60">Height (cm)</Label>
+              <Input id="m-h" type="number" min="0" step="1" value={heightCm} onChange={(e) => setHeightCm(e.target.value)} placeholder="Optional" />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="m-d" className="text-xs text-[#1E1E1E]/60">DBH (cm)</Label>
+              <Input id="m-d" type="number" min="0" step="0.1" value={dbhCm} onChange={(e) => setDbhCm(e.target.value)} placeholder="Optional" />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs text-[#1E1E1E]/60">Health (optional)</Label>
+            <Select value={healthStatus} onValueChange={setHealthStatus}>
+              <SelectTrigger><SelectValue placeholder="How does it look?" /></SelectTrigger>
+              <SelectContent>
+                {HEALTH_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button type="button" className="w-full" onClick={submit} disabled={!photo || create.isPending}>
+            {create.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+            Submit watering log
+          </Button>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 // Full plant detail page (replaces the cramped side drawer): big planting
 // photo, location map, facts, QR, and the full weekly-maintenance gallery.
 export default function PlantDetailPage() {
@@ -327,6 +473,8 @@ export default function PlantDetailPage() {
               </div>
 
               <SpeciesEditor plant={plant} />
+
+              <ManagePanel plant={plant} />
 
               <div className="grid grid-cols-2 gap-3">
                 <DetailCard icon={Sprout} label="Age">{ageFromPlantedAt(plant.plantedAt)}</DetailCard>

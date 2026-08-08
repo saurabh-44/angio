@@ -48,6 +48,10 @@ export default function PlantsPage() {
   const navigate = useNavigate();
   const { role } = useAuth();
   const isAdmin = role === 'ngo_admin';
+  // Volunteers reach this page as their own "My Plants" list. They can't list
+  // sites (GET /api/sites is admin/owner only) or export (403), so both are
+  // hidden for them; their plant list is already scoped to their plantings.
+  const isVolunteer = role === 'volunteer';
   const { success, error: toastError } = useToast();
   const [site, setSite] = useState('');
   const [status, setStatus] = useState('');
@@ -66,7 +70,7 @@ export default function PlantsPage() {
     limit: LIMIT,
   });
 
-  const { data: sitesData } = useSites({ limit: 200 });
+  const { data: sitesData } = useSites({ limit: 200, enabled: !isVolunteer });
   const sites = sitesData?.items ?? [];
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
@@ -103,11 +107,12 @@ export default function PlantsPage() {
     >
       <PageHeading>
         <h1 className="text-3xl font-semibold text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>
-          Plants
+          {isVolunteer ? 'My Plants' : 'Plants'}
         </h1>
         <p className="mt-1 max-w-2xl text-base text-[#1E1E1E]/50">
-          Every tree volunteers have planted. Tap a card for its location map, planting photo, QR,
-          and weekly maintenance.
+          {isVolunteer
+            ? 'Every tree you have planted. Tap a card for its location map, planting photo, QR, and weekly maintenance.'
+            : 'Every tree volunteers have planted. Tap a card for its location map, planting photo, QR, and weekly maintenance.'}
         </p>
       </PageHeading>
 
@@ -116,26 +121,28 @@ export default function PlantsPage() {
         <span className="inline-flex items-center gap-2 text-sm text-[#1E1E1E]/60">
           <Filter className="h-4 w-4" aria-hidden /> Filters
         </span>
-        <Select
-          value={site || 'all'}
-          onValueChange={(v) => {
-            setSite(v === 'all' ? '' : v);
-            setPage(1);
-            clearSelection();
-          }}
-        >
-          <SelectTrigger className={TRIGGER}>
-            <SelectValue placeholder="All sites" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All sites</SelectItem>
-            {sites.map((s) => (
-              <SelectItem key={s.id ?? s._id} value={s.id ?? s._id}>
-                {s.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {!isVolunteer && (
+          <Select
+            value={site || 'all'}
+            onValueChange={(v) => {
+              setSite(v === 'all' ? '' : v);
+              setPage(1);
+              clearSelection();
+            }}
+          >
+            <SelectTrigger className={TRIGGER}>
+              <SelectValue placeholder="All sites" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All sites</SelectItem>
+              {sites.map((s) => (
+                <SelectItem key={s.id ?? s._id} value={s.id ?? s._id}>
+                  {s.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         <Select
           value={status || 'all'}
           onValueChange={(v) => {
@@ -156,13 +163,15 @@ export default function PlantsPage() {
             ))}
           </SelectContent>
         </Select>
-        <DownloadLink
-          href={`/api/excel/export/plants.xlsx${buildPlantExportQuery({ site, status })}`}
-          filename="plants.xlsx"
-          className="ml-auto inline-flex shrink-0 items-center gap-2 rounded-[10px] border border-[#001F00] px-5 py-3 text-sm font-medium text-[#001F00] transition-colors hover:bg-[#001F00] hover:text-white disabled:opacity-60"
-        >
-          <Download className="h-4 w-4" aria-hidden /> Export to Excel
-        </DownloadLink>
+        {!isVolunteer && (
+          <DownloadLink
+            href={`/api/excel/export/plants.xlsx${buildPlantExportQuery({ site, status })}`}
+            filename="plants.xlsx"
+            className="ml-auto inline-flex shrink-0 items-center gap-2 rounded-[10px] border border-[#001F00] px-5 py-3 text-sm font-medium text-[#001F00] transition-colors hover:bg-[#001F00] hover:text-white disabled:opacity-60"
+          >
+            <Download className="h-4 w-4" aria-hidden /> Export to Excel
+          </DownloadLink>
+        )}
       </div>
 
       {isLoading ? (
@@ -186,7 +195,9 @@ export default function PlantsPage() {
             description={
               hasFilter
                 ? 'Try removing some filters.'
-                : 'Plants appear here when volunteers upload a planting photo from the field.'
+                : isVolunteer
+                  ? 'Trees you record from the field will appear here.'
+                  : 'Plants appear here when volunteers upload a planting photo from the field.'
             }
           />
         </div>

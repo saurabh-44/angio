@@ -53,6 +53,9 @@ export const NAV_BY_ROLE = {
   volunteer: [
     { to: '/volunteer', label: 'Overview', icon: LayoutDashboard, end: true },
     { to: '/volunteer/assignments', label: 'Assignments', icon: Clipboard },
+    // The trees this volunteer planted — each tree's map, QR, and weekly
+    // maintenance live in its detail (status + watering editable there).
+    { to: '/volunteer/plants', label: 'My Plants', icon: Leaf },
     { to: '/volunteer/plant', label: 'Record planting', icon: Sprout },
     { to: '/volunteer/maintenance', label: 'Record watering', icon: Camera },
     { to: '/scan', label: 'Scan QR', icon: ScanLine },
