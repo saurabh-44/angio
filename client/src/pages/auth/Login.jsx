@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { ROLE_HOME, useAuth } from '@/lib/auth.jsx';
 import { useToast } from '@/components/ui/toast.jsx';
 import { ApiError } from '@/lib/api.js';
+import { isNative } from '@/lib/nativeAuth.js';
 import { Field, GlassAuthScreen, PasswordField } from '@/components/GlassAuthScreen.jsx';
 
 // Figma "Login". Sign in with email OR phone + password. Sponsors/volunteers
@@ -38,6 +39,7 @@ export default function Login() {
   return (
     <GlassAuthScreen
       title="Login"
+      showBack={!isNative}
       subtitle={
         <>
           Do not have an account?{' '}

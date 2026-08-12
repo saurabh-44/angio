@@ -254,7 +254,7 @@ export default function PlantsPage() {
           Uses `fixed` (not `sticky`) so it stays put when the Move-to-site
           dropdown opens and Radix locks page scrolling. */}
       {isAdmin && selected.size > 0 && (
-        <div className="fixed inset-x-0 bottom-6 z-40 px-4">
+        <div className="fixed inset-x-0 bottom-[max(1.5rem,calc(env(safe-area-inset-bottom)+0.5rem))] z-40 px-4">
           <div className="mx-auto flex max-w-2xl flex-wrap items-center gap-3 rounded-[10px] border border-[#E2E8F0] bg-white p-3 shadow-[0_8px_30px_rgba(0,0,0,0.14)]">
             <span className="inline-flex items-center gap-2 text-sm font-medium text-[#001F00]">
               <ArrowRightLeft className="h-4 w-4 text-[#0B5000]" aria-hidden />

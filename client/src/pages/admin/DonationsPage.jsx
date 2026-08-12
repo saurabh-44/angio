@@ -21,16 +21,10 @@ import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
 import { Skeleton } from '@/components/ui/skeleton.jsx';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog.jsx';
-import {
   Sheet,
   SheetContent,
   SheetDescription,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet.jsx';
@@ -408,17 +402,17 @@ function CreateDonationDialog({ open, onOpenChange }) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => (o ? onOpenChange(true) : close())}>
-      <DialogContent className="rounded-[10px] sm:max-w-lg" style={{ fontFamily: BODY_FONT }}>
-        <DialogHeader className="gap-1.5">
-          <DialogTitle className="text-2xl font-medium text-[#001F00]" style={{ fontFamily: BODY_FONT }}>
+    <Sheet open={open} onOpenChange={(o) => !o && close()}>
+      <SheetContent side="right" className="flex flex-col sm:max-w-lg" style={{ fontFamily: BODY_FONT }}>
+        <SheetHeader>
+          <SheetTitle className="text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>
             Record a donation
-          </DialogTitle>
-          <DialogDescription className="text-base text-[#1E1E1E]/50">
+          </SheetTitle>
+          <SheetDescription className="text-[#1E1E1E]/50">
             Money received from a sponsor. Allocate it to specific sites in the next step.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+          </SheetDescription>
+        </SheetHeader>
+        <form onSubmit={handleSubmit(onSubmit)} className="-mx-2 mt-6 flex-1 space-y-4 overflow-y-auto px-2" noValidate>
           <div className="space-y-2">
             <Label className="text-[#001F00]">Sponsor</Label>
             <DonorSelect value={donor} onChange={setDonor} disabled={create.isPending} />
@@ -431,7 +425,7 @@ function CreateDonationDialog({ open, onOpenChange }) {
 
           {site ? (
             // Site chosen → enter trees, amount auto-calculates at the site rate.
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="treeCount" className="text-[#001F00]">Number of trees</Label>
                 <Input
@@ -469,7 +463,7 @@ function CreateDonationDialog({ open, onOpenChange }) {
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="paidAt" className="text-[#001F00]">Date received</Label>
               <Input id="paidAt" type="date" disabled={create.isPending} {...register('paidAt')} />
@@ -494,17 +488,18 @@ function CreateDonationDialog({ open, onOpenChange }) {
             <Input id="note" disabled={create.isPending} {...register('note')} />
           </div>
 
-          <button
-            type="submit"
-            disabled={create.isPending}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] bg-[#346EC4] px-5 py-3.5 text-base font-semibold text-white transition-colors hover:bg-[#2c5da6] disabled:opacity-70"
-          >
-            {create.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-            Record donation
-          </button>
+          <SheetFooter className="pt-2">
+            <Button type="button" variant="ghost" onClick={close} disabled={create.isPending}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={create.isPending}>
+              {create.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              Record donation
+            </Button>
+          </SheetFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }
 

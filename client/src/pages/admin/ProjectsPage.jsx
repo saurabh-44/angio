@@ -25,14 +25,6 @@ import {
   TableRow,
 } from '@/components/ui/table.jsx';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog.jsx';
-import {
   Sheet,
   SheetContent,
   SheetDescription,
@@ -63,6 +55,7 @@ import {
 } from '@/queries/projects.js';
 import { ApiError } from '@/lib/api.js';
 import { formatDate } from '@/lib/format.js';
+import { BODY_FONT, HEADING_FONT } from '@/components/GlassAuthScreen.jsx';
 
 const LIMIT = 20;
 const STATUSES = ['active', 'completed', 'archived'];
@@ -241,7 +234,7 @@ export default function ProjectsPage() {
         )}
       </div>
 
-      <ProjectFormDialog open={createOpen} onOpenChange={setCreateOpen} />
+      <ProjectCreateSheet open={createOpen} onOpenChange={setCreateOpen} />
       <ProjectFormSheet project={editing} onClose={() => setEditing(null)} />
       <DeleteProjectConfirm project={confirmingDelete} onClose={() => setConfirmingDelete(null)} />
     </>
@@ -302,7 +295,7 @@ function ProjectFormFields({ register, errors, status, setStatus, disabled }) {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="project-start">Starts</Label>
           <Input
@@ -332,7 +325,7 @@ function toIsoOrUndef(v) {
   return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
 }
 
-function ProjectFormDialog({ open, onOpenChange }) {
+function ProjectCreateSheet({ open, onOpenChange }) {
   const create = useCreateProject();
   const { success, error: toastError } = useToast();
   const {
@@ -370,15 +363,21 @@ function ProjectFormDialog({ open, onOpenChange }) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => (o ? onOpenChange(true) : close())}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>New project</DialogTitle>
-          <DialogDescription>
+    <Sheet open={open} onOpenChange={(o) => !o && close()}>
+      <SheetContent side="right" className="flex flex-col sm:max-w-lg" style={{ fontFamily: BODY_FONT }}>
+        <SheetHeader>
+          <SheetTitle className="text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>
+            New project
+          </SheetTitle>
+          <SheetDescription className="text-[#1E1E1E]/50">
             Allocations tagged to a project can be sliced together in impact reports.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+          </SheetDescription>
+        </SheetHeader>
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="-mx-2 mt-6 flex-1 space-y-4 overflow-y-auto px-2"
+          noValidate
+        >
           <ProjectFormFields
             register={register}
             errors={errors}
@@ -386,7 +385,7 @@ function ProjectFormDialog({ open, onOpenChange }) {
             setStatus={setStatus}
             disabled={create.isPending}
           />
-          <DialogFooter>
+          <SheetFooter className="pt-2">
             <Button type="button" variant="ghost" onClick={close} disabled={create.isPending}>
               Cancel
             </Button>
@@ -394,10 +393,10 @@ function ProjectFormDialog({ open, onOpenChange }) {
               {create.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
               Create project
             </Button>
-          </DialogFooter>
+          </SheetFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }
 

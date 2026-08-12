@@ -23,13 +23,6 @@ import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
 import { Skeleton } from '@/components/ui/skeleton.jsx';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog.jsx';
-import {
   Sheet,
   SheetContent,
   SheetDescription,
@@ -261,7 +254,7 @@ export default function UsersPage() {
         </>
       )}
 
-      <CreateUserDialog open={createOpen} onOpenChange={setCreateOpen} actor={actor} />
+      <CreateUserSheet open={createOpen} onOpenChange={setCreateOpen} actor={actor} />
       <EditUserSheet
         user={editing}
         onClose={() => setEditing(null)}
@@ -323,7 +316,7 @@ const USER_TRIGGER =
 
 // Figma "Add User" — single-column modal. Wires to the same create-user
 // mutation, now also carrying an optional admin-set password + assigned site.
-function CreateUserDialog({ open, onOpenChange, actor }) {
+function CreateUserSheet({ open, onOpenChange, actor }) {
   const create = useCreateUser();
   const { success, error: toastError } = useToast();
   const [assignSite, setAssignSite] = useState('');
@@ -337,10 +330,16 @@ function CreateUserDialog({ open, onOpenChange, actor }) {
   } = useForm({ defaultValues: { role: '', gender: '' } });
   const role = watch('role');
   const gender = watch('gender');
+  const dob = watch('dob');
 
   function resetAll() {
     reset({ role: '', gender: '' });
     setAssignSite('');
+  }
+
+  function close() {
+    onOpenChange(false);
+    resetAll();
   }
 
   async function onSubmit(values) {
@@ -376,28 +375,19 @@ function CreateUserDialog({ open, onOpenChange, actor }) {
   const canCreateNgoAdmin = !!actor?.isPrimary;
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(o) => {
-        onOpenChange(o);
-        if (!o) resetAll();
-      }}
-    >
-      <DialogContent
-        className="w-[calc(100vw-1.5rem)] gap-5 rounded-[10px] sm:max-w-[640px]"
-        style={{ fontFamily: BODY_FONT }}
-      >
-        <DialogHeader className="gap-1.5">
-          <DialogTitle className="text-2xl font-medium text-[#001F00]" style={{ fontFamily: BODY_FONT }}>
+    <Sheet open={open} onOpenChange={(o) => !o && close()}>
+      <SheetContent side="right" className="flex flex-col sm:max-w-lg" style={{ fontFamily: BODY_FONT }}>
+        <SheetHeader>
+          <SheetTitle className="text-[#001F00]" style={{ fontFamily: HEADING_FONT }}>
             Add User
-          </DialogTitle>
-          <DialogDescription className="text-base text-[#1E1E1E]/50">
+          </SheetTitle>
+          <SheetDescription className="text-[#1E1E1E]/50">
             Fill in all required details
-          </DialogDescription>
-        </DialogHeader>
+          </SheetDescription>
+        </SheetHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
-          <div className="grid grid-cols-2 gap-5">
+        <form onSubmit={handleSubmit(onSubmit)} className="-mx-2 mt-6 flex-1 space-y-4 overflow-y-auto px-2" noValidate>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <input
                 placeholder="First Name"
@@ -420,14 +410,24 @@ function CreateUserDialog({ open, onOpenChange, actor }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-5">
-            <input
-              type="date"
-              title="Date of birth"
-              disabled={create.isPending}
-              className={USER_FIELD}
-              {...register('dob')}
-            />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {/* Date inputs show mm/dd/yyyy, not a placeholder — overlay a
+                "Date of birth" hint while empty and hide the input's own text.
+                min-w-0 keeps the native picker from overflowing its column. */}
+            <div className="relative">
+              {!dob && (
+                <span className="pointer-events-none absolute inset-0 flex items-center overflow-hidden whitespace-nowrap px-5 text-base text-[#B4B4B4]">
+                  Date of birth
+                </span>
+              )}
+              <input
+                type="date"
+                aria-label="Date of birth"
+                disabled={create.isPending}
+                className={cn(USER_FIELD, 'min-w-0', !dob && 'text-transparent')}
+                {...register('dob')}
+              />
+            </div>
             <Select value={gender || undefined} onValueChange={(v) => setValue('gender', v)}>
               <SelectTrigger className={USER_TRIGGER}>
                 <SelectValue placeholder="Gender" />
@@ -481,7 +481,7 @@ function CreateUserDialog({ open, onOpenChange, actor }) {
             {errors.password && <p className="mt-1 text-xs text-destructive">{errors.password.message}</p>}
           </div>
 
-          <div className="grid grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Select value={role || undefined} onValueChange={(v) => setValue('role', v)}>
               <SelectTrigger className={USER_TRIGGER}>
                 <SelectValue placeholder="Assign Role" />
@@ -501,17 +501,18 @@ function CreateUserDialog({ open, onOpenChange, actor }) {
             </p>
           )}
 
-          <button
-            type="submit"
-            disabled={create.isPending}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] bg-[#346EC4] px-5 py-4 text-base font-semibold text-white transition-colors hover:bg-[#2c5da6] disabled:opacity-70"
-          >
-            {create.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-            Add User
-          </button>
+          <SheetFooter className="pt-2">
+            <Button type="button" variant="ghost" onClick={close} disabled={create.isPending}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={create.isPending}>
+              {create.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              Add User
+            </Button>
+          </SheetFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }
 
