@@ -11,10 +11,10 @@ Scan top-to-bottom before handing the app to the client. Every `- [ ]` is a bloc
 | `api` | A | `<VPS_IP>` | API server |
 | `environ` | A | `<VPS_IP>` | Web SPA / QR scan links |
 
-- [ ] Both A records created and propagated (`dig api.example.com`, `dig environ.example.com`)
+- [ ] Both A records created and propagated (`dig api.environfoundationindia.org`, `dig app.environfoundationindia.org`)
 - [ ] Both set to **DNS-only / grey-cloud** — no proxy. Caddy needs a direct TCP connection on port 80 to complete the Let's Encrypt ACME challenge.
-- [ ] `deploy/Caddyfile` updated with the real domain (replace `example.com`)
-- [ ] `docker-compose.yml` `web` build arg `VITE_API_BASE_URL` updated to `https://api.example.com`
+- [ ] `deploy/Caddyfile` updated with the real domain (replace `environfoundationindia.org`)
+- [ ] `docker-compose.yml` `web` build arg `VITE_API_BASE_URL` updated to `https://api.environfoundationindia.org`
 
 ---
 
@@ -29,8 +29,8 @@ openssl rand -hex 32      # webhook secret
 
 - [ ] `JWT_ACCESS_SECRET` — fresh value, min 32 chars
 - [ ] `JWT_REFRESH_SECRET` — fresh value, different from access secret
-- [ ] `CLIENT_ORIGIN=https://environ.example.com`
-- [ ] `PUBLIC_URL=https://api.example.com`
+- [ ] `CLIENT_ORIGIN=https://app.environfoundationindia.org`
+- [ ] `PUBLIC_URL=https://api.environfoundationindia.org`
 - [ ] `COOKIE_SECURE=true`
 - [ ] `COOKIE_SAMESITE=none`
 - [ ] `PRIMARY_NGO_ADMIN_EMAIL` — client's admin email address
@@ -53,7 +53,7 @@ openssl rand -hex 32      # webhook secret
 - [ ] Switched to **live mode** — keys start with `rzp_live_`
 - [ ] `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` updated in `server/.env`
 - [ ] Webhook created in Razorpay dashboard (live mode) with:
-  - URL: `https://api.example.com/api/payments/webhook`
+  - URL: `https://api.environfoundationindia.org/api/payments/webhook`
   - Events: `payment.captured`, `payment.failed`
   - Secret: same value as `RAZORPAY_WEBHOOK_SECRET` in `server/.env`
 - [ ] Test a small live payment end-to-end before handoff
@@ -81,7 +81,7 @@ npx cap open android              # → Android Studio for AAB
 ```
 
 - [ ] `nvm use 22` active before building
-- [ ] `client/.env.production` has `VITE_API_BASE_URL=https://api.example.com`
+- [ ] `client/.env.production` has `VITE_API_BASE_URL=https://api.environfoundationindia.org`
 - [ ] iOS bundle ID and display name confirmed with client
 - [ ] `ios/App/App/Info.plist` has `NSCameraUsageDescription` + `NSLocationWhenInUseUsageDescription`
 - [ ] Apple Developer account active; provisioning profile + signing cert set up in Xcode

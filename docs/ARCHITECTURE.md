@@ -5,25 +5,25 @@
 The same React app (`client/`) ships three ways:
 
 1. **Native iOS/Android app** — bundled inside the Capacitor shell via `npm run build && npx cap sync`, then opened in Xcode / Android Studio.
-2. **Web browser** — served as a static site from the `web` Docker container (Caddy, SPA fallback) at `environ.example.com`.
+2. **Web browser** — served as a static site from the `web` Docker container (Caddy, SPA fallback) at `app.environfoundationindia.org`.
 3. **API** — both of the above call the same Express server.
 
 ```
 ┌─────────────────────────┐    ┌─────────────────────────┐
 │   iOS / Android app     │    │   Web browser           │
-│   (Capacitor shell)     │    │   environ.example.com   │
+│   (Capacitor shell)     │    │   app.environfoundationindia.org   │
 │   capacitor://localhost │    │   (Docker: web:80)      │
 │   Bearer token auth     │    │   httpOnly cookie auth  │
 └────────────┬────────────┘    └────────────┬────────────┘
              │                              │
              │ HTTPS                        │ HTTPS
-             │ api.example.com              │ environ.example.com
+             │ api.environfoundationindia.org              │ app.environfoundationindia.org
              └──────────────┬───────────────┘
                             ▼
              ┌──────────────────────────────────────────┐
              │   Caddy 2  :443 auto-TLS  (edge)         │
-             │   api.example.com   → server:4000        │
-             │   environ.example.com → web:80           │
+             │   api.environfoundationindia.org   → server:4000        │
+             │   app.environfoundationindia.org → web:80           │
              └──────────────┬───────────────────────────┘
                             │
            ┌────────────────┴──────────────────┐
@@ -55,7 +55,7 @@ Auth adapts to the delivery channel at runtime based on the `isNative` flag from
 | Refresh token | Cookie (same `requireAuth` flow) | Sent as Bearer / request body |
 | Server reads | `req.cookies[ACCESS_COOKIE]` first, then `getBearerToken(req)` | `getBearerToken(req)` — in `server/src/middleware/auth.js` |
 
-CORS: the server allows `CLIENT_ORIGIN` (web client at `environ.example.com`), `capacitor://localhost` (iOS), `http://localhost` + `https://localhost` (Android webview), and requests with no `Origin` header (native HTTP plugin, curl). See `server/src/app.js`.
+CORS: the server allows `CLIENT_ORIGIN` (web client at `app.environfoundationindia.org`), `capacitor://localhost` (iOS), `http://localhost` + `https://localhost` (Android webview), and requests with no `Origin` header (native HTTP plugin, curl). See `server/src/app.js`.
 
 Token lifecycle (native):
 - `hydrateTokens()` reads both tokens from Preferences into an in-memory cache at app startup.
@@ -75,7 +75,7 @@ Token lifecycle (native):
 ### QR codes
 - Each plant has a `publicCode` (nanoid). The server encodes `${CLIENT_ORIGIN}/tree/{publicCode}` into a QR PNG.
 - Bulk QR sheet: `server/src/services/plants/bulkQrService.js` generates an A4 PDF (3×5 grid) with pdfkit. `margin: 0` is required to avoid phantom extra pages — a known pdfkit quirk.
-- `CLIENT_ORIGIN` must be set to `https://environ.example.com` (the hosted web client) so that QR scan links open the public tree page in any browser, without requiring the native app.
+- `CLIENT_ORIGIN` must be set to `https://app.environfoundationindia.org` (the hosted web client) so that QR scan links open the public tree page in any browser, without requiring the native app.
 
 ### Orders, planting & fulfilment
 - Trees are recorded **unassigned** — `createPlant` no longer requires an `allocation` (`Plant.donor`/`allocation` are optional). Volunteers and the incharge just record site → species → GPS → photo.

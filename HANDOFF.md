@@ -118,7 +118,7 @@ Angio/
 │       ├── queries/               ← TanStack Query hooks (one file per resource)
 │       └── lib/                   ← api.js (fetch wrapper + ApiError), auth.jsx (context), format.js, utils.js, queryClient.js, razorpay.js, passwordStrength.js
 ├── deploy/
-│   └── Caddyfile                  ← edge Caddy: api.example.com + environ.example.com virtual hosts
+│   └── Caddyfile                  ← edge Caddy: api.environfoundationindia.org + app.environfoundationindia.org virtual hosts
 ├── .github/workflows/deploy.yml   ← CI/CD: test + SSH deploy on push to main
 └── README.md
 ```
@@ -218,8 +218,8 @@ RAZORPAY_KEY_SECRET=
 RAZORPAY_WEBHOOK_SECRET=              # openssl rand -hex 32; same value in Razorpay dashboard
 TREE_UNIT_PRICE_INR=200               # default price per tree
 # Prod extras:
-CLIENT_ORIGIN=https://environ.example.com
-PUBLIC_URL=https://api.example.com
+CLIENT_ORIGIN=https://app.environfoundationindia.org
+PUBLIC_URL=https://api.environfoundationindia.org
 COOKIE_SECURE=true
 COOKIE_SAMESITE=none
 ```
@@ -278,7 +278,7 @@ On a native build the API is a different origin from the `capacitor://localhost`
 
 ### What to set before shipping a native build
 
-- `client/.env.production` → `VITE_API_BASE_URL=https://api.example.com` (the deployed API, not localhost).
+- `client/.env.production` → `VITE_API_BASE_URL=https://api.environfoundationindia.org` (the deployed API, not localhost).
 - Rebuild + sync: `nvm use 22 && npm run build && npx cap sync`.
 
 → See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the full VPS + Docker runbook.
@@ -298,7 +298,7 @@ On a native build the API is a different origin from the `capacitor://localhost`
 | 7 | **Done** | CI/CD pipeline on `main` — GitHub Actions auto-deploy on push to `main` |
 | 8 | **Done** | Docker + Caddy production deploy |
 | 9 | **Done** | Razorpay server-to-server webhook (`POST /api/payments/webhook`, `RAZORPAY_WEBHOOK_SECRET`) |
-| 10 | **Done** | Host the web client (`web` Docker service at `environ.example.com`) — QR scan links now resolve |
+| 10 | **Done** | Host the web client (`web` Docker service at `app.environfoundationindia.org`) — QR scan links now resolve |
 | 11 | **Done** | Map swapped to Leaflet + OpenStreetMap (no API key required) |
 | 12 | Open | Address open security-review findings (3 unresolved) |
 

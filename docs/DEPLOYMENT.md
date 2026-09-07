@@ -5,11 +5,11 @@
 ```
 Client app (capacitor://localhost) ──────────────────────────────────────────┐
                                                                               │
-Browser SPA (https://environ.example.com) → web:80 (Docker, Caddy static)   │
+Browser SPA (https://app.environfoundationindia.org) → web:80 (Docker, Caddy static)   │
                                                                               │
                         Edge Caddy :443 auto-TLS                             │
-                        api.example.com  → server:4000                       │
-                        environ.example.com → web:80                         │
+                        api.environfoundationindia.org  → server:4000                       │
+                        app.environfoundationindia.org → web:80                         │
                             ▼                                                 │
                     server:4000 (Docker) → mongo:27017 (internal only)      ◄┘
 ```
@@ -76,8 +76,8 @@ Open `server/.env` and fill in:
 |-----|--------------|
 | `JWT_ACCESS_SECRET` | `openssl rand -base64 48` |
 | `JWT_REFRESH_SECRET` | `openssl rand -base64 48` (different value) |
-| `CLIENT_ORIGIN` | `https://environ.example.com` (the web SPA subdomain) |
-| `PUBLIC_URL` | `https://api.example.com` |
+| `CLIENT_ORIGIN` | `https://app.environfoundationindia.org` (the web SPA subdomain) |
+| `PUBLIC_URL` | `https://api.environfoundationindia.org` |
 | `COOKIE_SECURE` | `true` |
 | `COOKIE_SAMESITE` | `none` (required for cross-subdomain cookies: `environ` → `api`) |
 | `CLOUDINARY_*` | Cloudinary dashboard → Settings → Access Keys |
@@ -97,9 +97,9 @@ The `web` service in `docker-compose.yml` builds the React SPA via a multi-stage
 1. **Build stage** — `node:22-alpine` runs `npm run build` (Vite). `VITE_API_BASE_URL` is passed as a build `ARG` and baked into the bundle.
 2. **Serve stage** — `caddy:2-alpine` serves `/srv` with SPA fallback (`try_files {path} /index.html`) and gzip. Listens on port 80 internally.
 
-The edge Caddy reverse-proxies `environ.example.com` → `web:80` with auto-TLS.
+The edge Caddy reverse-proxies `app.environfoundationindia.org` → `web:80` with auto-TLS.
 
-**Why this matters:** QR codes encode `${CLIENT_ORIGIN}/tree/{publicCode}`. With the web client hosted at `environ.example.com`, scanning a QR code opens the public tree page in the browser without needing the native app installed.
+**Why this matters:** QR codes encode `${CLIENT_ORIGIN}/tree/{publicCode}`. With the web client hosted at `app.environfoundationindia.org`, scanning a QR code opens the public tree page in the browser without needing the native app installed.
 
 Set `VITE_API_BASE_URL` in the `web` service's build args in `docker-compose.yml`:
 
@@ -108,7 +108,7 @@ web:
   build:
     context: ./client
     args:
-      VITE_API_BASE_URL: https://api.example.com
+      VITE_API_BASE_URL: https://api.environfoundationindia.org
 ```
 
 ---
@@ -123,10 +123,10 @@ docker compose up -d --build
 Caddy auto-provisions TLS certs on first request. Verify both services:
 
 ```bash
-curl https://api.example.com/api/health
+curl https://api.environfoundationindia.org/api/health
 # → {"status":"ok"}
 
-curl -I https://environ.example.com
+curl -I https://app.environfoundationindia.org
 # → HTTP/2 200
 ```
 
@@ -201,10 +201,10 @@ docker compose up -d --build server
 | Issue | Fix |
 |-------|-----|
 | TLS cert never issues | DNS A records must be DNS-only (no CDN proxy); ports 80 + 443 must be open in UFW. |
-| CORS errors from web client | `CLIENT_ORIGIN` in `server/.env` must be `https://environ.example.com` — exact origin, no trailing slash. |
+| CORS errors from web client | `CLIENT_ORIGIN` in `server/.env` must be `https://app.environfoundationindia.org` — exact origin, no trailing slash. |
 | QR scan links go nowhere | `CLIENT_ORIGIN` must be set to the hosted web-client URL — QR codes encode `${CLIENT_ORIGIN}/tree/{publicCode}`. |
 | Cookies not sent from browser | Set `COOKIE_SECURE=true` + `COOKIE_SAMESITE=none` for HTTPS cross-subdomain. |
-| Native app can't reach API | Ensure `VITE_API_BASE_URL` build arg in `docker-compose.yml` is set to `https://api.example.com`. |
+| Native app can't reach API | Ensure `VITE_API_BASE_URL` build arg in `docker-compose.yml` is set to `https://api.environfoundationindia.org`. |
 | CI deploy fails auth | The public half of `VPS_SSH_KEY` must be in `~/.ssh/authorized_keys` on the VPS for the deploy user. |
 | Old code after CI deploy | Verify `git log --oneline -3` on the VPS matches the expected commits. |
 

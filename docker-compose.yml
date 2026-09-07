@@ -43,7 +43,7 @@ services:
       - mongo
     # Public route, served by the shared edge proxy.
     labels:
-      caddy: api.jainildesai.com
+      caddy: api.environfoundationindia.org
       caddy.reverse_proxy: "{{upstreams 4000}}"
     networks:
       - internal
@@ -56,12 +56,12 @@ services:
       context: ./client
       args:
         # The browser calls the API cross-subdomain (CORS + cookies).
-        VITE_API_BASE_URL: https://api.jainildesai.com
+        VITE_API_BASE_URL: https://api.environfoundationindia.org
     restart: unless-stopped
     depends_on:
       - server
     labels:
-      caddy: environ.jainildesai.com
+      caddy: app.environfoundationindia.org
       caddy.reverse_proxy: "{{upstreams 80}}"
     networks:
       - internal
