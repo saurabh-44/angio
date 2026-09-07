@@ -49,8 +49,11 @@ services:
       - internal
       - edge
 
-  # Static web client (the React SPA). The edge proxy reverse-proxies
-  # environ.<domain> -> web:80 via the labels below.
+  # Static web client (the React SPA). The edge proxy serves it on the apex
+  # and permanently redirects www/app to it. The apex is canonical because
+  # CLIENT_ORIGIN is a single value: it is the CORS allowlist entry and it
+  # is baked into every printed tree QR code, so serving the same app on
+  # several hostnames would break API calls from all but one of them.
   web:
     build:
       context: ./client
@@ -61,8 +64,12 @@ services:
     depends_on:
       - server
     labels:
-      caddy: app.environfoundationindia.org
-      caddy.reverse_proxy: "{{upstreams 80}}"
+      caddy_0: environfoundationindia.org
+      caddy_0.reverse_proxy: "{{upstreams 80}}"
+      caddy_1: www.environfoundationindia.org
+      caddy_1.redir: https://environfoundationindia.org{uri} permanent
+      caddy_2: app.environfoundationindia.org
+      caddy_2.redir: https://environfoundationindia.org{uri} permanent
     networks:
       - internal
       - edge
