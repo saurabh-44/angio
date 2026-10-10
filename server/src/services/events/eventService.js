@@ -80,12 +80,31 @@ async function resolveAudience({ site, audience, actor }) {
   return User.find(filter).select('name email role').sort({ role: 1, name: 1 }).lean();
 }
 
+// Site in-charges only ever see their own volunteer pool (ones they created
+// or that are assigned to one of their sites) — same rule as the Users
+// list. Everyone else they'd invite is still invited, just reported as a
+// count they can't inspect or untick.
+async function siteOwnerPool(actor) {
+  const siteIds = await Site.distinct('_id', { owner: actor.userId });
+  const assigned = siteIds.length
+    ? await Assignment.distinct('volunteer', { site: { $in: siteIds } })
+    : [];
+  const pool = await User.distinct('_id', {
+    role: 'volunteer',
+    $or: [{ createdBy: actor.userId }, { _id: { $in: assigned } }],
+  });
+  return new Set(pool.map(String));
+}
+
 export async function previewAudience({ site: siteId, audience, actor }) {
   if (!canManage(actor)) throw HttpError.forbidden('Only admins and site in-charges can post events');
   const site = await loadManagedSite(siteId, actor);
   const users = await resolveAudience({ site, audience, actor });
+  const pool = actor.role === 'site_owner' ? await siteOwnerPool(actor) : null;
+  const visible = pool ? users.filter((u) => pool.has(String(u._id))) : users;
   return {
-    items: users.map((u) => ({ id: String(u._id), name: u.name, email: u.email, role: u.role })),
+    items: visible.map((u) => ({ id: String(u._id), name: u.name, email: u.email, role: u.role })),
+    hiddenCount: users.length - visible.length,
   };
 }
 
@@ -110,7 +129,9 @@ export async function createEvent({ input, actor }) {
   const date = new Date(`${input.date}T00:00:00.000Z`);
   if (date < startOfTodayIst()) throw HttpError.badRequest('Pick today or a future date');
 
-  const excluded = new Set(input.excludedUsers);
+  // A site in-charge can only leave out people they can see (their pool).
+  const pool = actor.role === 'site_owner' ? await siteOwnerPool(actor) : null;
+  const excluded = new Set(pool ? input.excludedUsers.filter((id) => pool.has(id)) : input.excludedUsers);
   const invitees = (await resolveAudience({ site, audience: input.audience, actor })).filter(
     (u) => !excluded.has(String(u._id)),
   );
@@ -227,7 +248,8 @@ export async function listMyInvites({ actor }) {
     .populate('site', 'name city address')
     .populate('createdBy', 'name email')
     .lean();
-  return { items: events.map(shapeListItem) };
+  // Volunteers don't need the poster's email address.
+  return { items: events.map((e) => ({ ...shapeListItem(e), createdBy: null })) };
 }
 
 // A volunteer's answer is final — the conditional update only matches

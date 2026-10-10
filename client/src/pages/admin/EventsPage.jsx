@@ -364,12 +364,15 @@ function AudiencePicker({ site, audience, onAudienceChange, excluded, onExcluded
   const { data, isLoading } = useEventAudience({ site, audience });
   const [filter, setFilter] = useState('');
   const people = data?.items ?? [];
+  // Site in-charges only see their own volunteers; everyone else invited is
+  // a count from the server.
+  const hidden = data?.hiddenCount ?? 0;
   const shown = useMemo(() => {
     const f = filter.trim().toLowerCase();
     if (!f) return people;
     return people.filter((p) => `${p.name} ${p.email}`.toLowerCase().includes(f));
   }, [people, filter]);
-  const invitedCount = people.filter((p) => !excluded.has(p.id)).length;
+  const invitedCount = people.filter((p) => !excluded.has(p.id)).length + hidden;
 
   function toggle(id) {
     const next = new Set(excluded);
@@ -413,7 +416,7 @@ function AudiencePicker({ site, audience, onAudienceChange, excluded, onExcluded
         <div className="flex items-center justify-between gap-3 border-b border-[#E2E8F0] px-3 py-2">
           <span className="inline-flex items-center gap-1.5 text-sm font-medium text-[#001F00]">
             <Users className="h-4 w-4" aria-hidden />
-            {isLoading ? 'Loading…' : `${invitedCount} of ${people.length} invited`}
+            {isLoading ? 'Loading…' : `${invitedCount} of ${people.length + hidden} invited`}
           </span>
           <input
             value={filter}
@@ -442,7 +445,12 @@ function AudiencePicker({ site, audience, onAudienceChange, excluded, onExcluded
               </label>
             </li>
           ))}
-          {!isLoading && shown.length === 0 && (
+          {hidden > 0 && !filter.trim() && (
+            <li className="px-3 py-2 text-xs text-[#1E1E1E]/50">
+              + {hidden} other {hidden === 1 ? 'person' : 'people'} (admins, in-charges and volunteers outside your sites)
+            </li>
+          )}
+          {!isLoading && shown.length === 0 && hidden === 0 && (
             <li className="px-3 py-4 text-center text-xs text-[#1E1E1E]/50">Nobody to invite.</li>
           )}
         </ul>
