@@ -113,7 +113,7 @@ export async function createUser({
         role,
         email,
         tempPassword,
-        signInUrl: env.CLIENT_ORIGIN,
+        signInUrl: `${env.CLIENT_ORIGIN}/login`,
       }),
     });
   }
@@ -278,7 +278,7 @@ export async function resetUserPassword({ id, actor }) {
       role: target.role,
       email: target.email,
       tempPassword,
-      signInUrl: env.CLIENT_ORIGIN,
+      signInUrl: `${env.CLIENT_ORIGIN}/login`,
     }),
   });
 }

@@ -87,7 +87,7 @@ export async function importDonors({ actor, fileBuffer }) {
           role: 'sponsor',
           email: parsed.email,
           tempPassword,
-          signInUrl: env.CLIENT_ORIGIN,
+          signInUrl: `${env.CLIENT_ORIGIN}/login`,
         }),
       });
       summary.created += 1;

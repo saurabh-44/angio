@@ -8,6 +8,7 @@ import { primeNativePermissions } from '@/lib/nativePermissions.js';
 import { HeaderSlotContext } from './PageHeading.jsx';
 import Sidebar from './Sidebar.jsx';
 import UserMenu from './UserMenu.jsx';
+import EventInvitesBell from './EventInvitesBell.jsx';
 
 // Shared app shell (Figma): a slim icon rail on the left, a white content panel
 // filling the rest, and — on desktop — a top bar in the grey area above the
@@ -56,6 +57,7 @@ export default function AppLayout() {
             <Menu className="h-5 w-5" />
           </Button>
           <div className="min-w-0 flex-1" />
+          <EventInvitesBell />
           <UserMenu />
         </div>
 
@@ -64,6 +66,7 @@ export default function AppLayout() {
             panel. */}
         <div className="hidden items-center justify-between gap-4 px-8 pb-5 pt-6 lg:flex">
           <div ref={setHeaderSlot} className="min-w-0 flex-1" />
+          <EventInvitesBell />
           <UserMenu />
         </div>
 

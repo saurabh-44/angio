@@ -104,10 +104,13 @@
   /* Text-style form fields signal focus with a green border (focus:border-*),
      so drop the ring on them — otherwise you get a double outline. Buttons and
      links keep the ring for accessibility; fields with an explicit ring utility
-     (OTP cells, shadcn Input) keep theirs since utilities outrank this rule. */
+     (OTP cells, shadcn Input) keep theirs since utilities outrank this rule.
+     Dropdown menu panels take focus when they open; their items show focus
+     with a background, so the panel itself shouldn't get a ring. */
   input:focus-visible,
   textarea:focus-visible,
-  [role='combobox']:focus-visible {
+  [role='combobox']:focus-visible,
+  [role='menu']:focus-visible {
     @apply ring-0 ring-offset-0;
   }
 

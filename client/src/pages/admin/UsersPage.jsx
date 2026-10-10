@@ -272,7 +272,7 @@ export default function UsersPage() {
 function RolePill({ role }) {
   const meta = ROLE_PILL[role] ?? { label: ROLE_LABEL[role] ?? role, cls: 'bg-[#E2E8F0] text-[#1E1E1E]' };
   return (
-    <span className={cn('inline-flex rounded-full px-4 py-1.5 text-sm font-medium', meta.cls)}>
+    <span className={cn('inline-flex w-[124px] justify-center whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium', meta.cls)}>
       {meta.label}
     </span>
   );

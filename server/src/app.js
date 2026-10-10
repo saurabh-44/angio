@@ -20,12 +20,14 @@ import { assignmentsRouter } from './routes/assignments.js';
 import { uploadsRouter } from './routes/uploads.js';
 import { paymentsRouter } from './routes/payments.js';
 import { publicTreesRouter } from './routes/publicTrees.js';
+import { publicImpactRouter } from './routes/publicImpact.js';
 import { co2Router } from './routes/co2.js';
 import { certificatesRouter } from './routes/certificates.js';
 import { analyticsRouter } from './routes/analytics.js';
 import { excelRouter } from './routes/excel.js';
 import { speciesRouter } from './routes/species.js';
 import { projectsRouter } from './routes/projects.js';
+import { eventsRouter } from './routes/events.js';
 
 export function createApp() {
   const app = express();
@@ -111,10 +113,12 @@ export function createApp() {
   app.use('/api/excel', excelRouter);
   app.use('/api/species', speciesRouter);
   app.use('/api/projects', projectsRouter);
+  app.use('/api/events', eventsRouter);
 
   // No-auth public surface. Mounted last to keep its scope small and
-  // obvious — only the QR scan flow uses it.
+  // obvious — the QR scan flow and the landing page stats.
   app.use('/api/public/trees', publicTreesRouter);
+  app.use('/api/public/impact', publicImpactRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

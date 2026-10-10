@@ -35,6 +35,7 @@ const MaintenancePage = lazy(() => import('@/pages/admin/MaintenancePage.jsx'));
 const AssignmentsPage = lazy(() => import('@/pages/admin/AssignmentsPage.jsx'));
 const ImportPage = lazy(() => import('@/pages/admin/ImportPage.jsx'));
 const SpeciesPage = lazy(() => import('@/pages/admin/SpeciesPage.jsx'));
+const EventsPage = lazy(() => import('@/pages/admin/EventsPage.jsx'));
 
 // Site Owner home (other site routes reuse the admin pages)
 const SiteHome = lazy(() => import('@/pages/site/SiteHome.jsx'));
@@ -122,6 +123,7 @@ export default function AppRouter() {
           <Route path="maintenance" element={<MaintenancePage />} />
           <Route path="assignments" element={<AssignmentsPage />} />
           <Route path="species" element={<SpeciesPage />} />
+          <Route path="events" element={<EventsPage />} />
           <Route path="map" element={<SponsorMap />} />
           {/* Import hidden per client request — uncomment to re-enable */}
           {/* <Route path="import" element={<ImportPage />} /> */}
@@ -145,6 +147,7 @@ export default function AppRouter() {
           <Route path="plant" element={<RecordPlanting />} />
           <Route path="water" element={<RecordMaintenance />} />
           <Route path="maintenance" element={<MaintenancePage />} />
+          <Route path="events" element={<EventsPage />} />
         </Route>
 
         {/* Sponsor tree */}

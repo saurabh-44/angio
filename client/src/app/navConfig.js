@@ -12,6 +12,7 @@ import {
   FileSpreadsheet,
   TreePine,
   UserRound,
+  Plus,
 } from 'lucide-react';
 
 // Single source of truth for sidebar menus. Keys map to roles, values
@@ -31,6 +32,8 @@ export const NAV_BY_ROLE = {
     { to: '/admin/species', label: 'Species', icon: TreePine },
     // Import hidden per client request — uncomment to restore:
     // { to: '/admin/import', label: 'Import', icon: FileSpreadsheet },
+    // Volunteering events — the "+" in the Figma rail.
+    { to: '/admin/events', label: 'Events', icon: Plus },
   ],
   site_owner: [
     { to: '/site', label: 'Overview', icon: LayoutDashboard, end: true },
@@ -41,6 +44,7 @@ export const NAV_BY_ROLE = {
     // The incharge can also record plantings + watering themselves, like a volunteer.
     { to: '/site/plant', label: 'Record planting', icon: Sprout },
     { to: '/site/water', label: 'Record watering', icon: Camera },
+    { to: '/site/events', label: 'Events', icon: Plus },
   ],
   sponsor: [
     { to: '/sponsor', label: 'Overview', icon: LayoutDashboard, end: true },

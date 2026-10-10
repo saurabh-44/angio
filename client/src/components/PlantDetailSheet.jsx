@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/sheet.jsx';
 import PlantLocationMap from './PlantLocationMap.jsx';
 import DownloadLink from './DownloadLink.jsx';
+import AuthedImg from './AuthedImg.jsx';
 import { useMaintenance } from '@/queries/maintenance.js';
 import { formatDate, formatDbh, formatGeo, formatHeight, formatRelative } from '@/lib/format.js';
 import { cn } from '@/lib/utils';
@@ -305,13 +306,12 @@ function QrSection({ plantId, publicCode, scanCount, lastScannedAt }) {
     <section className="rounded-[10px] border border-[#E2E8F0] p-5">
       <div className="flex flex-col items-start gap-4 sm:flex-row">
         <div className="shrink-0 rounded-[10px] border border-[#E2E8F0] bg-white p-2">
-          <img
+          <AuthedImg
             src={`/api/plants/${plantId}/qr.png?size=400`}
             alt="Tree QR code"
             width={120}
             height={120}
             className="block h-28 w-28"
-            loading="lazy"
           />
         </div>
         <div className="min-w-0 flex-1 space-y-2">

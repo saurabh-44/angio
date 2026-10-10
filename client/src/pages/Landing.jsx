@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ChevronDown, Leaf, Menu, X } from 'lucide-react';
 import { ROLE_HOME, useAuth } from '@/lib/auth.jsx';
 import { BODY_FONT, HEADING_FONT } from '@/components/GlassAuthScreen.jsx';
+import { usePublicImpact } from '@/queries/co2.js';
 
 // Public marketing root (Figma design). Signed-in users are redirected to
 // their role home via PublicRoot, so this is primarily the logged-out entry.
@@ -219,7 +220,17 @@ function StatCard({ label, value, sub }) {
   );
 }
 
+// "12.34 Tonnes" — whole tonnes once it's large, a few decimals while the
+// young trees' total is still small so it doesn't read as zero.
+function formatHeroTonnes(t) {
+  const n = Number(t);
+  if (!Number.isFinite(n)) return '—';
+  const digits = n >= 100 ? 0 : n >= 1 ? 1 : 2;
+  return `${n.toLocaleString('en-IN', { maximumFractionDigits: digits })} Tonnes`;
+}
+
 function Hero() {
+  const { data: impact } = usePublicImpact();
   return (
     <section
       id="home"
@@ -264,14 +275,18 @@ function Hero() {
 
         {/* Stat cards near the bottom of the photo */}
         <div className="mt-10 grid w-full max-w-3xl grid-cols-2 gap-3 pb-8 sm:mt-auto sm:gap-4 sm:grid-cols-[1fr_1.3fr] sm:pb-16">
-          <StatCard label="Plantation Sites" value="123+" sub="Across Gujarat, India" />
+          <StatCard
+            label="Plantation Sites"
+            value={impact ? impact.sites.toLocaleString('en-IN') : '—'}
+            sub="Across Gujarat, India"
+          />
           <StatCard
             label={
               <>
                 CO<sub>2</sub> Absorbed
               </>
             }
-            value="100k Tone"
+            value={impact ? formatHeroTonnes(impact.co2Tonnes) : '—'}
             sub="Since 2026"
           />
         </div>
@@ -455,16 +470,16 @@ function Footer() {
             <h3 className="text-xl font-medium text-black sm:text-2xl">Contact Us</h3>
             <div className="mt-8 flex flex-col gap-5">
               <a
-                href="mailto:epcp.envirom@gmail.com"
+                href="mailto:environfoundation@environindia.net"
                 className="rounded-full border border-[#1E1E1E] px-8 py-4 text-center text-base text-[#1E1E1E] transition-colors hover:bg-[#1E1E1E]/5"
               >
-                epcp.envirom@gmail.com
+                environfoundation@environindia.net
               </a>
               <a
-                href="tel:+917226803611"
+                href="tel:+919825926676"
                 className="rounded-full border border-[#1E1E1E] px-8 py-4 text-center text-base text-[#1E1E1E] transition-colors hover:bg-[#1E1E1E]/5"
               >
-                +91 72268 03611
+                +91 98259 26676
               </a>
             </div>
           </div>

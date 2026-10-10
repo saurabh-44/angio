@@ -26,8 +26,10 @@ function blobToBase64(blob) {
 }
 
 // Fetch `apiPath` with whatever auth this platform uses (cookie on web,
-// Bearer on native) and save it as `filename`.
-export async function openAuthedFile(apiPath, filename) {
+// Bearer on native) and return the body as a Blob. Also used to render
+// authed images (tree QR) — a bare <img src="/api/..."> has the same
+// cross-origin / no-Bearer problem as a bare download link.
+export async function fetchAuthedBlob(apiPath) {
   const token = getAccessToken(); // null on web — cookie carries auth there
   const res = await fetch(`${BASE_URL}${apiPath}`, {
     credentials: 'include',
@@ -48,8 +50,12 @@ export async function openAuthedFile(apiPath, filename) {
     }
     throw new Error(message);
   }
+  return res.blob();
+}
 
-  const blob = await res.blob();
+// Fetch `apiPath` with auth and save it as `filename`.
+export async function openAuthedFile(apiPath, filename) {
+  const blob = await fetchAuthedBlob(apiPath);
 
   if (!isNative) {
     // Browser: stream the blob to a temporary anchor to trigger a download.

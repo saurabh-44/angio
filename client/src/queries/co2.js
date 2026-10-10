@@ -24,3 +24,13 @@ export function useSystemCo2() {
     staleTime: 60_000,
   });
 }
+
+// Public landing-page headline: live site count + total CO₂ absorbed so
+// far. No auth.
+export function usePublicImpact() {
+  return useQuery({
+    queryKey: ['co2', 'public-impact'],
+    queryFn: () => api.get('/api/public/impact'),
+    staleTime: 5 * 60_000,
+  });
+}

@@ -18,6 +18,8 @@ import { Skeleton } from '@/components/ui/skeleton.jsx';
 import EmptyState from '@/components/EmptyState.jsx';
 import PlantLocationMap from '@/components/PlantLocationMap.jsx';
 import PhotoCapture from '@/components/PhotoCapture.jsx';
+import AuthedImg from '@/components/AuthedImg.jsx';
+import DownloadLink from '@/components/DownloadLink.jsx';
 import {
   Select,
   SelectContent,
@@ -636,13 +638,12 @@ function QrSection({ plantId, publicCode, scanCount, lastScannedAt }) {
     <section className="rounded-[10px] border border-[#E2E8F0] p-5">
       <div className="flex flex-col items-start gap-4 sm:flex-row">
         <div className="shrink-0 rounded-[10px] border border-[#E2E8F0] bg-white p-2">
-          <img
+          <AuthedImg
             src={`/api/plants/${plantId}/qr.png?size=400`}
             alt="Tree QR code"
             width={120}
             height={120}
             className="block h-28 w-28"
-            loading="lazy"
           />
         </div>
         <div className="min-w-0 flex-1 space-y-2">
@@ -661,13 +662,13 @@ function QrSection({ plantId, publicCode, scanCount, lastScannedAt }) {
             </div>
           )}
           <div className="flex flex-wrap gap-2 pt-1">
-            <a
+            <DownloadLink
               href={`/api/plants/${plantId}/qr.png?size=1024`}
-              download={`tree-${publicCode ?? plantId}.png`}
+              filename={`tree-${publicCode ?? plantId}.png`}
               className="inline-flex items-center gap-1.5 rounded-full border border-[#001F00] px-4 py-2 text-sm text-[#001F00] transition-colors hover:bg-[#001F00] hover:text-white"
             >
               <Download className="h-4 w-4" /> Download
-            </a>
+            </DownloadLink>
             {publicCode && (
               <a
                 href={`/tree/${publicCode}`}

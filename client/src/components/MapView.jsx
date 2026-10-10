@@ -7,8 +7,8 @@ import { Spinner } from '@/components/ui/spinner.jsx';
 import EmptyState from './EmptyState.jsx';
 import { formatDate, formatGeo } from '@/lib/format.js';
 
-// Free, key-less map via Leaflet + OpenStreetMap (CARTO Positron light
-// tiles for a quiet, desaturated look). No Google Maps key / billing, and
+// Free, key-less map via Leaflet + OpenStreetMap standard tiles (CARTO's
+// basemaps now require an API key). No Google Maps key / billing, and
 // it works the same inside the native Capacitor app — Google's referrer
 // restrictions don't apply to the capacitor:// origin, OSM tiles have no
 // such constraint.
@@ -84,10 +84,9 @@ export default function MapView({ plants = [], onSelect, isLoading }) {
     <div className="bento-card overflow-hidden isolate">
       <MapContainer center={center} zoom={5} scrollWheelZoom style={{ height: '70vh', width: '100%' }}>
         <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-          subdomains="abcd"
-          maxZoom={20}
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+          maxZoom={19}
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
         <FitBounds plants={plants} />
         {plants.map((p) => (

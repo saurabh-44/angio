@@ -4,6 +4,7 @@ import {
   ArrowRight,
   Calendar,
   CheckCircle2,
+  Filter,
   Gift,
   Info,
   Loader2,
@@ -34,6 +35,7 @@ import { PageHeading } from '@/components/PageHeading.jsx';
 import paymentMethods from '@/assets/payment-methods.png';
 
 const ANY_SITE = '__any__';
+const ALL_CITIES = '__all__';
 const STEPS = ['Contribution Type', 'Plantation Details', 'Details', 'Report'];
 
 // Contribution types (step 1). They only shape the order's tree count + tag;
@@ -487,6 +489,18 @@ function TreeDetailStep({
     if (!editing) setCountDraft(String(count));
   }, [count, editing]);
 
+  const [city, setCity] = useState(ALL_CITIES);
+  const cities = [...new Set(availableSites.map((s) => s.city).filter(Boolean))].sort();
+  const citySites =
+    city === ALL_CITIES ? availableSites : availableSites.filter((s) => s.city === city);
+  // Picking a city that doesn't contain the chosen site drops the choice
+  // back to "Any site" so a hidden selection can't ride along.
+  function pickCity(next) {
+    setCity(next);
+    const current = availableSites.find((s) => s.id === siteId);
+    if (next !== ALL_CITIES && current && current.city !== next) setSiteId(ANY_SITE);
+  }
+
   const selectedSite = siteId !== ANY_SITE ? availableSites.find((s) => s.id === siteId) : null;
   const overCapacity =
     selectedSite && selectedSite.remaining != null && count > selectedSite.remaining;
@@ -505,29 +519,47 @@ function TreeDetailStep({
       <div className="mt-6 grid grid-cols-1 gap-6 lg:mt-10 lg:grid-cols-2 lg:gap-10">
         {/* Left — form */}
         <div className="flex max-w-[520px] flex-col gap-5 lg:gap-8">
-          {/* Site preference is intentionally hidden — sponsors just order a
-              number of trees and the NGO admin assigns the site afterwards.
-              To restore self-service site choice, uncomment this block (the
-              backend already accepts an optional `site`). */}
-          {/* <Select value={siteId} onValueChange={setSiteId} disabled={sitesLoading}>
-            <SelectTrigger className="h-auto rounded-[10px] border-[#B4B4B4] px-5 py-3 text-base text-[#1E1E1E] transition-colors focus:border-[#0B5000] focus:ring-0 focus:ring-offset-0 lg:py-4">
-              <SelectValue placeholder={sitesLoading ? 'Loading sites…' : 'Select Site (optional)'} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ANY_SITE}>Any site — let the NGO place them</SelectItem>
-              {availableSites.map((s) => (
-                <SelectItem key={s.id} value={s.id}>
-                  {s.name}
-                  {typeof s.pricePerTreeInr === 'number' && (
-                    <span className="text-muted-foreground"> · {formatAmount(s.pricePerTreeInr)}/tree</span>
-                  )}
-                  {s.remaining != null && (
-                    <span className="text-muted-foreground"> · {s.remaining} left</span>
-                  )}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select> */}
+          {/* Site preference (optional) — "Any site" leaves placement to the
+              NGO admin. The filter narrows the list to one city. */}
+          <div className="flex items-stretch gap-2">
+            <Select value={siteId} onValueChange={setSiteId} disabled={sitesLoading}>
+              <SelectTrigger className="h-auto min-w-0 flex-1 rounded-[10px] border-[#B4B4B4] px-5 py-3 text-base text-[#1E1E1E] transition-colors focus:border-[#0B5000] focus:ring-0 focus:ring-offset-0 lg:py-4">
+                <SelectValue placeholder={sitesLoading ? 'Loading sites…' : 'Select Site (optional)'} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ANY_SITE}>Any site — let the NGO place them</SelectItem>
+                {citySites.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.name}
+                    {s.city && <span className="text-muted-foreground"> · {s.city}</span>}
+                    {typeof s.pricePerTreeInr === 'number' && (
+                      <span className="text-muted-foreground"> · {formatAmount(s.pricePerTreeInr)}/tree</span>
+                    )}
+                    {s.remaining != null && (
+                      <span className="text-muted-foreground"> · {s.remaining} left</span>
+                    )}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={city} onValueChange={pickCity} disabled={sitesLoading || cities.length === 0}>
+              <SelectTrigger
+                aria-label="Filter sites by city"
+                className="h-auto w-auto shrink-0 gap-2 rounded-[10px] border-[#B4B4B4] px-4 py-3 text-base text-[#1E1E1E] transition-colors focus:border-[#0B5000] focus:ring-0 focus:ring-offset-0 lg:py-4"
+              >
+                <Filter className="h-4 w-4 shrink-0" aria-hidden />
+                <span className="hidden sm:inline">{city === ALL_CITIES ? 'All cities' : city}</span>
+              </SelectTrigger>
+              <SelectContent align="end">
+                <SelectItem value={ALL_CITIES}>All cities</SelectItem>
+                {cities.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {c}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           {/* Tree count */}
           <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between lg:gap-4">

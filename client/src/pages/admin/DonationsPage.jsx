@@ -47,7 +47,7 @@ import {
 } from '@/queries/donations.js';
 import { useSites } from '@/queries/sites.js';
 import { useSponsorshipInfo } from '@/queries/payments.js';
-import { useUsers } from '@/queries/users.js';
+import { useCreateUser, useUsers } from '@/queries/users.js';
 import { ApiError } from '@/lib/api.js';
 import { formatAmount, formatDate } from '@/lib/format.js';
 import { cn } from '@/lib/utils';
@@ -416,6 +416,7 @@ function CreateDonationDialog({ open, onOpenChange }) {
           <div className="space-y-2">
             <Label className="text-[#001F00]">Sponsor</Label>
             <DonorSelect value={donor} onChange={setDonor} disabled={create.isPending} />
+            <NewSponsorInline onCreated={setDonor} disabled={create.isPending} />
           </div>
 
           <div className="space-y-2">
@@ -514,7 +515,7 @@ function DonorSelect({ value, onChange, disabled }) {
       <SelectContent>
         {donors.length === 0 && !isLoading ? (
           <div className="px-3 py-6 text-center text-sm text-muted-foreground">
-            No sponsors yet. Add one from Users.
+            No sponsors yet. Use “Add new sponsor” below.
           </div>
         ) : (
           donors.map((d) => (
@@ -525,6 +526,77 @@ function DonorSelect({ value, onChange, disabled }) {
         )}
       </SelectContent>
     </Select>
+  );
+}
+
+// "+ Add new sponsor" under the sponsor picker — for a donation from someone
+// who isn't in the system yet. Creates the sponsor account (they get the
+// usual welcome email with a temporary password) and selects it. Plain
+// state, not a nested <form>, since it sits inside the donation form.
+function NewSponsorInline({ onCreated, disabled }) {
+  const createUser = useCreateUser();
+  const { success, error: toastError } = useToast();
+  const [open, setOpen] = useState(false);
+  const [fields, setFields] = useState({ firstName: '', lastName: '', email: '', phone: '' });
+  const set = (k) => (e) => setFields((f) => ({ ...f, [k]: e.target.value }));
+
+  async function add() {
+    const firstName = fields.firstName.trim();
+    const lastName = fields.lastName.trim();
+    const email = fields.email.trim();
+    if (!firstName || !lastName || !email) {
+      toastError('New sponsor', 'First name, last name and email are required.');
+      return;
+    }
+    try {
+      const { user } = await createUser.mutateAsync({
+        firstName,
+        lastName,
+        email,
+        phone: fields.phone.trim() || undefined,
+        role: 'sponsor',
+      });
+      onCreated(user.id ?? user._id);
+      success('Sponsor added', `${firstName} ${lastName} will get a sign-in email.`);
+      setFields({ firstName: '', lastName: '', email: '', phone: '' });
+      setOpen(false);
+    } catch (err) {
+      toastError("Couldn't add sponsor", err instanceof ApiError ? err.message : 'Try again.');
+    }
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        disabled={disabled}
+        className="inline-flex items-center gap-1.5 text-sm font-medium text-[#0B5000] hover:underline disabled:opacity-50"
+      >
+        <Plus className="h-4 w-4" aria-hidden /> Add new sponsor
+      </button>
+    );
+  }
+
+  const busy = disabled || createUser.isPending;
+  return (
+    <div className="space-y-3 rounded-[10px] border border-[#E2E8F0] p-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <Input placeholder="First name" value={fields.firstName} onChange={set('firstName')} disabled={busy} />
+        <Input placeholder="Last name" value={fields.lastName} onChange={set('lastName')} disabled={busy} />
+      </div>
+      <Input type="email" placeholder="Email" value={fields.email} onChange={set('email')} disabled={busy} />
+      <Input type="tel" placeholder="Phone (optional)" value={fields.phone} onChange={set('phone')} disabled={busy} />
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)} disabled={busy}>
+          Cancel
+        </Button>
+        <Button type="button" size="sm" onClick={add} disabled={busy}>
+          {createUser.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+          Add sponsor
+        </Button>
+      </div>
+    </div>
   );
 }
 
