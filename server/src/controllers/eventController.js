@@ -9,6 +9,7 @@ import {
   createEvent,
   getEvent,
   listEvents,
+  listMyEvents,
   listMyInvites,
   previewAudience,
   respondToEvent,
@@ -34,6 +35,10 @@ export async function getEventAudience(req, res) {
 
 export async function getMyInvites(req, res) {
   res.json(await listMyInvites({ actor: req.auth }));
+}
+
+export async function getMyEvents(req, res) {
+  res.json(await listMyEvents({ actor: req.auth }));
 }
 
 export async function getEventById(req, res) {

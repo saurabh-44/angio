@@ -252,6 +252,44 @@ export async function listMyInvites({ actor }) {
   return { items: events.map((e) => ({ ...shapeListItem(e), createdBy: null })) };
 }
 
+// Accepting an event at a site enrols the volunteer there: a planting
+// assignment (if they don't have one yet) puts the site in their planting
+// picker and "My assignments", and into the site in-charge's volunteer pool.
+async function enrolAtEventSite(eventId, actor) {
+  const event = await Event.findById(eventId).select('site name createdBy').lean();
+  const already = await Assignment.exists({ volunteer: actor.userId, site: event.site, kind: 'planting' });
+  if (already) return;
+  await Assignment.create({
+    volunteer: actor.userId,
+    site: event.site,
+    kind: 'planting',
+    assignedBy: event.createdBy,
+    note: `Joined event: ${event.name}`,
+  });
+}
+
+// The signed-in volunteer's accepted events, upcoming only — read-only
+// details (where, when, note, who posted it). Cancelled ones stay listed
+// with their status so the volunteer knows not to turn up.
+export async function listMyEvents({ actor }) {
+  if (actor.role !== 'volunteer') return { items: [] };
+  const events = await Event.find({
+    date: { $gte: startOfTodayIst() },
+    responses: { $elemMatch: { user: actor.userId, response: 'accepted' } },
+  })
+    .sort({ date: 1, time: 1 })
+    .limit(100)
+    .populate('site', 'name city address')
+    .populate('createdBy', 'name')
+    .lean();
+  return {
+    items: events.map((e) => ({
+      ...shapeListItem(e),
+      createdBy: e.createdBy ? { name: e.createdBy.name } : null,
+    })),
+  };
+}
+
 // A volunteer's answer is final — the conditional update only matches
 // while they have no response yet, so a second click (or a race between
 // two tabs) can't flip it.
@@ -267,7 +305,10 @@ export async function respondToEvent({ id, response, actor }) {
     },
     { $push: { responses: { user: actor.userId, response, respondedAt: new Date() } } },
   );
-  if (result.modifiedCount === 1) return { ok: true, response };
+  if (result.modifiedCount === 1) {
+    if (response === 'accepted') await enrolAtEventSite(id, actor);
+    return { ok: true, response };
+  }
 
   const event = await Event.findById(id).select('status date invitees responses').lean();
   if (!event || !event.invitees.some((u) => String(u) === String(actor.userId))) {

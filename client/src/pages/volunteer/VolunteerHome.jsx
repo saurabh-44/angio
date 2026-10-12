@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Camera, Clipboard, Leaf, Sprout } from 'lucide-react';
+import { CalendarDays, Camera, Clipboard, Leaf, Sprout } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton.jsx';
 import { useAuth } from '@/lib/auth.jsx';
 import { usePlants } from '@/queries/plants.js';
@@ -61,6 +61,12 @@ export default function VolunteerHome() {
           className="inline-flex flex-1 items-center justify-center gap-2 rounded-[10px] bg-[#346EC4] px-5 py-4 text-base font-semibold text-white transition-colors hover:bg-[#2c5da6]"
         >
           <Camera className="h-5 w-5" aria-hidden /> Record watering
+        </Link>
+        <Link
+          to="/volunteer/events"
+          className="inline-flex flex-1 items-center justify-center gap-2 rounded-[10px] border border-[#0B5000] bg-white px-5 py-4 text-base font-semibold text-[#0B5000] transition-colors hover:bg-[#F6FAF6]"
+        >
+          <CalendarDays className="h-5 w-5" aria-hidden /> My events
         </Link>
       </div>
 

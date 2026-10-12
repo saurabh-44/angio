@@ -66,10 +66,17 @@
   html {
     scroll-behavior: smooth;
   }
-  html, #root {
+  html {
+    max-width: 100%;
+  }
+  #root {
     /* Clamp sideways drift from decorative SVGs / wide content. `clip`
        (not `hidden`) so we don't create a scroll container that would
-       break the sticky TopBar. */
+       break the sticky TopBar. Not on <html>: a non-visible overflow there
+       stops body's overflow reaching the viewport, so Radix's scroll lock
+       (menus, selects, sheets) adds a scrollbar-width margin while the
+       scrollbar stays — the header jumps sideways on Windows. body's own
+       overflow-x: clip below still clamps the viewport. */
     overflow-x: clip;
     max-width: 100%;
   }

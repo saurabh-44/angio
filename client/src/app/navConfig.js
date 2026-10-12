@@ -13,6 +13,7 @@ import {
   TreePine,
   UserRound,
   Plus,
+  CalendarDays,
 } from 'lucide-react';
 
 // Single source of truth for sidebar menus. Keys map to roles, values
@@ -57,6 +58,8 @@ export const NAV_BY_ROLE = {
   volunteer: [
     { to: '/volunteer', label: 'Overview', icon: LayoutDashboard, end: true },
     { to: '/volunteer/assignments', label: 'Assignments', icon: Clipboard },
+    // Events they accepted — read-only; volunteers can't post events.
+    { to: '/volunteer/events', label: 'My events', icon: CalendarDays },
     // The trees this volunteer planted — each tree's map, QR, and weekly
     // maintenance live in its detail (status + watering editable there).
     { to: '/volunteer/plants', label: 'My Plants', icon: Leaf },

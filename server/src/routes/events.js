@@ -5,6 +5,7 @@ import {
   getEventAudience,
   getEventById,
   getEventList,
+  getMyEvents,
   getMyInvites,
   postEvent,
   postEventCancel,
@@ -21,6 +22,7 @@ eventsRouter.get('/', asyncHandler(getEventList));
 eventsRouter.post('/', asyncHandler(postEvent));
 eventsRouter.get('/audience', asyncHandler(getEventAudience));
 eventsRouter.get('/invites', asyncHandler(getMyInvites));
+eventsRouter.get('/mine', asyncHandler(getMyEvents));
 eventsRouter.get('/:id', asyncHandler(getEventById));
 eventsRouter.post('/:id/respond', asyncHandler(postEventResponse));
 eventsRouter.post('/:id/cancel', asyncHandler(postEventCancel));

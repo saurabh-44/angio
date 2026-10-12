@@ -53,6 +53,7 @@ const SponsorProfile = lazy(() => import('@/pages/sponsor/SponsorProfile.jsx'));
 // Volunteer chunks
 const VolunteerHome = lazy(() => import('@/pages/volunteer/VolunteerHome.jsx'));
 const VolunteerAssignments = lazy(() => import('@/pages/volunteer/VolunteerAssignments.jsx'));
+const VolunteerEvents = lazy(() => import('@/pages/volunteer/VolunteerEvents.jsx'));
 const RecordPlanting = lazy(() => import('@/pages/volunteer/RecordPlanting.jsx'));
 const RecordMaintenance = lazy(() => import('@/pages/volunteer/RecordMaintenance.jsx'));
 
@@ -180,6 +181,7 @@ export default function AppRouter() {
         >
           <Route index element={<VolunteerHome />} />
           <Route path="assignments" element={<VolunteerAssignments />} />
+          <Route path="events" element={<VolunteerEvents />} />
           {/* The volunteer's own planted trees (list scoped server-side),
               reusing the shared Plants hub + detail. */}
           <Route path="plants" element={<PlantsPage />} />

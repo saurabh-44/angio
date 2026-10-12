@@ -7,6 +7,7 @@ export const eventKeys = {
   detail: (id) => ['events', 'detail', id],
   audience: (params) => ['events', 'audience', params],
   invites: ['events', 'invites'],
+  mine: ['events', 'mine'],
 };
 
 // Admin / site in-charge table of upcoming events.
@@ -72,6 +73,18 @@ export function useRespondToEvent() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, response }) => api.post(`/api/events/${id}/respond`, { response }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: eventKeys.all }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: eventKeys.all });
+      // Accepting enrols the volunteer at the event's site (new assignment).
+      qc.invalidateQueries({ queryKey: ['assignments'] });
+    },
+  });
+}
+
+// Volunteer's accepted upcoming events (read-only "My events" page).
+export function useMyEvents() {
+  return useQuery({
+    queryKey: eventKeys.mine,
+    queryFn: () => api.get('/api/events/mine'),
   });
 }
