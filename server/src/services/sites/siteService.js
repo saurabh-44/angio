@@ -1,7 +1,7 @@
 import { Site } from '../../models/Site.js';
 import { User } from '../../models/User.js';
 import { Allocation } from '../../models/Allocation.js';
-import { Assignment } from '../../models/Assignment.js';
+import { Assignment, notEnded } from '../../models/Assignment.js';
 import { Plant } from '../../models/Plant.js';
 import { MaintenanceLog } from '../../models/MaintenanceLog.js';
 import { co2KgForPlant, kgToTonnes } from '../co2/co2Service.js';
@@ -223,7 +223,7 @@ export async function getSiteOverview({ id, actor }) {
   }));
 
   // Volunteers assigned to this site (distinct, latest first).
-  const assignments = await Assignment.find({ site: site._id })
+  const assignments = await Assignment.find({ site: site._id, ...notEnded() })
     .populate('volunteer', 'name email')
     .sort({ startsAt: -1 })
     .lean();

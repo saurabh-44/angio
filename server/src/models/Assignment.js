@@ -4,6 +4,14 @@ import { jsonTransformPlugin } from './plugins/jsonTransform.js';
 
 export const ASSIGNMENT_KINDS = ['planting', 'maintenance'];
 
+// Filter fragment for assignments that still grant access: no end date, or
+// one in the future. Every read that treats an assignment as permission
+// (site scope, an in-charge's volunteer pool) must include it — an event
+// can grant access that ends with the event day.
+export function notEnded(now = new Date()) {
+  return { endsAt: { $not: { $lte: now } } };
+}
+
 const assignmentSchema = new Schema(
   {
     volunteer: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },

@@ -1,7 +1,7 @@
 import { Event } from '../../models/Event.js';
 import { Site } from '../../models/Site.js';
 import { User } from '../../models/User.js';
-import { Assignment } from '../../models/Assignment.js';
+import { Assignment, notEnded } from '../../models/Assignment.js';
 import { Plant } from '../../models/Plant.js';
 import { MaintenanceLog } from '../../models/MaintenanceLog.js';
 import { HttpError } from '../../utils/httpError.js';
@@ -72,7 +72,7 @@ async function loadManagedEvent(id, actor) {
 async function resolveAudience({ site, audience, actor }) {
   const filter = { role: { $in: INVITED_ROLES }, isActive: true, _id: { $ne: actor.userId } };
   if (audience === 'site') {
-    const volunteerIds = await Assignment.distinct('volunteer', { site: site._id });
+    const volunteerIds = await Assignment.distinct('volunteer', { site: site._id, ...notEnded() });
     filter.$or = [
       { role: 'ngo_admin' },
       { _id: site.owner },
@@ -89,7 +89,7 @@ async function resolveAudience({ site, audience, actor }) {
 async function siteOwnerPool(actor) {
   const siteIds = await Site.distinct('_id', { owner: actor.userId });
   const assigned = siteIds.length
-    ? await Assignment.distinct('volunteer', { site: { $in: siteIds } })
+    ? await Assignment.distinct('volunteer', { site: { $in: siteIds }, ...notEnded() })
     : [];
   const pool = await User.distinct('_id', {
     role: 'volunteer',
@@ -264,7 +264,8 @@ export async function listMyInvites({ actor }) {
 // otherwise each event gets its own assignment, so cancelling one event
 // never takes away access another event granted.
 async function enrolAtEventSite(eventId, actor) {
-  const event = await Event.findById(eventId).select('site name date createdBy keepVolunteers').lean();
+  const event = await Event.findById(eventId).select('site name date createdBy keepVolunteers status').lean();
+  if (event.status !== 'active') return;
   const permanent = await Assignment.exists({
     volunteer: actor.userId,
     site: event.site,
@@ -273,7 +274,7 @@ async function enrolAtEventSite(eventId, actor) {
     $or: [{ endsAt: { $exists: false } }, { endsAt: null }],
   });
   if (permanent) return;
-  await Assignment.create({
+  const assignment = await Assignment.create({
     volunteer: actor.userId,
     site: event.site,
     kind: 'planting',
@@ -286,6 +287,11 @@ async function enrolAtEventSite(eventId, actor) {
         ? new Date(new Date(event.date).getTime() + (24 * 60 - 330) * 60 * 1000)
         : undefined,
   });
+  // A cancel can land between the accept and this insert, after its own
+  // clean-up already ran — re-check so a cancelled event never leaves
+  // access behind.
+  const cancelled = await Event.exists({ _id: event._id, status: 'cancelled' });
+  if (cancelled) await Assignment.softDeleteById(assignment._id, actor.userId);
 }
 
 // A cancelled event takes back the site access it granted — except where

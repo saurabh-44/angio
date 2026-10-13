@@ -1,4 +1,4 @@
-import { Assignment } from '../../models/Assignment.js';
+import { Assignment, notEnded } from '../../models/Assignment.js';
 import { Site } from '../../models/Site.js';
 import { User } from '../../models/User.js';
 import { HttpError } from '../../utils/httpError.js';
@@ -41,6 +41,7 @@ async function assertVolunteerAvailable(actor, volunteer) {
   const sharedAssignment = await Assignment.exists({
     volunteer: volunteer._id,
     site: { $in: siteIds },
+    ...notEnded(),
   });
   if (!sharedAssignment) {
     throw HttpError.forbidden(

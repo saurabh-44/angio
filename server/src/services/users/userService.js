@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import { randomBytes } from 'node:crypto';
 import { User } from '../../models/User.js';
 import { Site } from '../../models/Site.js';
-import { Assignment } from '../../models/Assignment.js';
+import { Assignment, notEnded } from '../../models/Assignment.js';
 import { HttpError } from '../../utils/httpError.js';
 import { sendMail } from '../../config/mail.js';
 import { accountCreatedTemplate } from '../../mail/templates/accountCreated.js';
@@ -129,7 +129,7 @@ async function visibleVolunteerIdsForSiteOwner(actor) {
   const mySites = await Site.find({ owner: actor.userId }).select('_id').lean();
   const siteIds = mySites.map((s) => s._id);
   const assignedVolunteerIds = siteIds.length
-    ? await Assignment.distinct('volunteer', { site: { $in: siteIds } })
+    ? await Assignment.distinct('volunteer', { site: { $in: siteIds }, ...notEnded() })
     : [];
   return { siteIds, assignedVolunteerIds };
 }

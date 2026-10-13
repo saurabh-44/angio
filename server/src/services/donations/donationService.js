@@ -171,8 +171,8 @@ async function resolveScopes(actor, baseFilter) {
   if (baseFilter.__volunteerScope) {
     // Pull this in lazily — Assignment is in a sibling service file, so
     // a static import would create a cycle.
-    const { Assignment } = await import('../../models/Assignment.js');
-    const assignments = await Assignment.find({ volunteer: actor.userId })
+    const { Assignment, notEnded } = await import('../../models/Assignment.js');
+    const assignments = await Assignment.find({ volunteer: actor.userId, ...notEnded() })
       .select('site')
       .lean();
     const ids = assignments.map((a) => a.site);
