@@ -210,6 +210,7 @@ function CreateEventSheet({ open, onOpenChange }) {
   const [site, setSite] = useState('');
   const [form, setForm] = useState(EMPTY_FORM);
   const [audience, setAudience] = useState('all');
+  const [keepVolunteers, setKeepVolunteers] = useState(true);
   const [excluded, setExcluded] = useState(() => new Set());
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const today = new Date().toLocaleDateString('en-CA');
@@ -219,6 +220,7 @@ function CreateEventSheet({ open, onOpenChange }) {
     setSite('');
     setForm(EMPTY_FORM);
     setAudience('all');
+    setKeepVolunteers(true);
     setExcluded(new Set());
   }
 
@@ -237,6 +239,7 @@ function CreateEventSheet({ open, onOpenChange }) {
         note: form.note.trim() || undefined,
         volunteersNeeded: Number.isFinite(needed) && needed > 0 ? needed : DEFAULT_VOLUNTEERS_NEEDED,
         audience,
+        keepVolunteers,
         excludedUsers: [...excluded],
       });
       success('Event posted', `${res.invited} ${res.invited === 1 ? 'person' : 'people'} invited.`);
@@ -313,6 +316,38 @@ function CreateEventSheet({ open, onOpenChange }) {
               onChange={set('volunteersNeeded')}
               disabled={busy}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="block text-[#001F00]">After the event</Label>
+            <div className="inline-flex items-center gap-1 rounded-[10px] border border-[#E2E8F0] p-1">
+              {[
+                { v: true, label: 'Keep volunteers' },
+                { v: false, label: 'Remove access' },
+              ].map((opt) => (
+                <button
+                  key={opt.label}
+                  type="button"
+                  disabled={busy}
+                  onClick={() => setKeepVolunteers(opt.v)}
+                  className={cn(
+                    'rounded-[8px] px-4 py-2 text-sm font-medium transition-colors',
+                    keepVolunteers === opt.v
+                      ? 'bg-[#0B5000] text-white'
+                      : 'text-[#1E1E1E]/60 hover:bg-[#F6FAF6] hover:text-[#001F00]',
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-[#1E1E1E]/50">
+              Volunteers who accept are added to this site so they can record plantings here.{' '}
+              {keepVolunteers
+                ? 'They stay on the site’s team after the event.'
+                : 'Their access ends when the event day is over.'}{' '}
+              If you cancel, access is taken back unless they’ve already planted or watered here.
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -504,6 +539,11 @@ function EventDetailSheet({ id, onClose }) {
               <Stat label="Declined" value={ev.rejectedCount} />
               <Stat label="Invited" value={ev.invitedCount} />
             </div>
+            <p className="text-xs text-[#1E1E1E]/50">
+              {ev.keepVolunteers
+                ? 'Volunteers who accept stay on this site’s team after the event.'
+                : 'Volunteers who accept lose access to this site after the event day.'}
+            </p>
 
             <div>
               <h3 className="text-sm font-medium text-[#001F00]">Volunteers who accepted</h3>

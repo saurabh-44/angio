@@ -58,9 +58,11 @@ export default function RecordPlanting() {
   // than being assigned to them, so their planting sites are their own sites.
   const isOwner = role === 'site_owner';
 
+  // Only current access — an event's temporary access drops off once it ends.
   const { data: assignmentsData, isLoading: loadingAssignments } = useAssignments({
     kind: 'planting',
     limit: 50,
+    active: true,
   });
   const { data: ownedSitesData, isLoading: loadingOwnedSites } = useSites({
     limit: 200,

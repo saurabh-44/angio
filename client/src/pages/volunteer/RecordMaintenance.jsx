@@ -58,7 +58,7 @@ export default function RecordMaintenance() {
   // A site owner can log watering like a volunteer — but they own sites rather
   // than being assigned to them, so their sites come from their own sites.
   const isOwner = role === 'site_owner';
-  const { data: assignmentsData, isLoading: loadingAssignments } = useAssignments({ limit: 50 });
+  const { data: assignmentsData, isLoading: loadingAssignments } = useAssignments({ limit: 50, active: true });
   const { data: ownedSitesData, isLoading: loadingOwnedSites } = useSites({
     limit: 200,
     enabled: isOwner,

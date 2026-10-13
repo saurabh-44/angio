@@ -13,6 +13,9 @@ const assignmentSchema = new Schema(
     startsAt: { type: Date, required: true, default: () => new Date() },
     endsAt: { type: Date },
     note: { type: String, trim: true, maxlength: 1000 },
+    // Set when the assignment came from accepting an event — lets a cancel
+    // undo exactly the access that event granted.
+    event: { type: Schema.Types.ObjectId, ref: 'Event', index: true, sparse: true },
   },
   { timestamps: true, collection: 'assignments' },
 );

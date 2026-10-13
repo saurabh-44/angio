@@ -14,7 +14,7 @@ const KIND_PILL = {
 };
 
 export default function VolunteerAssignments() {
-  const { data, isLoading } = useAssignments({ limit: 50 });
+  const { data, isLoading } = useAssignments({ limit: 50, active: true });
   const items = data?.items ?? [];
 
   // Group by site so a volunteer doing both planting + maintenance on the

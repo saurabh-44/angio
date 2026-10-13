@@ -32,6 +32,10 @@ const eventSchema = new Schema(
     // admin; 'site' = only people linked to this site. `invitees` is the
     // resolved list (after exclusions) — it decides who sees the request.
     audience: { type: String, enum: EVENT_AUDIENCES, default: 'all' },
+    // Accepting enrols a volunteer at the site (a planting assignment).
+    // true = they stay on the site's team afterwards; false = that access
+    // ends when the event day is over.
+    keepVolunteers: { type: Boolean, default: true },
     invitees: [{ type: Schema.Types.ObjectId, ref: 'User', index: true }],
     responses: { type: [responseSchema], default: [] },
     status: { type: String, enum: EVENT_STATUSES, default: 'active', index: true },

@@ -2,6 +2,8 @@ import { Event } from '../../models/Event.js';
 import { Site } from '../../models/Site.js';
 import { User } from '../../models/User.js';
 import { Assignment } from '../../models/Assignment.js';
+import { Plant } from '../../models/Plant.js';
+import { MaintenanceLog } from '../../models/MaintenanceLog.js';
 import { HttpError } from '../../utils/httpError.js';
 import { sendMail } from '../../config/mail.js';
 import { env } from '../../config/env.js';
@@ -144,6 +146,7 @@ export async function createEvent({ input, actor }) {
     note: input.note || undefined,
     volunteersNeeded: input.volunteersNeeded,
     audience: input.audience,
+    keepVolunteers: input.keepVolunteers,
     invitees: invitees.map((u) => u._id),
     createdBy: actor.userId,
   });
@@ -181,6 +184,7 @@ function shapeListItem(e) {
     note: e.note ?? null,
     status: e.status,
     volunteersNeeded: e.volunteersNeeded,
+    keepVolunteers: e.keepVolunteers !== false,
     acceptedCount: accepted,
     site: e.site
       ? { id: String(e.site._id), name: e.site.name, city: e.site.city ?? null, address: e.site.address ?? null }
@@ -253,19 +257,48 @@ export async function listMyInvites({ actor }) {
 }
 
 // Accepting an event at a site enrols the volunteer there: a planting
-// assignment (if they don't have one yet) puts the site in their planting
-// picker and "My assignments", and into the site in-charge's volunteer pool.
+// assignment tagged with the event puts the site in their planting picker
+// and "My assignments", and into the site in-charge's volunteer pool. With
+// keepVolunteers off, it ends when the event day is over (IST). Skipped
+// when an admin / in-charge already gave them open-ended planting access;
+// otherwise each event gets its own assignment, so cancelling one event
+// never takes away access another event granted.
 async function enrolAtEventSite(eventId, actor) {
-  const event = await Event.findById(eventId).select('site name createdBy').lean();
-  const already = await Assignment.exists({ volunteer: actor.userId, site: event.site, kind: 'planting' });
-  if (already) return;
+  const event = await Event.findById(eventId).select('site name date createdBy keepVolunteers').lean();
+  const permanent = await Assignment.exists({
+    volunteer: actor.userId,
+    site: event.site,
+    kind: 'planting',
+    event: null,
+    $or: [{ endsAt: { $exists: false } }, { endsAt: null }],
+  });
+  if (permanent) return;
   await Assignment.create({
     volunteer: actor.userId,
     site: event.site,
     kind: 'planting',
     assignedBy: event.createdBy,
     note: `Joined event: ${event.name}`,
+    event: event._id,
+    // Event date is UTC midnight of its day; the IST day ends 18:30 UTC.
+    endsAt:
+      event.keepVolunteers === false
+        ? new Date(new Date(event.date).getTime() + (24 * 60 - 330) * 60 * 1000)
+        : undefined,
   });
+}
+
+// A cancelled event takes back the site access it granted — except where
+// the volunteer has already planted or watered at that site, so their work
+// stays reachable from the planting / watering pickers.
+async function revokeEventEnrolments(event) {
+  const assignments = await Assignment.find({ event: event._id }).select('volunteer site').lean();
+  for (const a of assignments) {
+    const worked =
+      (await Plant.exists({ site: a.site, plantedBy: a.volunteer })) ||
+      (await MaintenanceLog.exists({ site: a.site, volunteer: a.volunteer }));
+    if (!worked) await Assignment.softDeleteById(a._id, event.cancelledBy);
+  }
 }
 
 // The signed-in volunteer's accepted events, upcoming only — read-only
@@ -327,6 +360,7 @@ export async function cancelEvent({ id, actor }) {
   const event = await loadManagedEvent(id, actor);
   if (event.status === 'cancelled') return { ok: true };
   await Event.updateOne({ _id: event._id }, { status: 'cancelled', cancelledAt: new Date() });
+  await revokeEventEnrolments({ ...event, cancelledBy: actor.userId });
 
   const acceptedIds = event.responses.filter((r) => r.response === 'accepted').map((r) => r.user);
   if (acceptedIds.length) {

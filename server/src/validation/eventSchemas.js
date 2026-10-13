@@ -15,6 +15,7 @@ export const createEventSchema = z.object({
   note: z.string().trim().max(1000).optional(),
   volunteersNeeded: z.number().int().min(1).max(10000).optional(),
   audience: z.enum(EVENT_AUDIENCES).default('all'),
+  keepVolunteers: z.boolean().default(true),
   excludedUsers: z.array(objectId).max(5000).default([]),
 });
 
