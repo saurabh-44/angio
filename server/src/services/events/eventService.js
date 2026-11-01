@@ -70,7 +70,16 @@ async function loadManagedEvent(id, actor) {
 // volunteers assigned to it. The creator is left out — they don't need
 // their own invitation.
 async function resolveAudience({ site, audience, actor }) {
-  const filter = { role: { $in: INVITED_ROLES }, isActive: true, _id: { $ne: actor.userId } };
+  // Self-registered volunteers (they have a serviceCity) stay out of every
+  // audience until an admin assigns them a site — accepting an invite
+  // grants site access, which must not happen before that.
+  const vetted = await Assignment.distinct('volunteer', notEnded());
+  const filter = {
+    role: { $in: INVITED_ROLES },
+    isActive: true,
+    _id: { $ne: actor.userId },
+    $nor: [{ role: 'volunteer', serviceCity: { $exists: true }, _id: { $nin: vetted } }],
+  };
   if (audience === 'site') {
     const volunteerIds = await Assignment.distinct('volunteer', { site: site._id, ...notEnded() });
     filter.$or = [
