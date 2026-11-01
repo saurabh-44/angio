@@ -7,6 +7,7 @@ import { assertNotLocked, recordFailedLogin, resetLoginAttempts } from './loginL
 import { sendMail } from '../../config/mail.js';
 import { passwordChangedTemplate } from '../../mail/templates/passwordChanged.js';
 import { logger } from '../../utils/logger.js';
+import { listServiceCities } from '../sites/siteService.js';
 
 const BCRYPT_ROUNDS = 12;
 
@@ -72,12 +73,32 @@ export async function startLogin({ identifier, password }) {
   return { requiresOtp: false, user };
 }
 
-// Step 1 of sponsor self-registration. We DON'T create the User yet — the
-// password-hashed signup is stashed in PendingSignup and an email OTP is
-// sent. The real account is created only once that OTP is verified (see
-// completeLoginWithOtp), so unverified / spam signups never become real
-// accounts. Role is hard-coded to 'sponsor'.
-export async function startSignup({ firstName, lastName, email, phone, password, dob, gender }) {
+// Step 1 of sponsor / volunteer self-registration. We DON'T create the User
+// yet — the password-hashed signup is stashed in PendingSignup and an email
+// OTP is sent. The real account is created only once that OTP is verified
+// (see completeLoginWithOtp), so unverified / spam signups never become real
+// accounts. Role is limited to 'sponsor' | 'volunteer' by registerSchema. A
+// self-registered volunteer gets no site access until an admin assigns one.
+export async function startSignup({
+  firstName,
+  lastName,
+  email,
+  phone,
+  password,
+  dob,
+  gender,
+  role = 'sponsor',
+  serviceCity,
+  purposes,
+}) {
+  let volunteer = { serviceCity: null, serviceState: null, purposes: null };
+  if (role === 'volunteer') {
+    const wanted = serviceCity.trim().toLowerCase();
+    const match = (await listServiceCities()).find((c) => c.city.toLowerCase() === wanted);
+    if (!match) throw HttpError.badRequest('Select a city from the list');
+    volunteer = { serviceCity: match.city, serviceState: match.state, purposes: [...new Set(purposes)] };
+  }
+
   const existing = await User.findOne({ email }).select('_id').lean();
   if (existing) throw HttpError.conflict('An account with this email already exists');
 
@@ -98,6 +119,8 @@ export async function startSignup({ firstName, lastName, email, phone, password,
         dob,
         gender,
         passwordHash,
+        role,
+        ...volunteer,
         expiresAt: new Date(Date.now() + SIGNUP_TTL_MS),
       },
     },
@@ -116,9 +139,10 @@ export async function completeLoginWithOtp({ email, otp }) {
 
   let user = await User.findOne({ email, isActive: true }).lean();
   if (!user) {
-    // No account yet → must be a verified sponsor signup. Create it now.
+    // No account yet → must be a verified self-signup. Create it now.
     const pending = await PendingSignup.findOne({ email }).lean();
     if (!pending) throw HttpError.unauthorized('Account not found');
+    const isVolunteer = pending.role === 'volunteer';
     const created = await User.create({
       firstName: pending.firstName,
       lastName: pending.lastName,
@@ -126,7 +150,12 @@ export async function completeLoginWithOtp({ email, otp }) {
       phone: pending.phone,
       dob: pending.dob,
       gender: pending.gender,
-      role: 'sponsor',
+      role: isVolunteer ? 'volunteer' : 'sponsor',
+      ...(isVolunteer && {
+        serviceCity: pending.serviceCity,
+        serviceState: pending.serviceState ?? undefined,
+        purposes: pending.purposes,
+      }),
       passwordHash: pending.passwordHash,
       isActive: true,
       forcePasswordChange: false,
@@ -154,6 +183,9 @@ export async function getMe(userId) {
       avatarUrl: user.avatarUrl ?? null,
       phone: user.phone ?? null,
       address: user.address ?? null,
+      serviceCity: user.serviceCity ?? null,
+      serviceState: user.serviceState ?? null,
+      purposes: user.purposes ?? [],
       role: user.role,
       isActive: user.isActive,
       isPrimary: !!user.isPrimary,

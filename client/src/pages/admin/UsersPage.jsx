@@ -54,7 +54,7 @@ import {
   useUpdateUser,
   useUsers,
 } from '@/queries/users.js';
-import { useSites } from '@/queries/sites.js';
+import { useServiceCities, useSites } from '@/queries/sites.js';
 import { ApiError } from '@/lib/api.js';
 import { formatDate } from '@/lib/format.js';
 import { cn } from '@/lib/utils';
@@ -78,12 +78,40 @@ const GENDER_OPTIONS = [
 ];
 const LIMIT = 20;
 
+// Must match VOLUNTEER_PURPOSES on the server.
+const PURPOSE_LABEL = {
+  plantation: 'Tree plantation',
+  maintenance: 'Tree care / maintenance',
+  events: 'Events & awareness drives',
+  other: 'Other',
+};
+
+const FILTER_SELECT =
+  'rounded-[10px] border border-[#B4B4B4] bg-white px-4 py-3.5 text-sm text-[#1E1E1E] outline-none transition-colors focus:border-[#0B5000]';
+
+// Self-registered volunteers are the only accounts with a service city.
+const isSelfRegistered = (u) => u.role === 'volunteer' && !!u.serviceCity;
+
+function SelfRegisteredPill() {
+  return (
+    <span className="rounded-full bg-[#FFF4D6] px-2 py-0.5 text-[11px] font-medium text-[#7A5600]">
+      Self-registered
+    </span>
+  );
+}
+
 export default function UsersPage() {
   const { user: actor } = useAuth();
   const [searchParams] = useSearchParams();
   const [role, setRole] = useState('');
   const [q, setQ] = useState(searchParams.get('q') ?? '');
   const [page, setPage] = useState(1);
+  // Volunteer-only filters, shown once the role filter is "Volunteer".
+  const [serviceCity, setServiceCity] = useState('');
+  const [purpose, setPurpose] = useState('');
+  const [unassigned, setUnassigned] = useState(false);
+  const isVolunteerFilter = role === 'volunteer';
+  const { data: citiesData } = useServiceCities();
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [confirmingDelete, setConfirmingDelete] = useState(null);
@@ -91,6 +119,9 @@ export default function UsersPage() {
   const { data, isLoading, isError, refetch } = useUsers({
     role: role || undefined,
     q: q || undefined,
+    serviceCity: (isVolunteerFilter && serviceCity) || undefined,
+    purpose: (isVolunteerFilter && purpose) || undefined,
+    unassigned: isVolunteerFilter && unassigned,
     page,
     limit: LIMIT,
   });
@@ -131,6 +162,55 @@ export default function UsersPage() {
             setPage(1);
           }}
         />
+
+        {isVolunteerFilter && (
+          <>
+            <select
+              aria-label="Service city"
+              value={serviceCity}
+              onChange={(e) => {
+                setServiceCity(e.target.value);
+                setPage(1);
+              }}
+              className={FILTER_SELECT}
+            >
+              <option value="">All cities</option>
+              {(citiesData?.items ?? []).map((c) => (
+                <option key={c.city} value={c.city}>
+                  {c.city}
+                </option>
+              ))}
+            </select>
+            <select
+              aria-label="Purpose"
+              value={purpose}
+              onChange={(e) => {
+                setPurpose(e.target.value);
+                setPage(1);
+              }}
+              className={FILTER_SELECT}
+            >
+              <option value="">All purposes</option>
+              {Object.entries(PURPOSE_LABEL).map(([v, label]) => (
+                <option key={v} value={v}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-[#1E1E1E]">
+              <input
+                type="checkbox"
+                checked={unassigned}
+                onChange={(e) => {
+                  setUnassigned(e.target.checked);
+                  setPage(1);
+                }}
+                className="h-4 w-4 accent-[#0B5000]"
+              />
+              Not assigned to a site
+            </label>
+          </>
+        )}
 
         <button
           type="button"
@@ -199,6 +279,7 @@ export default function UsersPage() {
                             Inactive
                           </span>
                         )}
+                        {isSelfRegistered(u) && <SelfRegisteredPill />}
                       </div>
                     </td>
                     <td className="py-4 pr-4">
@@ -237,6 +318,7 @@ export default function UsersPage() {
                         Inactive
                       </span>
                     )}
+                    {isSelfRegistered(u) && <SelfRegisteredPill />}
                   </div>
                   <div className="mt-1.5 flex flex-wrap items-center gap-2">
                     <RolePill role={u.role} />
@@ -769,6 +851,29 @@ function UserSummary({ user }) {
             <span className="text-[#1E1E1E]/50">({user.createdBy.role.replace('_', ' ')})</span>
           )}
         </div>
+      )}
+      {isSelfRegistered(user) && (
+        <>
+          <div className="flex items-center gap-2 text-sm text-[#1E1E1E]/70">
+            <MapPin className="h-3.5 w-3.5" aria-hidden />
+            Serves in{' '}
+            <span className="font-medium text-[#001F00]">
+              {[user.serviceCity, user.serviceState].filter(Boolean).join(', ')}
+            </span>
+          </div>
+          {user.purposes?.length > 0 && (
+            <div className="text-sm text-[#1E1E1E]/70">
+              Wants to help with:{' '}
+              <span className="text-[#001F00]">
+                {user.purposes.map((p) => PURPOSE_LABEL[p] ?? p).join(', ')}
+              </span>
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            <SelfRegisteredPill />
+            <span className="text-xs text-[#1E1E1E]/50">Assign a site from Assignments to give access.</span>
+          </div>
+        </>
       )}
       {user.role === 'site_owner' && (
         <div className="flex items-start gap-2 text-sm text-[#1E1E1E]/70">

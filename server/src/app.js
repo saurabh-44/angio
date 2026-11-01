@@ -21,6 +21,7 @@ import { uploadsRouter } from './routes/uploads.js';
 import { paymentsRouter } from './routes/payments.js';
 import { publicTreesRouter } from './routes/publicTrees.js';
 import { publicImpactRouter } from './routes/publicImpact.js';
+import { publicServiceCitiesRouter } from './routes/publicServiceCities.js';
 import { co2Router } from './routes/co2.js';
 import { certificatesRouter } from './routes/certificates.js';
 import { analyticsRouter } from './routes/analytics.js';
@@ -119,6 +120,7 @@ export function createApp() {
   // obvious — the QR scan flow and the landing page stats.
   app.use('/api/public/trees', publicTreesRouter);
   app.use('/api/public/impact', publicImpactRouter);
+  app.use('/api/public/service-cities', publicServiceCitiesRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

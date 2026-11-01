@@ -11,6 +11,9 @@ export const OTP_LOGIN_ROLES = new Set(['ngo_admin', 'site_owner', 'sponsor', 'v
 
 export const GENDERS = ['male', 'female', 'other', 'prefer_not_to_say'];
 
+// Why a self-registered volunteer signed up. Multi-select.
+export const VOLUNTEER_PURPOSES = ['plantation', 'maintenance', 'events', 'other'];
+
 // Reusable postal address shape (billing/shipping).
 const addressSchema = new Schema(
   {
@@ -49,6 +52,14 @@ const userSchema = new Schema(
     // Sites a volunteer indicated a preference for when the account was
     // set up. Informational — actual fieldwork is driven by Assignment.
     preferredSites: [{ type: Schema.Types.ObjectId, ref: 'Site' }],
+
+    // Self-registered volunteers only. The city (picked from cities that
+    // have a site) is where they want to serve; state is derived from it.
+    // Kept apart from `address` so a home address can be added later
+    // without mixing the two.
+    serviceCity: { type: String, trim: true, maxlength: 120 },
+    serviceState: { type: String, trim: true, maxlength: 120 },
+    purposes: { type: [{ type: String, enum: VOLUNTEER_PURPOSES }], default: undefined },
 
     isActive: { type: Boolean, default: true },
     lastLoginAt: { type: Date },

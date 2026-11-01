@@ -14,6 +14,9 @@ export function useUsers(params = {}) {
       const sp = new URLSearchParams();
       if (params.role) sp.set('role', params.role);
       if (params.q) sp.set('q', params.q);
+      if (params.serviceCity) sp.set('serviceCity', params.serviceCity);
+      if (params.purpose) sp.set('purpose', params.purpose);
+      if (params.unassigned) sp.set('unassigned', 'true');
       if (params.page) sp.set('page', params.page);
       if (params.limit) sp.set('limit', params.limit);
       const qs = sp.toString();

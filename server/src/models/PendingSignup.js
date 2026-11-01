@@ -1,6 +1,6 @@
 import { Schema, model } from 'mongoose';
 
-// Holds a sponsor's self-registration between step 1 (register) and step 2
+// Holds a sponsor's or volunteer's self-registration between step 1 (register) and step 2
 // (email-OTP verification). The real User is created ONLY when the OTP is
 // verified — so unverified / spam signups never become accounts. A TTL
 // index auto-purges abandoned signups. Internal-only: never serialized to
@@ -14,6 +14,10 @@ const pendingSignupSchema = new Schema(
     dob: { type: Date },
     gender: { type: String },
     passwordHash: { type: String, required: true },
+    role: { type: String, enum: ['sponsor', 'volunteer'], default: 'sponsor' },
+    serviceCity: { type: String },
+    serviceState: { type: String },
+    purposes: { type: [String], default: undefined },
     expiresAt: { type: Date, required: true },
   },
   { timestamps: true, collection: 'pendingSignups' },

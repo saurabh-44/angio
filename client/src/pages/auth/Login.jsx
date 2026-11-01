@@ -81,6 +81,15 @@ export default function Login() {
             Forgot password?
           </Link>
         </p>
+
+        {/* The app opens straight on this screen (no landing page), so the
+            volunteer sign-up entry point lives here too. */}
+        <Link
+          to="/register?as=volunteer"
+          className="mt-8 block w-full rounded-full border border-white/40 py-4 text-center text-base font-medium text-white transition-colors hover:bg-white/15"
+        >
+          Become a Volunteer
+        </Link>
       </form>
     </GlassAuthScreen>
   );

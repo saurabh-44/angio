@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { Types } from 'mongoose';
-import { ROLES, GENDERS } from '../models/User.js';
+import { ROLES, GENDERS, VOLUNTEER_PURPOSES } from '../models/User.js';
 
 const email = z.string().email().trim().toLowerCase();
 const personName = z.string().trim().min(1).max(60);
@@ -37,6 +37,10 @@ export const updateUserSchema = z.object({
 export const listUsersQuerySchema = z.object({
   role: z.enum(ROLES).optional(),
   q: z.string().trim().max(120).optional(),
+  // NGO-admin filters for finding self-registered volunteers to assign.
+  serviceCity: z.string().trim().max(120).optional(),
+  purpose: z.enum(VOLUNTEER_PURPOSES).optional(),
+  unassigned: z.enum(['true', 'false']).transform((v) => v === 'true').optional(),
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(500).default(20),
 });

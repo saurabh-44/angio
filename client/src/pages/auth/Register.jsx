@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { ChevronDown } from 'lucide-react';
@@ -6,11 +6,25 @@ import { ROLE_HOME, useAuth } from '@/lib/auth.jsx';
 import { useToast } from '@/components/ui/toast.jsx';
 import { ApiError } from '@/lib/api.js';
 import { cn } from '@/lib/utils';
+import { useServiceCities } from '@/queries/sites.js';
 import { Field, FieldWrap, GlassAuthScreen, PasswordField, inputCls } from '@/components/GlassAuthScreen.jsx';
 
-// Figma "Create Account". All validation/logic is unchanged — the account is
-// created only after the email OTP is verified.
+// Must match VOLUNTEER_PURPOSES on the server.
+const PURPOSES = [
+  { value: 'plantation', label: 'Tree plantation' },
+  { value: 'maintenance', label: 'Tree care / maintenance' },
+  { value: 'events', label: 'Events & awareness drives' },
+  { value: 'other', label: 'Other' },
+];
+
+// Figma "Create Account". The account is created only after the email OTP is
+// verified. `?as=volunteer` (the landing "Become a Volunteer" button) turns it
+// into the volunteer sign-up: same fields plus purposes and a service city.
 export default function Register() {
+  const [searchParams] = useSearchParams();
+  const isVolunteer = searchParams.get('as') === 'volunteer';
+  const { data: citiesData, isLoading: loadingCities } = useServiceCities();
+  const cities = citiesData?.items ?? [];
   const { register: registerAccount } = useAuth();
   const { error: toastError } = useToast();
   const navigate = useNavigate();
@@ -32,6 +46,11 @@ export default function Register() {
         dob: values.dob || undefined,
         gender: values.gender || undefined,
         password: values.password,
+        ...(isVolunteer && {
+          role: 'volunteer',
+          serviceCity: values.serviceCity,
+          purposes: values.purposes,
+        }),
       });
       if (res?.requiresOtp) {
         navigate('/login/verify');
@@ -51,11 +70,17 @@ export default function Register() {
   const dobField = register('dob', { required: 'Required' });
   const dob = watch('dob');
   const today = new Date().toISOString().slice(0, 10);
+  const serviceCity = watch('serviceCity');
+  const serviceState = cities.find((c) => c.city === serviceCity)?.state;
 
   return (
     <GlassAuthScreen
-      title="Create Account"
-      subtitle="Create your account and be part of the mission."
+      title={isVolunteer ? 'Become a Volunteer' : 'Create Account'}
+      subtitle={
+        isVolunteer
+          ? 'Sign up to plant and care for trees near you.'
+          : 'Create your account and be part of the mission.'
+      }
     >
       <form onSubmit={handleSubmit(onSubmit)} className="mt-14 sm:mt-20" noValidate>
         {/* Two columns on every width so short fields (name, DOB, gender) pair
@@ -166,6 +191,62 @@ export default function Register() {
               })}
             />
           </div>
+
+          {isVolunteer && (
+            <>
+              {/* Service city — only cities that have a site; state follows from it. */}
+              <FieldWrap error={errors.serviceCity}>
+                <div className="relative">
+                  <select
+                    defaultValue=""
+                    {...register('serviceCity', { required: 'Select your city' })}
+                    className={cn(inputCls, 'min-w-0 cursor-pointer appearance-none pr-6 [&>option]:text-black')}
+                  >
+                    <option value="" disabled>
+                      {loadingCities ? 'Loading cities…' : cities.length ? 'Service City*' : 'No cities available yet'}
+                    </option>
+                    {cities.map((c) => (
+                      <option key={c.city} value={c.city}>
+                        {c.city}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown
+                    className="pointer-events-none absolute right-0 top-1 h-4 w-4 text-white/70"
+                    aria-hidden
+                  />
+                </div>
+              </FieldWrap>
+              <input
+                readOnly
+                tabIndex={-1}
+                aria-label="State"
+                placeholder="State"
+                value={serviceState ?? ''}
+                className={cn(inputCls, 'min-w-0 cursor-default')}
+              />
+
+              <fieldset className="col-span-2">
+                <legend className="text-base text-white/70">Why do you want to volunteer?*</legend>
+                <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                  {PURPOSES.map((p) => (
+                    <label key={p.value} className="flex cursor-pointer items-center gap-2.5 text-sm text-white">
+                      <input
+                        type="checkbox"
+                        value={p.value}
+                        {...register('purposes', {
+                          validate: (v) => (Array.isArray(v) && v.length > 0) || 'Select at least one',
+                        })}
+                        className="h-4 w-4 accent-white"
+                      />
+                      {p.label}
+                    </label>
+                  ))}
+                </div>
+                {errors.purposes && <p className="mt-1.5 text-xs text-red-200">{errors.purposes.message}</p>}
+              </fieldset>
+            </>
+          )}
         </div>
 
         <button
