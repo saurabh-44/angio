@@ -86,3 +86,12 @@ export function useDeleteSite() {
     onSuccess: () => qc.invalidateQueries({ queryKey: siteKeys.all }),
   });
 }
+
+// Cities that have a site — the volunteer sign-up city dropdown. Public, no auth.
+export function useServiceCities() {
+  return useQuery({
+    queryKey: ['public', 'service-cities'],
+    queryFn: () => api.get('/api/public/service-cities'),
+    staleTime: 5 * 60_000,
+  });
+}

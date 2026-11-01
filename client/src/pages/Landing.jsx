@@ -267,9 +267,9 @@ function Hero() {
             <Link to="/register" className={glassPill}>
               Make Contribution
             </Link>
-            <a href="#mission" className={glassPill + ' sm:min-w-[140px]'}>
-              Read More
-            </a>
+            <Link to="/register?as=volunteer" className={glassPill + ' sm:min-w-[140px]'}>
+              Become a Volunteer
+            </Link>
           </div>
         </div>
 

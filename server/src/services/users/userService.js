@@ -134,7 +134,7 @@ async function visibleVolunteerIdsForSiteOwner(actor) {
   return { siteIds, assignedVolunteerIds };
 }
 
-export async function listUsers({ role, q, page, limit, actor }) {
+export async function listUsers({ role, q, serviceCity, purpose, unassigned, page, limit, actor }) {
   // Site owners can list volunteers but only their own pool (created or
   // already-assigned). Everything else still requires ngo_admin.
   const siteOwnerVolunteerLookup =
@@ -148,6 +148,12 @@ export async function listUsers({ role, q, page, limit, actor }) {
   if (q) {
     const rx = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
     filter.$or = [{ name: rx }, { email: rx }];
+  }
+  if (actor.role === 'ngo_admin') {
+    if (serviceCity) filter.serviceCity = serviceCity;
+    if (purpose) filter.purposes = purpose;
+    // No assignment that still grants access → no site access at all.
+    if (unassigned) filter._id = { $nin: await Assignment.distinct('volunteer', notEnded()) };
   }
 
   let projection = null; // null = full doc

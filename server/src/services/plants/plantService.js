@@ -2,7 +2,20 @@ import { Plant } from '../../models/Plant.js';
 import { Site } from '../../models/Site.js';
 import { Allocation } from '../../models/Allocation.js';
 import { MaintenanceLog } from '../../models/MaintenanceLog.js';
+import { Assignment, notEnded } from '../../models/Assignment.js';
 import { HttpError } from '../../utils/httpError.js';
+
+// A volunteer may only record work on a site they currently hold an
+// assignment for (started, not ended) — the same "active" rule the field
+// app uses to list their sites. Self-registered volunteers have none until
+// an admin assigns them, so they can't write anywhere.
+async function assertVolunteerOnSite(actor, siteId, kind) {
+  const filter = { volunteer: actor.userId, site: siteId, startsAt: { $lte: new Date() }, ...notEnded() };
+  if (kind) filter.kind = kind;
+  if (!(await Assignment.exists(filter))) {
+    throw HttpError.forbidden('You are not assigned to this site');
+  }
+}
 
 // Returns a Mongoose filter scoping plant reads to the actor.
 //   ngo_admin → all
@@ -36,6 +49,7 @@ export async function createPlant({ input, actor }) {
   if (actor.role === 'site_owner' && String(site.owner) !== actor.userId) {
     throw HttpError.forbidden('You can only record plantings on your own site');
   }
+  if (actor.role === 'volunteer') await assertVolunteerOnSite(actor, site._id, 'planting');
 
   // Optional: pin the tree to an order at create time (not used by the
   // field app anymore — orders are fulfilled via "assign existing trees").
@@ -333,6 +347,7 @@ export async function createMaintenanceLog({ input, actor }) {
       throw HttpError.forbidden('You can only record maintenance on your own site');
     }
   }
+  if (actor.role === 'volunteer') await assertVolunteerOnSite(actor, plant.site);
 
   const weekOf = startOfWeek(input.weekOf ?? new Date());
 

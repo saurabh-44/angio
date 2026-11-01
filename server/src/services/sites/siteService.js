@@ -70,6 +70,21 @@ async function assertOwnerIsSiteOwner(ownerId) {
   }
 }
 
+// Cities that have at least one site — the only service cities a volunteer
+// can pick at self-registration. Deduped case-insensitively; the state
+// comes from the site so volunteers never type it.
+export async function listServiceCities() {
+  const sites = await Site.find({ city: { $nin: [null, ''] } }).select('city state').lean();
+  const byKey = new Map();
+  for (const { city, state } of sites) {
+    const key = city.trim().toLowerCase();
+    const prev = byKey.get(key);
+    if (!prev) byKey.set(key, { city: city.trim(), state: state?.trim() || null });
+    else if (!prev.state && state?.trim()) prev.state = state.trim();
+  }
+  return [...byKey.values()].sort((a, b) => a.city.localeCompare(b.city));
+}
+
 // Returns the Mongoose filter that scopes site reads to the actor's role.
 //   ngo_admin → no extra filter
 //   site_owner → only their own sites
